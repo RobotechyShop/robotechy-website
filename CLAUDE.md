@@ -129,3 +129,18 @@ The `vite.config.ts` includes `optimizeDeps.include: ['style-to-js']` to handle 
 - Never modify `App.tsx` unless adding new providers
 - Dev server binds to `::` (IPv6) on port 8080
 - Uses TypeScript with `strictNullChecks` but not `strict` mode
+
+## User Context
+
+This repository is maintained by multiple people. Check the current GitHub user with `gh api user --jq '.login'` to adjust communication style:
+
+| GitHub User | Role | Communication Style |
+|-------------|------|---------------------|
+| `BenGWeeks` | Developer (Ben) | Technical, concise |
+| `IsaacWeeks` | Store Owner (Isaac) | Educational, explain concepts (Git, Nostr, Lightning) |
+
+When Isaac is working on the repo, explain what you're doing so he can learn to maintain the website himself. Key topics he's learning:
+- Git basics (commits, branches, push/pull)
+- Nostr protocol (NIPs, Kinds, events, relays)
+- Bitcoin/Lightning (addresses, invoices, sats)
+- Working with Claude to build websites
