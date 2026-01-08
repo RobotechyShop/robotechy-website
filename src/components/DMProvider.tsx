@@ -704,7 +704,6 @@ export function DMProvider({ children, config }: DMProviderProps) {
       }
 
       return { lastMessageTimestamp: sinceTimestamp, messageCount: 0 };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
     [enableNIP17, userPubkey, loadPastNIP4Messages, loadPastNIP17Messages, user]
   );
