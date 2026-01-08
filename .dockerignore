@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+order-service/node_modules/
+
+# Build output
+dist/
+
+# Git
+.git/
+.gitignore
+
+# Environment files (secrets!)
+.env
+.env.*
+order-service/.env
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Documentation (not needed in container)
+docs/
+*.md
+!README.md
+
+# Tests
+*.test.ts
+*.test.tsx
+src/test/
+
+# Claude/AI files
+CLAUDE.md
+AGENTS.md
+.mcp.json

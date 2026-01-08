@@ -100,6 +100,39 @@ npm run build        # Production build
 npm run deploy       # Deploy to Nostr
 ```
 
+## Docker
+
+Build and run as a single container with both frontend and order service:
+
+```bash
+# Build the image
+docker build -t robotechy:latest .
+
+# Run with order service enabled
+docker run -d \
+  -p 3000:3000 \
+  -e MERCHANT_NSEC=nsec1... \
+  -e LIGHTNING_ADDRESS=yourname@getalby.com \
+  -e FALLBACK_RELAYS=wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net \
+  --name robotechy \
+  robotechy:latest
+
+# Run frontend only (no order processing)
+docker run -d -p 3000:3000 --name robotechy robotechy:latest
+```
+
+The frontend is served on port 3000. The order service connects outbound to Nostr relays (no inbound port needed).
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MERCHANT_NSEC` | For orders | Merchant's Nostr secret key (nsec format) |
+| `LIGHTNING_ADDRESS` | For orders | Lightning Address for invoice generation |
+| `FALLBACK_RELAYS` | No | Comma-separated relay URLs (has defaults) |
+
+If `MERCHANT_NSEC` or `LIGHTNING_ADDRESS` are not set, the container runs frontend-only mode.
+
 ## Technology Stack
 
 - **Frontend**: React 18, TypeScript, Vite, TailwindCSS, shadcn/ui
@@ -107,3 +140,4 @@ npm run deploy       # Deploy to Nostr
 - **Orders**: Gamma Markets spec (Kind 16/17)
 - **Payments**: Lightning Network via LNURL-pay
 - **Messaging**: NIP-04 encrypted DMs
+- **Container**: Docker with Node.js 20 Alpine

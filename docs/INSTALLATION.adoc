@@ -113,3 +113,79 @@ If you encounter dependency issues:
 rm -rf node_modules package-lock.json
 npm install
 ----
+
+== Docker Deployment
+
+The application can be deployed as a single Docker container running both the frontend and order processing service.
+
+=== Prerequisites
+
+* Docker 20+
+
+=== Building the Image
+
+[source,bash]
+----
+docker build -t robotechy:latest .
+----
+
+=== Running the Container
+
+==== Full Stack (Frontend + Order Service)
+
+[source,bash]
+----
+docker run -d \
+  -p 3000:3000 \
+  -e MERCHANT_NSEC=nsec1... \
+  -e LIGHTNING_ADDRESS=yourname@getalby.com \
+  -e FALLBACK_RELAYS=wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net \
+  --name robotechy \
+  robotechy:latest
+----
+
+==== Frontend Only
+
+[source,bash]
+----
+docker run -d -p 3000:3000 --name robotechy robotechy:latest
+----
+
+Without `MERCHANT_NSEC` and `LIGHTNING_ADDRESS`, the order service is disabled.
+
+=== Environment Variables
+
+[cols="1,1,2", options="header"]
+|===
+|Variable |Required |Description
+
+|`MERCHANT_NSEC`
+|For orders
+|Merchant's Nostr secret key in nsec format
+
+|`LIGHTNING_ADDRESS`
+|For orders
+|Lightning Address for invoice generation (e.g., `yourname@getalby.com`)
+
+|`FALLBACK_RELAYS`
+|No
+|Comma-separated list of Nostr relay WebSocket URLs
+|===
+
+=== Container Details
+
+* **Base Image**: Node.js 20 Alpine
+* **Frontend Port**: 3000 (served via `serve`)
+* **Order Service**: Connects outbound to Nostr relays (no inbound port needed)
+* **Startup**: Entrypoint script starts both services
+
+=== Health Check
+
+[source,bash]
+----
+# Check if frontend is serving
+curl http://localhost:3000
+
+# Check container logs
+docker logs robotechy
+----
