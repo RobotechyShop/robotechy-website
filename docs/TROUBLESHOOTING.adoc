@@ -53,3 +53,158 @@
 |Hot reload not working
 |Restart the dev server. Check for syntax errors preventing compilation
 |===
+
+== Exchange Rates
+
+=== Multi-Exchange Averaging
+
+The frontend converts between fiat (GBP/USD/EUR) and sats using live exchange rates averaged from three sources:
+
+* **CoinGecko** - `api.coingecko.com`
+* **Kraken** - `api.kraken.com`
+* **Coinbase** - `api.coinbase.com`
+
+[source]
+----
+src/lib/exchangeRate.ts    # Core rate fetching and conversion
+src/hooks/useExchangeRate.ts  # React hook for components
+----
+
+=== Rate Caching
+
+Rates are cached for 5 minutes to avoid API rate limiting. If all exchanges fail, stale cached rates are used as fallback.
+
+=== Fallback Rates
+
+If no exchanges respond, hardcoded fallback rates are used:
+
+* BTC/GBP: £80,000
+* BTC/USD: $100,000
+
+These are approximate and should only activate if all three APIs are down simultaneously.
+
+=== Exchange Rate Issues
+
+[cols="1,2", options="header"]
+|===
+|Problem |Solution
+
+|Exchange rate shows 0 or NaN
+|Check browser console for API errors. May be a CORS issue or API outage
+
+|Sats amount seems wrong
+|Verify the exchange rate in browser console: `await getExchangeRates()`. Compare with current market rate
+
+|API rate limiting (429 errors)
+|The 5-minute cache should prevent this. If occurring, check for multiple tabs or rapid page refreshes
+|===
+
+== Order Service
+
+=== Starting the Service
+
+[source,bash]
+----
+# From project root
+npm run dev:orders
+
+# Or directly
+cd order-service && node index.js
+----
+
+=== Relay Error Handling
+
+The order service connects to multiple Nostr relays. Many relay errors are expected and safely ignored:
+
+[cols="1,2", options="header"]
+|===
+|Error Pattern |Cause
+
+|`restricted: Pay on https://...`
+|Paid relay, requires subscription
+
+|`blocked: kind 16 is not allowed`
+|Relay doesn't support Gamma Markets events
+
+|`rate-limited: you are noting too much`
+|Too many events published in quick succession
+
+|`Received network error or non-101`
+|Relay connection failed or WebSocket handshake error
+
+|`sign up at https://... to write events`
+|Relay requires registration
+|===
+
+These errors are logged as warnings but don't crash the service. The service continues operating with relays that accept the events.
+
+=== Rate Limiting Mitigation
+
+To avoid rate limiting when publishing multiple events:
+
+* **2-second delay** between publishing Kind 16 payment request and NIP-04 DM
+* Events published to all relays in parallel (some may reject)
+* Success requires at least one relay to accept
+
+=== Service Crashes
+
+If the order service crashes unexpectedly:
+
+1. Check the logs for `[Fatal]` messages
+2. New error patterns may need to be added to the ignore list in `order-service/index.js`:
+
+[source,javascript]
+----
+// Add new patterns to this list
+if (msg.includes('restricted') ||
+    msg.includes('rate-limit') ||
+    msg.includes('new-error-pattern')) {  // <-- Add here
+  console.warn('[Nostr] Ignoring relay rejection:', msg);
+  return;
+}
+----
+
+=== Order Service Issues
+
+[cols="1,2", options="header"]
+|===
+|Problem |Solution
+
+|Service won't start - "Invalid Lightning Address"
+|Verify the address in `.env` resolves. Test: `curl https://domain/.well-known/lnurlp/username`
+
+|Orders not being received
+|Check relay connectivity. Verify merchant pubkey matches. Check `since` filter isn't excluding old events
+
+|Invoice generation fails
+|Lightning Address service may be down. Check the LNURL endpoint is responding
+
+|DMs not being sent
+|Check for rate limiting in logs. Verify recipient's NIP-65 relays are reachable
+
+|Service crashes on specific relay error
+|Add the error pattern to the ignore list (see above)
+
+|Duplicate orders being processed
+|The service tracks processed order IDs in memory. Restarting clears this - expected behavior
+
+|Invoice shows 0 sats
+|Check the `amount` tag in the Kind 16 Type 1 event. Verify frontend is sending correct amount
+|===
+
+=== Monitoring
+
+The order service logs key events:
+
+[source]
+----
+[Order] New order received!      # Kind 16 Type 1 received
+[Order] Generating invoice...    # LNURL-pay request
+[Order] Publishing payment...    # Kind 16 Type 2 sent
+[Order] Waiting 2s before DM...  # Rate limit delay
+[Order] ✓ Invoice DM sent        # NIP-04 DM sent
+[Payment] Payment received!      # Kind 17 received
+[Payment] ✓ Thank you sent       # Confirmation DM sent
+----
+
+Warnings (`console.warn`) indicate non-fatal issues. Only `[Fatal]` messages cause the service to exit.

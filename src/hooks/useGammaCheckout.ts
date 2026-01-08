@@ -11,7 +11,6 @@ import {
   parsePaymentRequest,
   ORDER_PROCESS_KIND,
   ORDER_MESSAGE_TYPE,
-  formatAddress,
 } from '@/lib/gammaOrderUtils';
 import { formatPrice } from '@/lib/productUtils';
 import { DMContext } from '@/contexts/DMContext';
@@ -75,7 +74,7 @@ export function useGammaCheckout() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { items, totalPrice, currency, clearCart } = useCart();
-  const { convertToSats, satsPerGbp } = useExchangeRate();
+  const { convertToSats } = useExchangeRate();
 
   // Access DM context for sending order notification (optional - may be null if DM not enabled)
   const dmContext = useContext(DMContext);

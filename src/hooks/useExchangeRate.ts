@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getExchangeRates, fiatToSats, satsToFiat } from '@/lib/exchangeRate';
+import { getExchangeRates } from '@/lib/exchangeRate';
 
 interface UseExchangeRateReturn {
   satsPerGbp: number | null;
