@@ -6,7 +6,8 @@ import { ContactDialog } from '@/components/ContactDialog';
 const PrivacyPolicy = () => {
   useSeoMeta({
     title: 'Privacy Policy | Robotechy',
-    description: 'Privacy Policy for Robotechy - how we collect, use, and protect your personal information.',
+    description:
+      'Privacy Policy for Robotechy - how we collect, use, and protect your personal information.',
   });
 
   return (
@@ -25,27 +26,27 @@ const PrivacyPolicy = () => {
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Collecting Personal Information</h2>
           <p>
-            When you visit the Site, we collect certain information about your device, your interaction
-            with the Site, and information necessary to process your purchases. We may also collect
-            additional information if you contact us for customer support. In this Privacy Policy, we
-            refer to any information that can uniquely identify an individual (including the information
-            below) as "Personal Information".
+            When you visit the Site, we collect certain information about your device, your
+            interaction with the Site, and information necessary to process your purchases. We may
+            also collect additional information if you contact us for customer support. In this
+            Privacy Policy, we refer to any information that can uniquely identify an individual
+            (including the information below) as "Personal Information".
           </p>
 
           <h3 className="text-xl font-semibold mt-6 mb-3">Device Information</h3>
           <ul className="list-disc pl-6 space-y-2">
             <li>
-              <strong>Examples of Personal Information collected:</strong> version of web browser, IP
-              address, time zone, cookie information, what sites or products you view, search terms,
-              and how you interact with the Site.
+              <strong>Examples of Personal Information collected:</strong> version of web browser,
+              IP address, time zone, cookie information, what sites or products you view, search
+              terms, and how you interact with the Site.
             </li>
             <li>
               <strong>Purpose of collection:</strong> to load the Site accurately for you, and to
               perform analytics on Site usage to optimize our Site.
             </li>
             <li>
-              <strong>Source of collection:</strong> Collected automatically when you access our Site
-              using cookies, log files, web beacons, tags, or pixels.
+              <strong>Source of collection:</strong> Collected automatically when you access our
+              Site using cookies, log files, web beacons, tags, or pixels.
             </li>
           </ul>
 
@@ -84,15 +85,15 @@ const PrivacyPolicy = () => {
 
           <h3 className="text-xl font-semibold mt-6 mb-3">Minors</h3>
           <p>
-            We do not intentionally collect Personal Information from children. If you are the parent
-            or guardian and believe your child has provided us with Personal Information, please
-            contact us at the address below to request deletion.
+            We do not intentionally collect Personal Information from children. If you are the
+            parent or guardian and believe your child has provided us with Personal Information,
+            please contact us at the address below to request deletion.
           </p>
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Sharing Personal Information</h2>
           <p>
-            We share your Personal Information with service providers to help us provide our services
-            and fulfill our contracts with you, as described above. For example:
+            We share your Personal Information with service providers to help us provide our
+            services and fulfill our contracts with you, as described above. For example:
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>
@@ -175,16 +176,16 @@ const PrivacyPolicy = () => {
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Using Personal Information</h2>
           <p>
-            We use your personal information to provide our services to you, which includes: offering
-            products for sale, processing payments, shipping and fulfillment of your order, and
-            keeping you up to date on new products, services, and offers.
+            We use your personal information to provide our services to you, which includes:
+            offering products for sale, processing payments, shipping and fulfillment of your order,
+            and keeping you up to date on new products, services, and offers.
           </p>
 
           <h3 className="text-xl font-semibold mt-6 mb-3">Lawful Basis</h3>
           <p>
-            Pursuant to the General Data Protection Regulation ("GDPR"), if you are a resident of the
-            European Economic Area ("EEA"), we process your personal information under the following
-            lawful bases:
+            Pursuant to the General Data Protection Regulation ("GDPR"), if you are a resident of
+            the European Economic Area ("EEA"), we process your personal information under the
+            following lawful bases:
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Your consent;</li>
@@ -208,8 +209,8 @@ const PrivacyPolicy = () => {
           <h3 className="text-xl font-semibold mt-6 mb-3">Automatic Decision-Making</h3>
           <p>
             If you are a resident of the EEA, you have the right to object to processing based
-            solely on automated decision-making (which includes profiling), when that decision-making
-            has a legal effect on you or otherwise significantly affects you.
+            solely on automated decision-making (which includes profiling), when that
+            decision-making has a legal effect on you or otherwise significantly affects you.
           </p>
           <p>Services that include elements of automated decision-making include:</p>
           <ul className="list-disc pl-6 space-y-2">
@@ -227,21 +228,21 @@ const PrivacyPolicy = () => {
           <h3 className="text-xl font-semibold mt-6 mb-3">GDPR</h3>
           <p>
             If you are a resident of the EEA, you have the right to access the Personal Information
-            we hold about you, to port it to a new service, and to ask that your Personal Information
-            be corrected, updated, or erased. If you would like to exercise these rights, please
-            contact us through the contact information below.
+            we hold about you, to port it to a new service, and to ask that your Personal
+            Information be corrected, updated, or erased. If you would like to exercise these
+            rights, please contact us through the contact information below.
           </p>
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Cookies</h2>
           <p>
             A cookie is a small amount of information that's downloaded to your computer or device
             when you visit our Site. We use a number of different cookies, including functional,
-            performance, advertising, and social media or content cookies. Cookies make your browsing
-            experience better by allowing the website to remember your actions and preferences (such
-            as login and region selection). This means you don't have to re-enter this information
-            each time you return to the site or browse from one page to another. Cookies also provide
-            information on how people use the website, for instance whether it's their first time
-            visiting or if they are a frequent visitor.
+            performance, advertising, and social media or content cookies. Cookies make your
+            browsing experience better by allowing the website to remember your actions and
+            preferences (such as login and region selection). This means you don't have to re-enter
+            this information each time you return to the site or browse from one page to another.
+            Cookies also provide information on how people use the website, for instance whether
+            it's their first time visiting or if they are a frequent visitor.
           </p>
           <p>
             The length of time that a cookie remains on your computer or mobile device depends on
@@ -291,9 +292,7 @@ const PrivacyPolicy = () => {
             like to make a complaint, please{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-blue hover:underline inline">
-                  contact us
-                </button>
+                <button className="text-robotechy-blue hover:underline inline">contact us</button>
               }
             />
             .

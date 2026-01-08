@@ -1,14 +1,14 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { ScrollToTop } from "./components/ScrollToTop";
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { ScrollToTop } from './components/ScrollToTop';
 
-import Index from "./pages/Index";
-import { NIP19Page } from "./pages/NIP19Page";
-import NotFound from "./pages/NotFound";
-import Custom3DPrints from "./pages/Custom3DPrints";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import RefundPolicy from "./pages/RefundPolicy";
-import ShippingPolicy from "./pages/ShippingPolicy";
-import TermsOfService from "./pages/TermsOfService";
+import Index from './pages/Index';
+import { NIP19Page } from './pages/NIP19Page';
+import NotFound from './pages/NotFound';
+import Custom3DPrints from './pages/Custom3DPrints';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import RefundPolicy from './pages/RefundPolicy';
+import ShippingPolicy from './pages/ShippingPolicy';
+import TermsOfService from './pages/TermsOfService';
 
 export function AppRouter() {
   return (

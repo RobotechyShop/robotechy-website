@@ -1,5 +1,5 @@
-import { useContext } from "react";
-import { AppContext, type AppContextType } from "@/contexts/AppContext";
+import { useContext } from 'react';
+import { AppContext, type AppContextType } from '@/contexts/AppContext';
 
 /**
  * Hook to access and update application configuration

@@ -19,9 +19,9 @@ interface CommentFormProps {
 export function CommentForm({
   root,
   reply,
-  onSuccess, 
-  placeholder = "Write a comment...",
-  compact = false 
+  onSuccess,
+  placeholder = 'Write a comment...',
+  compact = false,
 }: CommentFormProps) {
   const [content, setContent] = useState('');
   const { user } = useCurrentUser();
@@ -29,7 +29,7 @@ export function CommentForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!content.trim() || !user) return;
 
     postComment(
@@ -45,8 +45,8 @@ export function CommentForm({
 
   if (!user) {
     return (
-      <Card className={compact ? "border-dashed" : ""}>
-        <CardContent className={compact ? "p-4" : "p-6"}>
+      <Card className={compact ? 'border-dashed' : ''}>
+        <CardContent className={compact ? 'p-4' : 'p-6'}>
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center space-x-2 text-muted-foreground">
               <MessageSquare className="h-5 w-5" />
@@ -60,27 +60,27 @@ export function CommentForm({
   }
 
   return (
-    <Card className={compact ? "border-dashed" : ""}>
-      <CardContent className={compact ? "p-4" : "p-6"}>
+    <Card className={compact ? 'border-dashed' : ''}>
+      <CardContent className={compact ? 'p-4' : 'p-6'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder={placeholder}
-            className={compact ? "min-h-[80px]" : "min-h-[100px]"}
+            className={compact ? 'min-h-[80px]' : 'min-h-[100px]'}
             disabled={isPending}
           />
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">
               {reply ? 'Replying to comment' : 'Adding to the discussion'}
             </span>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={!content.trim() || isPending}
-              size={compact ? "sm" : "default"}
+              size={compact ? 'sm' : 'default'}
             >
               <Send className="h-4 w-4 mr-2" />
-              {isPending ? 'Posting...' : (reply ? 'Reply' : 'Comment')}
+              {isPending ? 'Posting...' : reply ? 'Reply' : 'Comment'}
             </Button>
           </div>
         </form>

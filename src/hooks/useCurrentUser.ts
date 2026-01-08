@@ -8,19 +8,22 @@ export function useCurrentUser() {
   const { nostr } = useNostr();
   const { logins } = useNostrLogin();
 
-  const loginToUser = useCallback((login: NLoginType): NUser  => {
-    switch (login.type) {
-      case 'nsec': // Nostr login with secret key
-        return NUser.fromNsecLogin(login);
-      case 'bunker': // Nostr login with NIP-46 "bunker://" URI
-        return NUser.fromBunkerLogin(login, nostr);
-      case 'extension': // Nostr login with NIP-07 browser extension
-        return NUser.fromExtensionLogin(login);
-      // Other login types can be defined here
-      default:
-        throw new Error(`Unsupported login type: ${login.type}`);
-    }
-  }, [nostr]);
+  const loginToUser = useCallback(
+    (login: NLoginType): NUser => {
+      switch (login.type) {
+        case 'nsec': // Nostr login with secret key
+          return NUser.fromNsecLogin(login);
+        case 'bunker': // Nostr login with NIP-46 "bunker://" URI
+          return NUser.fromBunkerLogin(login, nostr);
+        case 'extension': // Nostr login with NIP-07 browser extension
+          return NUser.fromExtensionLogin(login);
+        // Other login types can be defined here
+        default:
+          throw new Error(`Unsupported login type: ${login.type}`);
+      }
+    },
+    [nostr]
+  );
 
   const users = useMemo(() => {
     const users: NUser[] = [];

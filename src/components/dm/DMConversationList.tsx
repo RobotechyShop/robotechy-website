@@ -29,13 +29,13 @@ interface ConversationItemProps {
   hasNIP4Messages: boolean;
 }
 
-const ConversationItemComponent = ({ 
-  pubkey, 
-  isSelected, 
+const ConversationItemComponent = ({
+  pubkey,
+  isSelected,
   onClick,
   lastMessage,
   lastActivity,
-  hasNIP4Messages
+  hasNIP4Messages,
 }: ConversationItemProps) => {
   const author = useAuthor(pubkey);
   const metadata = author.data?.metadata;
@@ -44,8 +44,8 @@ const ConversationItemComponent = ({
   const avatarUrl = metadata?.picture;
   const initials = displayName.slice(0, 2).toUpperCase();
 
-  const lastMessagePreview = lastMessage?.error 
-    ? '🔒 Encrypted message' 
+  const lastMessagePreview = lastMessage?.error
+    ? '🔒 Encrypted message'
     : lastMessage?.decryptedContent || 'No messages yet';
 
   // Show skeleton only for name/avatar while loading (we already have message data)
@@ -55,8 +55,8 @@ const ConversationItemComponent = ({
     <button
       onClick={onClick}
       className={cn(
-        "w-full text-left p-3 rounded-lg transition-colors hover:bg-accent block overflow-hidden",
-        isSelected && "bg-accent"
+        'w-full text-left p-3 rounded-lg transition-colors hover:bg-accent block overflow-hidden',
+        isSelected && 'bg-accent'
       )}
     >
       <div className="flex items-start gap-3 max-w-full">
@@ -68,7 +68,7 @@ const ConversationItemComponent = ({
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         )}
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
             <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -86,7 +86,9 @@ const ConversationItemComponent = ({
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="left">
-                      <p className="text-xs max-w-[200px]">Some messages use outdated NIP-04 encryption</p>
+                      <p className="text-xs max-w-[200px]">
+                        Some messages use outdated NIP-04 encryption
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -105,10 +107,8 @@ const ConversationItemComponent = ({
               </Tooltip>
             </TooltipProvider>
           </div>
-          
-          <p className="text-sm text-muted-foreground truncate">
-            {lastMessagePreview}
-          </p>
+
+          <p className="text-sm text-muted-foreground truncate">{lastMessagePreview}</p>
         </div>
       </div>
     </button>
@@ -137,11 +137,11 @@ const ConversationListSkeleton = () => {
   );
 };
 
-export const DMConversationList = ({ 
-  selectedPubkey, 
+export const DMConversationList = ({
+  selectedPubkey,
   onSelectConversation,
   className,
-  onStatusClick
+  onStatusClick,
 }: DMConversationListProps) => {
   const { conversations, isLoading, loadingPhase } = useDMContext();
   const [activeTab, setActiveTab] = useState<'known' | 'requests'>('known');
@@ -149,8 +149,8 @@ export const DMConversationList = ({
   // Filter conversations by type
   const { knownConversations, requestConversations } = useMemo(() => {
     return {
-      knownConversations: conversations.filter(c => c.isKnown),
-      requestConversations: conversations.filter(c => c.isRequest),
+      knownConversations: conversations.filter((c) => c.isKnown),
+      requestConversations: conversations.filter((c) => c.isRequest),
     };
   }, [conversations]);
 
@@ -158,16 +158,18 @@ export const DMConversationList = ({
   const currentConversations = activeTab === 'known' ? knownConversations : requestConversations;
 
   // Show skeleton during initial load (cache + relays) if we have no conversations yet
-  const isInitialLoad = (loadingPhase === LOADING_PHASES.CACHE || loadingPhase === LOADING_PHASES.RELAYS) && conversations.length === 0;
+  const isInitialLoad =
+    (loadingPhase === LOADING_PHASES.CACHE || loadingPhase === LOADING_PHASES.RELAYS) &&
+    conversations.length === 0;
 
   return (
-    <Card className={cn("h-full flex flex-col overflow-hidden", className)}>
+    <Card className={cn('h-full flex flex-col overflow-hidden', className)}>
       {/* Header - always visible */}
       <div className="p-4 border-b flex-shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="font-semibold text-lg">Messages</h2>
-          {(loadingPhase === LOADING_PHASES.CACHE || 
-            loadingPhase === LOADING_PHASES.RELAYS || 
+          {(loadingPhase === LOADING_PHASES.CACHE ||
+            loadingPhase === LOADING_PHASES.RELAYS ||
             loadingPhase === LOADING_PHASES.SUBSCRIPTIONS) && (
             <TooltipProvider>
               <Tooltip>
@@ -179,7 +181,8 @@ export const DMConversationList = ({
                 <TooltipContent>
                   <p className="text-xs">
                     {loadingPhase === LOADING_PHASES.CACHE && 'Loading from cache...'}
-                    {loadingPhase === LOADING_PHASES.RELAYS && 'Querying relays for new messages...'}
+                    {loadingPhase === LOADING_PHASES.RELAYS &&
+                      'Querying relays for new messages...'}
                     {loadingPhase === LOADING_PHASES.SUBSCRIPTIONS && 'Setting up subscriptions...'}
                   </p>
                 </TooltipContent>
@@ -199,17 +202,17 @@ export const DMConversationList = ({
           </Button>
         )}
       </div>
-      
+
       {/* Tab buttons - always visible */}
       <div className="px-2 pt-2 flex-shrink-0">
         <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg">
           <button
             onClick={() => setActiveTab('known')}
             className={cn(
-              "text-xs py-2 px-3 rounded-md transition-colors",
-              activeTab === 'known' 
-                ? "bg-background shadow-sm font-medium" 
-                : "text-muted-foreground hover:text-foreground"
+              'text-xs py-2 px-3 rounded-md transition-colors',
+              activeTab === 'known'
+                ? 'bg-background shadow-sm font-medium'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             Active {knownConversations.length > 0 && `(${knownConversations.length})`}
@@ -217,20 +220,20 @@ export const DMConversationList = ({
           <button
             onClick={() => setActiveTab('requests')}
             className={cn(
-              "text-xs py-2 px-3 rounded-md transition-colors",
-              activeTab === 'requests' 
-                ? "bg-background shadow-sm font-medium" 
-                : "text-muted-foreground hover:text-foreground"
+              'text-xs py-2 px-3 rounded-md transition-colors',
+              activeTab === 'requests'
+                ? 'bg-background shadow-sm font-medium'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             Requests {requestConversations.length > 0 && `(${requestConversations.length})`}
           </button>
         </div>
       </div>
-      
+
       {/* Content area - show skeleton during initial load, otherwise show conversations */}
       <div className="flex-1 min-h-0 mt-2 overflow-hidden">
-        {(isLoading || isInitialLoad) ? (
+        {isLoading || isInitialLoad ? (
           <ConversationListSkeleton />
         ) : conversations.length === 0 ? (
           <div className="flex items-center justify-center h-full text-center text-muted-foreground px-4">

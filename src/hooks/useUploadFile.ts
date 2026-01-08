@@ -1,7 +1,7 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from '@tanstack/react-query';
 import { BlossomUploader } from '@nostrify/nostrify/uploaders';
 
-import { useCurrentUser } from "./useCurrentUser";
+import { useCurrentUser } from './useCurrentUser';
 
 export function useUploadFile() {
   const { user } = useCurrentUser();
@@ -13,9 +13,7 @@ export function useUploadFile() {
       }
 
       const uploader = new BlossomUploader({
-        servers: [
-          'https://blossom.primal.net/',
-        ],
+        servers: ['https://blossom.primal.net/'],
         signer: user.signer,
       });
 

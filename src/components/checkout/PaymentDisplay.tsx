@@ -42,12 +42,15 @@ export function PaymentDisplay({
   const [isPaying, setIsPaying] = useState(false);
 
   // Use totalSats directly if currency is SAT, otherwise convert
-  const satsAmount = currency === 'SAT' || currency === 'sats' ? totalSats : convertToSats(totalSats, currency);
+  const satsAmount =
+    currency === 'SAT' || currency === 'sats' ? totalSats : convertToSats(totalSats, currency);
 
   // Calculate fiat equivalent for display
   const fiatAmount = originalFiatAmount || convertToFiat(satsAmount, originalCurrency || 'GBP');
   const fiatCurrency = originalCurrency || 'GBP';
-  const invoice = paymentRequest?.payment_options?.find((o) => o.type === 'ln' || o.type === 'lnurl')?.link;
+  const invoice = paymentRequest?.payment_options?.find(
+    (o) => o.type === 'ln' || o.type === 'lnurl'
+  )?.link;
 
   // Generate QR code when invoice is available
   useEffect(() => {
@@ -212,12 +215,7 @@ export function PaymentDisplay({
             className="font-mono text-xs"
             onClick={(e) => e.currentTarget.select()}
           />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleCopy}
-            className="shrink-0"
-          >
+          <Button variant="outline" size="icon" onClick={handleCopy} className="shrink-0">
             {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
@@ -267,12 +265,7 @@ export function PaymentDisplay({
           </Button>
         )}
 
-        <Button
-          variant="outline"
-          onClick={openInWallet}
-          className="w-full"
-          size="lg"
-        >
+        <Button variant="outline" onClick={openInWallet} className="w-full" size="lg">
           <ExternalLink className="h-4 w-4 mr-2" />
           Open in Lightning Wallet
         </Button>

@@ -2,39 +2,38 @@ import type { NostrEvent } from '@nostrify/nostrify';
 
 // Gamma Markets Kind 30406 Shipping Option
 export interface ShippingOptionData {
-  id: string;                    // d-tag identifier
+  id: string; // d-tag identifier
   title: string;
   price: {
     amount: string;
     currency: string;
   };
-  countries: string[];           // ISO 3166-1 alpha-2 codes
-  regions: string[];             // ISO 3166-2 codes
+  countries: string[]; // ISO 3166-1 alpha-2 codes
+  regions: string[]; // ISO 3166-2 codes
   service?: 'standard' | 'express' | 'overnight' | 'pickup';
   duration?: {
     min: string;
     max: string;
-    unit: string;                // H, D, W (ISO 8601)
+    unit: string; // H, D, W (ISO 8601)
   };
   carrier?: string;
-  pubkey: string;                // Publisher pubkey for naddr reference
-  extraCost?: string;            // Product-specific extra cost
+  pubkey: string; // Publisher pubkey for naddr reference
+  extraCost?: string; // Product-specific extra cost
 }
 
-export function parseShippingOptionEvent(event: NostrEvent, extraCost?: string): ShippingOptionData | null {
+export function parseShippingOptionEvent(
+  event: NostrEvent,
+  extraCost?: string
+): ShippingOptionData | null {
   const d = event.tags.find(([name]) => name === 'd')?.[1];
   const title = event.tags.find(([name]) => name === 'title')?.[1];
   const priceTag = event.tags.find(([name]) => name === 'price');
 
   if (!d || !title || !priceTag) return null;
 
-  const countries = event.tags
-    .filter(([name]) => name === 'country')
-    .map(([, code]) => code);
+  const countries = event.tags.filter(([name]) => name === 'country').map(([, code]) => code);
 
-  const regions = event.tags
-    .filter(([name]) => name === 'region')
-    .map(([, code]) => code);
+  const regions = event.tags.filter(([name]) => name === 'region').map(([, code]) => code);
 
   const serviceTag = event.tags.find(([name]) => name === 'service')?.[1];
   const durationTag = event.tags.find(([name]) => name === 'duration');
@@ -50,11 +49,13 @@ export function parseShippingOptionEvent(event: NostrEvent, extraCost?: string):
     countries,
     regions,
     service: serviceTag as ShippingOptionData['service'],
-    duration: durationTag ? {
-      min: durationTag[1],
-      max: durationTag[2],
-      unit: durationTag[3],
-    } : undefined,
+    duration: durationTag
+      ? {
+          min: durationTag[1],
+          max: durationTag[2],
+          unit: durationTag[3],
+        }
+      : undefined,
     carrier,
     pubkey: event.pubkey,
     extraCost,
@@ -107,7 +108,11 @@ export function parseProductEvent(event: NostrEvent): ProductData | null {
   if (!d || !title || !priceTag) return null;
 
   const summary = event.tags.find(([name]) => name === 'summary')?.[1];
-  const visibility = event.tags.find(([name]) => name === 'visibility')?.[1] as 'hidden' | 'on-sale' | 'pre-order' | undefined;
+  const visibility = event.tags.find(([name]) => name === 'visibility')?.[1] as
+    | 'hidden'
+    | 'on-sale'
+    | 'pre-order'
+    | undefined;
   const stockTag = event.tags.find(([name]) => name === 'stock')?.[1];
   const location = event.tags.find(([name]) => name === 'location')?.[1];
   const geohash = event.tags.find(([name]) => name === 'g')?.[1];
@@ -120,10 +125,12 @@ export function parseProductEvent(event: NostrEvent): ProductData | null {
 
   // Parse type tag
   const typeTag = event.tags.find(([name]) => name === 'type');
-  const type = typeTag ? {
-    productType: (typeTag[1] || 'simple') as 'simple' | 'variable' | 'variation',
-    format: (typeTag[2] || 'digital') as 'digital' | 'physical',
-  } : undefined;
+  const type = typeTag
+    ? {
+        productType: (typeTag[1] || 'simple') as 'simple' | 'variable' | 'variation',
+        format: (typeTag[2] || 'digital') as 'digital' | 'physical',
+      }
+    : undefined;
 
   // Parse images with dimensions and sort order
   const imageTags = event.tags.filter(([name]) => name === 'image');
@@ -143,21 +150,23 @@ export function parseProductEvent(event: NostrEvent): ProductData | null {
 
   // Parse weight
   const weightTag = event.tags.find(([name]) => name === 'weight');
-  const weight = weightTag ? {
-    value: weightTag[1],
-    unit: weightTag[2],
-  } : undefined;
+  const weight = weightTag
+    ? {
+        value: weightTag[1],
+        unit: weightTag[2],
+      }
+    : undefined;
 
   // Parse dimensions
   const dimTag = event.tags.find(([name]) => name === 'dim');
-  const dimensions = dimTag ? {
-    value: dimTag[1],
-    unit: dimTag[2],
-  } : undefined;
+  const dimensions = dimTag
+    ? {
+        value: dimTag[1],
+        unit: dimTag[2],
+      }
+    : undefined;
 
-  const categories = event.tags
-    .filter(([name]) => name === 't')
-    .map(([, category]) => category);
+  const categories = event.tags.filter(([name]) => name === 't').map(([, category]) => category);
 
   const collections = event.tags
     .filter(([name]) => name === 'a' && name.startsWith('30405:'))
@@ -212,7 +221,11 @@ export function formatPrice(price: number, currency: string): string {
   }
 }
 
-export function formatPriceFromTag(priceTag: { amount: string; currency: string; frequency?: string }): string {
+export function formatPriceFromTag(priceTag: {
+  amount: string;
+  currency: string;
+  frequency?: string;
+}): string {
   const amount = parseFloat(priceTag.amount);
   let formatted = formatPrice(amount, priceTag.currency);
 

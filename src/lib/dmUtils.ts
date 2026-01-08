@@ -30,7 +30,7 @@ export function getRecipientPubkey(event: NostrEvent): string | undefined {
  */
 export function getConversationPartner(event: NostrEvent, userPubkey: string): string | undefined {
   const isFromUser = event.pubkey === userPubkey;
-  
+
   if (isFromUser) {
     // If we sent it, the partner is the recipient
     return getRecipientPubkey(event);
@@ -51,18 +51,18 @@ export function getConversationPartner(event: NostrEvent, userPubkey: string): s
 export function formatConversationTime(timestamp: number): string {
   const date = new Date(timestamp * 1000);
   const now = new Date();
-  
+
   // Start of today (midnight)
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
+
   // Start of yesterday
   const yesterdayStart = new Date(todayStart);
   yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-  
+
   // Start of this week (assuming week starts on Sunday, adjust if needed)
   const weekStart = new Date(todayStart);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  
+
   if (date >= todayStart) {
     // Today: Show time (e.g., "2:45 PM")
     return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -87,12 +87,12 @@ export function formatConversationTime(timestamp: number): string {
  */
 export function formatFullDateTime(timestamp: number): string {
   const date = new Date(timestamp * 1000);
-  return date.toLocaleString(undefined, { 
+  return date.toLocaleString(undefined, {
     weekday: 'short',
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric', 
-    hour: 'numeric', 
-    minute: '2-digit'
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   });
 }

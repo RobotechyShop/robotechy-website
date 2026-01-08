@@ -22,7 +22,10 @@ export interface NWCInfo {
 export function useNWCInternal() {
   const { toast } = useToast();
   const [connections, setConnections] = useLocalStorage<NWCConnection[]>('nwc-connections', []);
-  const [activeConnection, setActiveConnection] = useLocalStorage<string | null>('nwc-active-connection', null);
+  const [activeConnection, setActiveConnection] = useLocalStorage<string | null>(
+    'nwc-active-connection',
+    null
+  );
   const [connectionInfo, setConnectionInfo] = useState<Record<string, NWCInfo>>({});
 
   // Add new connection
@@ -50,7 +53,9 @@ export function useNWCInternal() {
       return false;
     }
 
-    const existingConnection = connections.find(c => c.connectionString === parsed.connectionString);
+    const existingConnection = connections.find(
+      (c) => c.connectionString === parsed.connectionString
+    );
     if (existingConnection) {
       toast({
         title: 'Connection already exists',
@@ -75,7 +80,7 @@ export function useNWCInternal() {
       });
 
       try {
-        await Promise.race([testPromise, timeoutPromise]) as LN;
+        (await Promise.race([testPromise, timeoutPromise])) as LN;
         if (timeoutId) clearTimeout(timeoutId);
       } catch (error) {
         if (timeoutId) clearTimeout(timeoutId);
@@ -88,7 +93,7 @@ export function useNWCInternal() {
         isConnected: true,
       };
 
-      setConnectionInfo(prev => ({
+      setConnectionInfo((prev) => ({
         ...prev,
         [parsed.connectionString]: {
           alias: connection.alias,
@@ -123,7 +128,7 @@ export function useNWCInternal() {
 
   // Remove connection
   const removeConnection = (connectionString: string) => {
-    const filtered = connections.filter(c => c.connectionString !== connectionString);
+    const filtered = connections.filter((c) => c.connectionString !== connectionString);
     setConnections(filtered);
 
     if (activeConnection === connectionString) {
@@ -131,7 +136,7 @@ export function useNWCInternal() {
       setActiveConnection(newActive);
     }
 
-    setConnectionInfo(prev => {
+    setConnectionInfo((prev) => {
       const newInfo = { ...prev };
       delete newInfo[connectionString];
       return newInfo;
@@ -152,61 +157,68 @@ export function useNWCInternal() {
 
     if (!activeConnection) return null;
 
-    const found = connections.find(c => c.connectionString === activeConnection);
+    const found = connections.find((c) => c.connectionString === activeConnection);
     return found || null;
   }, [activeConnection, connections, setActiveConnection]);
 
   // Send payment using the SDK
-  const sendPayment = useCallback(async (
-    connection: NWCConnection,
-    invoice: string
-  ): Promise<{ preimage: string }> => {
-    if (!connection.connectionString) {
-      throw new Error('Invalid connection: missing connection string');
-    }
+  const sendPayment = useCallback(
+    async (connection: NWCConnection, invoice: string): Promise<{ preimage: string }> => {
+      if (!connection.connectionString) {
+        throw new Error('Invalid connection: missing connection string');
+      }
 
-    let client: LN;
-    try {
-      client = new LN(connection.connectionString);
-    } catch (error) {
-      console.error('Failed to create NWC client:', error);
-      throw new Error(`Failed to create NWC client: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-
-    try {
-      let timeoutId: NodeJS.Timeout | undefined;
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('Payment timeout after 15 seconds')), 15000);
-      });
-
-      const paymentPromise = client.pay(invoice);
+      let client: LN;
+      try {
+        client = new LN(connection.connectionString);
+      } catch (error) {
+        console.error('Failed to create NWC client:', error);
+        throw new Error(
+          `Failed to create NWC client: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
 
       try {
-        const response = await Promise.race([paymentPromise, timeoutPromise]) as { preimage: string };
-        if (timeoutId) clearTimeout(timeoutId);
-        return response;
-      } catch (error) {
-        if (timeoutId) clearTimeout(timeoutId);
-        throw error;
-      }
-    } catch (error) {
-      console.error('NWC payment failed:', error);
+        let timeoutId: NodeJS.Timeout | undefined;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error('Payment timeout after 15 seconds')),
+            15000
+          );
+        });
 
-      if (error instanceof Error) {
-        if (error.message.includes('timeout')) {
-          throw new Error('Payment timed out. Please try again.');
-        } else if (error.message.includes('insufficient')) {
-          throw new Error('Insufficient balance in connected wallet.');
-        } else if (error.message.includes('invalid')) {
-          throw new Error('Invalid invoice or connection. Please check your wallet.');
-        } else {
-          throw new Error(`Payment failed: ${error.message}`);
+        const paymentPromise = client.pay(invoice);
+
+        try {
+          const response = (await Promise.race([paymentPromise, timeoutPromise])) as {
+            preimage: string;
+          };
+          if (timeoutId) clearTimeout(timeoutId);
+          return response;
+        } catch (error) {
+          if (timeoutId) clearTimeout(timeoutId);
+          throw error;
         }
-      }
+      } catch (error) {
+        console.error('NWC payment failed:', error);
 
-      throw new Error('Payment failed with unknown error');
-    }
-  }, []);
+        if (error instanceof Error) {
+          if (error.message.includes('timeout')) {
+            throw new Error('Payment timed out. Please try again.');
+          } else if (error.message.includes('insufficient')) {
+            throw new Error('Insufficient balance in connected wallet.');
+          } else if (error.message.includes('invalid')) {
+            throw new Error('Invalid invoice or connection. Please check your wallet.');
+          } else {
+            throw new Error(`Payment failed: ${error.message}`);
+          }
+        }
+
+        throw new Error('Payment failed with unknown error');
+      }
+    },
+    []
+  );
 
   return {
     connections,

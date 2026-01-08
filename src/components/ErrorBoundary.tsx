@@ -11,8 +11,6 @@ interface ErrorBoundaryProps {
   fallback?: ReactNode;
 }
 
-
-
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
@@ -57,9 +55,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
           <div className="max-w-md w-full space-y-4">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Something went wrong
-              </h2>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Something went wrong</h2>
               <p className="text-muted-foreground">
                 An unexpected error occurred. The error has been reported.
               </p>
@@ -73,9 +69,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 <div className="mt-2 space-y-2">
                   <div>
                     <strong className="text-foreground">Message:</strong>
-                    <p className="text-muted-foreground mt-1">
-                      {this.state.error?.message}
-                    </p>
+                    <p className="text-muted-foreground mt-1">{this.state.error?.message}</p>
                   </div>
                   {this.state.error?.stack && (
                     <div>

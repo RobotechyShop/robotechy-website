@@ -38,9 +38,7 @@ export function CartItem({ item }: CartItemProps) {
       {/* Product Details */}
       <div className="flex-1 min-w-0">
         <h4 className="font-medium text-sm line-clamp-2">{product.title}</h4>
-        <p className="text-sm text-muted-foreground">
-          {formatPriceFromTag(product.price)}
-        </p>
+        <p className="text-sm text-muted-foreground">{formatPriceFromTag(product.price)}</p>
 
         {/* Quantity Controls */}
         <div className="flex items-center gap-2 mt-2">

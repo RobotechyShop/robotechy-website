@@ -10,7 +10,7 @@ export const MESSAGE_PROTOCOL = {
   UNKNOWN: 'unknown',
 } as const;
 
-export type MessageProtocol = typeof MESSAGE_PROTOCOL[keyof typeof MESSAGE_PROTOCOL];
+export type MessageProtocol = (typeof MESSAGE_PROTOCOL)[keyof typeof MESSAGE_PROTOCOL];
 
 // ============================================================================
 // Protocol Mode (for user selection)
@@ -22,7 +22,7 @@ export const PROTOCOL_MODE = {
   NIP04_OR_NIP17: 'nip04_or_nip17',
 } as const;
 
-export type ProtocolMode = typeof PROTOCOL_MODE[keyof typeof PROTOCOL_MODE];
+export type ProtocolMode = (typeof PROTOCOL_MODE)[keyof typeof PROTOCOL_MODE];
 
 // ============================================================================
 // Loading Phases
@@ -36,7 +36,7 @@ export const LOADING_PHASES = {
   READY: 'ready',
 } as const;
 
-export type LoadingPhase = typeof LOADING_PHASES[keyof typeof LOADING_PHASES];
+export type LoadingPhase = (typeof LOADING_PHASES)[keyof typeof LOADING_PHASES];
 
 // ============================================================================
 // Protocol Configuration

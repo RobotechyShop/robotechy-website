@@ -60,17 +60,17 @@ interface DecryptedMessage extends NostrEvent {
 
 /**
  * File attachment for direct messages (NIP-92 compatible).
- * 
+ *
  * All fields are required. Use with `useUploadFile` hook to upload files
  * and generate the proper tags format.
- * 
+ *
  * @example
  * ```tsx
  * import { useUploadFile } from '@/hooks/useUploadFile';
  * import type { FileAttachment } from '@/contexts/DMContext';
- * 
+ *
  * const { mutateAsync: uploadFile } = useUploadFile();
- * 
+ *
  * const tags = await uploadFile(file);
  * const attachment: FileAttachment = {
  *   url: tags[0][1],
@@ -79,14 +79,14 @@ interface DecryptedMessage extends NostrEvent {
  *   name: file.name,
  *   tags: tags
  * };
- * 
+ *
  * await sendMessage({
  *   recipientPubkey: 'hex-pubkey',
  *   content: 'Check out this file!',
  *   attachments: [attachment]
  * });
  * ```
- * 
+ *
  * @property url - Blossom server URL where file is hosted
  * @property mimeType - MIME type of the file (e.g., 'image/png')
  * @property size - File size in bytes
@@ -103,7 +103,7 @@ export interface FileAttachment {
 
 /**
  * Direct Messaging context interface providing access to all DM functionality.
- * 
+ *
  * @property messages - Raw message state (Map of pubkey -> participant data)
  * @property isLoading - True during initial load phases
  * @property loadingPhase - Current loading phase (CACHE, RELAYS, SUBSCRIPTIONS, READY, IDLE)
@@ -124,9 +124,9 @@ export interface DMContextType {
   lastSync: LastSyncData;
   subscriptions: SubscriptionStatus;
   conversations: ConversationSummary[];
-  sendMessage: (params: { 
-    recipientPubkey: string; 
-    content: string; 
+  sendMessage: (params: {
+    recipientPubkey: string;
+    content: string;
     protocol?: MessageProtocol;
     attachments?: FileAttachment[];
   }) => Promise<void>;

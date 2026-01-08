@@ -6,7 +6,8 @@ import { ContactDialog } from '@/components/ContactDialog';
 const TermsOfService = () => {
   useSeoMeta({
     title: 'Terms of Service | Robotechy',
-    description: 'Terms of Service for Robotechy - Terms and conditions for using our website and services.',
+    description:
+      'Terms of Service for Robotechy - Terms and conditions for using our website and services.',
   });
 
   return (
@@ -37,18 +38,17 @@ const TermsOfService = () => {
           </p>
           <p>
             You must not transmit any worms or viruses or any code of a destructive nature. A breach
-            or violation of any of the Terms will result in an immediate termination of your Services.
+            or violation of any of the Terms will result in an immediate termination of your
+            Services.
           </p>
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Section 2 - General Conditions</h2>
-          <p>
-            We reserve the right to refuse service to anyone for any reason at any time.
-          </p>
+          <p>We reserve the right to refuse service to anyone for any reason at any time.</p>
           <p>
             You understand that your content (not including credit card information), may be
             transferred unencrypted and involve (a) transmissions over various networks; and (b)
-            changes to conform and adapt to technical requirements of connecting networks or devices.
-            Credit card information is always encrypted during transfer over networks.
+            changes to conform and adapt to technical requirements of connecting networks or
+            devices. Credit card information is always encrypted during transfer over networks.
           </p>
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Section 3 - Accuracy of Information</h2>
@@ -58,7 +58,9 @@ const TermsOfService = () => {
             and should not be relied upon or used as the sole basis for making decisions.
           </p>
 
-          <h2 className="text-2xl font-semibold mt-8 mb-4">Section 4 - Modifications to Service and Prices</h2>
+          <h2 className="text-2xl font-semibold mt-8 mb-4">
+            Section 4 - Modifications to Service and Prices
+          </h2>
           <p>
             Prices for our products are subject to change without notice. We reserve the right at
             any time to modify or discontinue the Service (or any part or content thereof) without
@@ -103,7 +105,9 @@ const TermsOfService = () => {
             evaluating the content or accuracy.
           </p>
 
-          <h2 className="text-2xl font-semibold mt-8 mb-4">Section 9 - User Comments and Submissions</h2>
+          <h2 className="text-2xl font-semibold mt-8 mb-4">
+            Section 9 - User Comments and Submissions
+          </h2>
           <p>
             If you send certain specific submissions or creative ideas, suggestions, proposals,
             plans, or other materials, you agree that we may, at any time, without restriction,
@@ -141,7 +145,9 @@ const TermsOfService = () => {
             information; (g) to upload or transmit viruses or any other type of malicious code.
           </p>
 
-          <h2 className="text-2xl font-semibold mt-8 mb-4">Section 13 - Disclaimer of Warranties</h2>
+          <h2 className="text-2xl font-semibold mt-8 mb-4">
+            Section 13 - Disclaimer of Warranties
+          </h2>
           <p>
             We do not guarantee, represent or warrant that your use of our service will be
             uninterrupted, timely, secure or error-free. We do not warrant that the results that may
@@ -191,7 +197,9 @@ const TermsOfService = () => {
             be governed by and construed in accordance with the laws of the United Kingdom.
           </p>
 
-          <h2 className="text-2xl font-semibold mt-8 mb-4">Section 20 - Changes to Terms of Service</h2>
+          <h2 className="text-2xl font-semibold mt-8 mb-4">
+            Section 20 - Changes to Terms of Service
+          </h2>
           <p>
             You can review the most current version of the Terms of Service at any time at this
             page. We reserve the right, at our sole discretion, to update, change or replace any
@@ -203,9 +211,7 @@ const TermsOfService = () => {
             Questions about the Terms of Service can be sent via our{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-blue hover:underline inline">
-                  contact form
-                </button>
+                <button className="text-robotechy-blue hover:underline inline">contact form</button>
               }
             />
             .

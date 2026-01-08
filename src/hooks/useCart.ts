@@ -26,66 +26,70 @@ export interface CartContextType {
 export const CartContext = createContext<CartContextType | null>(null);
 
 export function useCartInternal(): CartContextType {
-  const [cartState, setCartState] = useLocalStorage<CartState>(
-    CART_STORAGE_KEY,
-    defaultCartState
-  );
+  const [cartState, setCartState] = useLocalStorage<CartState>(CART_STORAGE_KEY, defaultCartState);
   const [isOpen, setIsOpen] = useLocalStorage<boolean>('robotechy-cart-open', false);
 
-  const addItem = useCallback((product: ProductData, quantity = 1) => {
-    setCartState((prev) => {
-      const existingIndex = prev.items.findIndex(
-        (item) => item.productId === product.id
-      );
+  const addItem = useCallback(
+    (product: ProductData, quantity = 1) => {
+      setCartState((prev) => {
+        const existingIndex = prev.items.findIndex((item) => item.productId === product.id);
 
-      let newItems: CartItem[];
-      if (existingIndex >= 0) {
-        // Update quantity if item already exists
-        newItems = prev.items.map((item, index) =>
-          index === existingIndex
-            ? { ...item, quantity: item.quantity + quantity, product }
-            : item
-        );
-      } else {
-        // Add new item
-        newItems = [
-          ...prev.items,
-          {
-            productId: product.id,
-            quantity,
-            product,
-            addedAt: Date.now(),
-          },
-        ];
+        let newItems: CartItem[];
+        if (existingIndex >= 0) {
+          // Update quantity if item already exists
+          newItems = prev.items.map((item, index) =>
+            index === existingIndex
+              ? { ...item, quantity: item.quantity + quantity, product }
+              : item
+          );
+        } else {
+          // Add new item
+          newItems = [
+            ...prev.items,
+            {
+              productId: product.id,
+              quantity,
+              product,
+              addedAt: Date.now(),
+            },
+          ];
+        }
+
+        return {
+          items: newItems,
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    [setCartState]
+  );
+
+  const removeItem = useCallback(
+    (productId: string) => {
+      setCartState((prev) => ({
+        items: prev.items.filter((item) => item.productId !== productId),
+        updatedAt: Date.now(),
+      }));
+    },
+    [setCartState]
+  );
+
+  const updateQuantity = useCallback(
+    (productId: string, quantity: number) => {
+      if (quantity <= 0) {
+        removeItem(productId);
+        return;
       }
 
-      return {
-        items: newItems,
+      setCartState((prev) => ({
+        items: prev.items.map((item) =>
+          item.productId === productId ? { ...item, quantity } : item
+        ),
         updatedAt: Date.now(),
-      };
-    });
-  }, [setCartState]);
-
-  const removeItem = useCallback((productId: string) => {
-    setCartState((prev) => ({
-      items: prev.items.filter((item) => item.productId !== productId),
-      updatedAt: Date.now(),
-    }));
-  }, [setCartState]);
-
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(productId);
-      return;
-    }
-
-    setCartState((prev) => ({
-      items: prev.items.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item
-      ),
-      updatedAt: Date.now(),
-    }));
-  }, [setCartState, removeItem]);
+      }));
+    },
+    [setCartState, removeItem]
+  );
 
   const clearCart = useCallback(() => {
     setCartState(defaultCartState);

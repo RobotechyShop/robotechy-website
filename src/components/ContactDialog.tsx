@@ -98,7 +98,11 @@ export function ContactDialog({ trigger }: ContactDialogProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="ghost" size="icon" className="text-slate-700 hover:text-robotechy-blue dark:text-slate-300">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-slate-700 hover:text-robotechy-blue dark:text-slate-300"
+          >
             <Mail className="h-5 w-5" />
           </Button>
         )}
@@ -106,9 +110,7 @@ export function ContactDialog({ trigger }: ContactDialogProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Contact Us</DialogTitle>
-          <DialogDescription>
-            Send us a private message via Nostr.
-          </DialogDescription>
+          <DialogDescription>Send us a private message via Nostr.</DialogDescription>
         </DialogHeader>
 
         {!user ? (
@@ -158,9 +160,7 @@ export function ContactDialog({ trigger }: ContactDialogProps) {
               )}
             </div>
 
-            {error && (
-              <p className="text-sm text-destructive text-center">{error}</p>
-            )}
+            {error && <p className="text-sm text-destructive text-center">{error}</p>}
 
             <Button
               type="submit"

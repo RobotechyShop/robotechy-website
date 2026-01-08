@@ -36,7 +36,8 @@ const Custom3DPrints = () => {
 
   useSeoMeta({
     title: 'Custom 3D Prints | Robotechy',
-    description: 'Request custom 3D prints from Robotechy. Wide range of materials including PLA, PETG, ABS, Nylon, and more.',
+    description:
+      'Request custom 3D prints from Robotechy. Wide range of materials including PLA, PETG, ABS, Nylon, and more.',
   });
 
   const {
@@ -86,9 +87,22 @@ const Custom3DPrints = () => {
   ];
 
   const materials = [
-    'PLA', 'PETG', 'ASA', 'ABS', 'PC (Polycarbonate)', 'CPE', 'PVA/BVOH',
-    'PVB', 'HIPS', 'PP (Polypropylene)', 'Flex', 'nGen', 'Nylon',
-    'Carbon filled', 'Woodfill', 'Other filled materials'
+    'PLA',
+    'PETG',
+    'ASA',
+    'ABS',
+    'PC (Polycarbonate)',
+    'CPE',
+    'PVA/BVOH',
+    'PVB',
+    'HIPS',
+    'PP (Polypropylene)',
+    'Flex',
+    'nGen',
+    'Nylon',
+    'Carbon filled',
+    'Woodfill',
+    'Other filled materials',
   ];
 
   return (
@@ -114,7 +128,8 @@ const Custom3DPrints = () => {
             >
               Thingiverse
             </a>
-            ? Get in touch and we'll bring your ideas to life with our professional 3D printing services.
+            ? Get in touch and we'll bring your ideas to life with our professional 3D printing
+            services.
           </p>
         </div>
       </div>
@@ -137,9 +152,7 @@ const Custom3DPrints = () => {
                     <span className="font-medium text-slate-700 dark:text-slate-300 sm:w-40 shrink-0">
                       {spec.label}:
                     </span>
-                    <span className="text-slate-600 dark:text-slate-400">
-                      {spec.value}
-                    </span>
+                    <span className="text-slate-600 dark:text-slate-400">{spec.value}</span>
                   </div>
                 ))}
               </div>
@@ -221,9 +234,7 @@ const Custom3DPrints = () => {
                       )}
                     </div>
 
-                    {error && (
-                      <p className="text-sm text-destructive text-center">{error}</p>
-                    )}
+                    {error && <p className="text-sm text-destructive text-center">{error}</p>}
 
                     <Button
                       type="submit"

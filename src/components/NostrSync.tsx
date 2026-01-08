@@ -20,10 +20,9 @@ export function NostrSync() {
 
     const syncRelaysFromNostr = async () => {
       try {
-        const events = await nostr.query(
-          [{ kinds: [10002], authors: [user.pubkey], limit: 1 }],
-          { signal: AbortSignal.timeout(5000) }
-        );
+        const events = await nostr.query([{ kinds: [10002], authors: [user.pubkey], limit: 1 }], {
+          signal: AbortSignal.timeout(5000),
+        });
 
         if (events.length > 0) {
           const event = events[0];

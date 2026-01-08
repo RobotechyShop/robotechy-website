@@ -2,9 +2,9 @@ import type { CartItem, ShippingInfo } from '@/lib/cartTypes';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 // Gamma Markets event kinds
-export const ORDER_GENERAL_KIND = 14;    // General communication
-export const ORDER_PROCESS_KIND = 16;    // Order processing
-export const PAYMENT_RECEIPT_KIND = 17;  // Payment receipts
+export const ORDER_GENERAL_KIND = 14; // General communication
+export const ORDER_PROCESS_KIND = 16; // Order processing
+export const PAYMENT_RECEIPT_KIND = 17; // Payment receipts
 
 // Order message types for Kind 16
 export const ORDER_MESSAGE_TYPE = {
@@ -34,13 +34,9 @@ export function generateOrderId(): string {
  * Format shipping address as a single string
  */
 export function formatAddress(info: ShippingInfo): string {
-  const parts = [
-    info.address,
-    info.city,
-    info.state,
-    info.postalCode,
-    info.country,
-  ].filter(Boolean);
+  const parts = [info.address, info.city, info.state, info.postalCode, info.country].filter(
+    Boolean
+  );
   return parts.join(', ');
 }
 

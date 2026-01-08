@@ -36,9 +36,7 @@ const NostrProvider: React.FC<NostrProviderProps> = (props) => {
         const routes = new Map<string, NostrFilter[]>();
 
         // Route to all read relays
-        const readRelays = relayMetadata.current.relays
-          .filter(r => r.read)
-          .map(r => r.url);
+        const readRelays = relayMetadata.current.relays.filter((r) => r.read).map((r) => r.url);
 
         for (const url of readRelays) {
           routes.set(url, filters);
@@ -48,9 +46,7 @@ const NostrProvider: React.FC<NostrProviderProps> = (props) => {
       },
       eventRouter(_event: NostrEvent) {
         // Get write relays from metadata
-        const writeRelays = relayMetadata.current.relays
-          .filter(r => r.write)
-          .map(r => r.url);
+        const writeRelays = relayMetadata.current.relays.filter((r) => r.write).map((r) => r.url);
 
         const allRelays = new Set<string>(writeRelays);
 
@@ -59,11 +55,7 @@ const NostrProvider: React.FC<NostrProviderProps> = (props) => {
     });
   }
 
-  return (
-    <NostrContext.Provider value={{ nostr: pool.current }}>
-      {children}
-    </NostrContext.Provider>
-  );
+  return <NostrContext.Provider value={{ nostr: pool.current }}>{children}</NostrContext.Provider>;
 };
 
 export default NostrProvider;

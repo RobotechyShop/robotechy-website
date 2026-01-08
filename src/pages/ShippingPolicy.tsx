@@ -19,15 +19,22 @@ const ShippingPolicy = () => {
 
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-6">
           <p className="text-lg">
-            All orders are printed on receipt. We aim to print and then ship your order within 7 days.
+            All orders are printed on receipt. We aim to print and then ship your order within 7
+            days.
           </p>
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Shipping Zones</h2>
           <p>We currently ship to the following regions:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li><strong>United Kingdom</strong> - Free shipping</li>
-            <li><strong>Europe</strong> - Shipping charges apply</li>
-            <li><strong>Worldwide</strong> - Shipping charges apply</li>
+            <li>
+              <strong>United Kingdom</strong> - Free shipping
+            </li>
+            <li>
+              <strong>Europe</strong> - Shipping charges apply
+            </li>
+            <li>
+              <strong>Worldwide</strong> - Shipping charges apply
+            </li>
           </ul>
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Processing Time</h2>
@@ -47,9 +54,7 @@ const ShippingPolicy = () => {
             If you have any questions about shipping, please{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-blue hover:underline inline">
-                  contact us
-                </button>
+                <button className="text-robotechy-blue hover:underline inline">contact us</button>
               }
             />
             .

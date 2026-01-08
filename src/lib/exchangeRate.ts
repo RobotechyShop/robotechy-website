@@ -21,7 +21,9 @@ let cachedRates: ExchangeRates | null = null;
  * Calculate average from an array of numbers, filtering out invalid values
  */
 function safeAverage(values: (number | null | undefined)[]): number | null {
-  const validValues = values.filter((v): v is number => typeof v === 'number' && !isNaN(v) && v > 0);
+  const validValues = values.filter(
+    (v): v is number => typeof v === 'number' && !isNaN(v) && v > 0
+  );
   if (validValues.length === 0) return null;
   return validValues.reduce((sum, v) => sum + v, 0) / validValues.length;
 }
@@ -29,7 +31,11 @@ function safeAverage(values: (number | null | undefined)[]): number | null {
 /**
  * Fetch rates from CoinGecko
  */
-async function fetchCoinGecko(): Promise<{ gbp: number | null; usd: number | null; eur: number | null }> {
+async function fetchCoinGecko(): Promise<{
+  gbp: number | null;
+  usd: number | null;
+  eur: number | null;
+}> {
   try {
     const response = await fetch(
       'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=gbp,usd,eur',
@@ -51,12 +57,22 @@ async function fetchCoinGecko(): Promise<{ gbp: number | null; usd: number | nul
 /**
  * Fetch rates from Kraken
  */
-async function fetchKraken(): Promise<{ gbp: number | null; usd: number | null; eur: number | null }> {
+async function fetchKraken(): Promise<{
+  gbp: number | null;
+  usd: number | null;
+  eur: number | null;
+}> {
   try {
     const [usdRes, eurRes, gbpRes] = await Promise.all([
-      fetch('https://api.kraken.com/0/public/Ticker?pair=XBTUSD', { signal: AbortSignal.timeout(5000) }),
-      fetch('https://api.kraken.com/0/public/Ticker?pair=XBTEUR', { signal: AbortSignal.timeout(5000) }),
-      fetch('https://api.kraken.com/0/public/Ticker?pair=XBTGBP', { signal: AbortSignal.timeout(5000) }),
+      fetch('https://api.kraken.com/0/public/Ticker?pair=XBTUSD', {
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch('https://api.kraken.com/0/public/Ticker?pair=XBTEUR', {
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch('https://api.kraken.com/0/public/Ticker?pair=XBTGBP', {
+        signal: AbortSignal.timeout(5000),
+      }),
     ]);
 
     const [usdData, eurData, gbpData] = await Promise.all([
@@ -79,12 +95,22 @@ async function fetchKraken(): Promise<{ gbp: number | null; usd: number | null; 
 /**
  * Fetch rates from Coinbase
  */
-async function fetchCoinbase(): Promise<{ gbp: number | null; usd: number | null; eur: number | null }> {
+async function fetchCoinbase(): Promise<{
+  gbp: number | null;
+  usd: number | null;
+  eur: number | null;
+}> {
   try {
     const [usdRes, eurRes, gbpRes] = await Promise.all([
-      fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot', { signal: AbortSignal.timeout(5000) }),
-      fetch('https://api.coinbase.com/v2/prices/BTC-EUR/spot', { signal: AbortSignal.timeout(5000) }),
-      fetch('https://api.coinbase.com/v2/prices/BTC-GBP/spot', { signal: AbortSignal.timeout(5000) }),
+      fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot', {
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch('https://api.coinbase.com/v2/prices/BTC-EUR/spot', {
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch('https://api.coinbase.com/v2/prices/BTC-GBP/spot', {
+        signal: AbortSignal.timeout(5000),
+      }),
     ]);
 
     const [usdData, eurData, gbpData] = await Promise.all([

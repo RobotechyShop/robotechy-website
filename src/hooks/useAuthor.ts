@@ -12,10 +12,9 @@ export function useAuthor(pubkey: string | undefined) {
         return {};
       }
 
-      const [event] = await nostr.query(
-        [{ kinds: [0], authors: [pubkey!], limit: 1 }],
-        { signal: AbortSignal.any([signal, AbortSignal.timeout(1500)]) },
-      );
+      const [event] = await nostr.query([{ kinds: [0], authors: [pubkey!], limit: 1 }], {
+        signal: AbortSignal.any([signal, AbortSignal.timeout(1500)]),
+      });
 
       if (!event) {
         throw new Error('No event found');

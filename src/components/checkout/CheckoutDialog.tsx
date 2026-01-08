@@ -128,9 +128,7 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
           {(hasError || localError) && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {checkoutState.error || localError}
-              </AlertDescription>
+              <AlertDescription>{checkoutState.error || localError}</AlertDescription>
             </Alert>
           )}
 
@@ -140,16 +138,11 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
                 <p className="text-sm">
                   <span className="font-medium">{totalItems} item(s)</span>
                   <span className="text-muted-foreground"> · </span>
-                  <span className="font-medium">
-                    {formatPrice(totalPrice, currency)}
-                  </span>
+                  <span className="font-medium">{formatPrice(totalPrice, currency)}</span>
                 </p>
               </div>
 
-              <ShippingForm
-                onSubmit={handleShippingSubmit}
-                isSubmitting={isSubmitting}
-              />
+              <ShippingForm onSubmit={handleShippingSubmit} isSubmitting={isSubmitting} />
             </div>
           )}
 
@@ -165,10 +158,7 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
           )}
 
           {step === 'confirmation' && checkoutState.orderId && (
-            <OrderConfirmation
-              orderId={checkoutState.orderId}
-              onClose={handleClose}
-            />
+            <OrderConfirmation orderId={checkoutState.orderId} onClose={handleClose} />
           )}
         </DialogContent>
       </Dialog>

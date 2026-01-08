@@ -58,10 +58,10 @@ export async function writeMessagesToDB(
 ): Promise<void> {
   try {
     const db = await openDatabase();
-    
-      // Store messages in their original encrypted form (no NIP-44 wrapper needed)
-      // Each message content is already encrypted by the sender
-      await db.put(STORE_NAME, messageStore, userPubkey);
+
+    // Store messages in their original encrypted form (no NIP-44 wrapper needed)
+    // Each message content is already encrypted by the sender
+    await db.put(STORE_NAME, messageStore, userPubkey);
   } catch (error) {
     console.error('[MessageStore] ❌ Error writing to IndexedDB:', error);
     throw error;
@@ -72,17 +72,15 @@ export async function writeMessagesToDB(
  * Read messages from IndexedDB for a specific user
  * Messages are stored in their original encrypted form (kind 4 or kind 13)
  */
-export async function readMessagesFromDB(
-  userPubkey: string
-): Promise<MessageStore | undefined> {
+export async function readMessagesFromDB(userPubkey: string): Promise<MessageStore | undefined> {
   try {
     const db = await openDatabase();
     const data = await db.get(STORE_NAME, userPubkey);
-    
+
     if (!data) {
       return undefined;
     }
-    
+
     return data as MessageStore;
   } catch (error) {
     console.error('[MessageStore] Error reading from IndexedDB:', error);

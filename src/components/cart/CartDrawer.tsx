@@ -41,18 +41,14 @@ export function CartDrawer() {
                 </span>
               )}
             </SheetTitle>
-            <SheetDescription className="sr-only">
-              Your shopping cart items
-            </SheetDescription>
+            <SheetDescription className="sr-only">Your shopping cart items</SheetDescription>
           </SheetHeader>
 
           {items.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
               <ShoppingBag className="h-16 w-16 text-muted-foreground/50 mb-4" />
               <h3 className="font-medium text-lg mb-1">Your cart is empty</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                Add some items to get started
-              </p>
+              <p className="text-muted-foreground text-sm mb-4">Add some items to get started</p>
               <Button variant="outline" onClick={() => setIsOpen(false)}>
                 Continue Shopping
               </Button>

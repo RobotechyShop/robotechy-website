@@ -56,7 +56,7 @@ export function useProducts(filter: ProductFilter = {}) {
       let validProducts = events.filter(validateProduct);
 
       // Filter by visibility (only show on-sale products by default)
-      validProducts = validProducts.filter(event => {
+      validProducts = validProducts.filter((event) => {
         const visibility = event.tags.find(([name]) => name === 'visibility')?.[1];
         return !visibility || visibility === 'on-sale';
       });
@@ -99,13 +99,18 @@ export function useCollections() {
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
 
-      const events = await nostr.query([{
-        kinds: [30405], // Product collection events
-        authors: [MERCHANT_PUBKEY],
-      }], { signal });
+      const events = await nostr.query(
+        [
+          {
+            kinds: [30405], // Product collection events
+            authors: [MERCHANT_PUBKEY],
+          },
+        ],
+        { signal }
+      );
 
       // Validate and parse collections
-      const validCollections = events.filter(event => {
+      const validCollections = events.filter((event) => {
         const d = event.tags.find(([name]) => name === 'd')?.[1];
         const title = event.tags.find(([name]) => name === 'title')?.[1];
         return d && title;

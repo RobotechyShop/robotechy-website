@@ -29,7 +29,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/useToast';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import type { NWCConnection, NWCInfo } from '@/hooks/useNWC';
-import type { WebLNProvider } from "@webbtc/webln-types";
+import type { WebLNProvider } from '@webbtc/webln-types';
 
 interface WalletModalProps {
   children?: React.ReactNode;
@@ -37,12 +37,15 @@ interface WalletModalProps {
 }
 
 // Extracted AddWalletContent to prevent re-renders
-const AddWalletContent = forwardRef<HTMLDivElement, {
-  alias: string;
-  setAlias: (value: string) => void;
-  connectionUri: string;
-  setConnectionUri: (value: string) => void;
-}>(({ alias, setAlias, connectionUri, setConnectionUri }, ref) => (
+const AddWalletContent = forwardRef<
+  HTMLDivElement,
+  {
+    alias: string;
+    setAlias: (value: string) => void;
+    connectionUri: string;
+    setConnectionUri: (value: string) => void;
+  }
+>(({ alias, setAlias, connectionUri, setConnectionUri }, ref) => (
   <div className="space-y-4 px-4" ref={ref}>
     <div>
       <Label htmlFor="alias">Wallet Name (optional)</Label>
@@ -68,140 +71,148 @@ const AddWalletContent = forwardRef<HTMLDivElement, {
 AddWalletContent.displayName = 'AddWalletContent';
 
 // Extracted WalletContent to prevent re-renders
-const WalletContent = forwardRef<HTMLDivElement, {
-  webln: WebLNProvider | null;
-  hasNWC: boolean;
-  connections: NWCConnection[];
-  connectionInfo: Record<string, NWCInfo>;
-  activeConnection: string | null;
-  handleSetActive: (cs: string) => void;
-  handleRemoveConnection: (cs: string) => void;
-  setAddDialogOpen: (open: boolean) => void;
-}>(({
-  webln,
-  hasNWC,
-  connections,
-  connectionInfo,
-  activeConnection,
-  handleSetActive,
-  handleRemoveConnection,
-  setAddDialogOpen
-}, ref) => (
-  <div className="space-y-6 px-4 pb-4" ref={ref}>
-    {/* Current Status */}
-    <div className="space-y-3">
-      <h3 className="font-medium">Current Status</h3>
-      <div className="grid gap-3">
-        {/* WebLN */}
-        <div className="flex items-center justify-between p-3 border rounded-lg">
-          <div className="flex items-center gap-3">
-            <Globe className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-sm font-medium">WebLN</p>
-              <p className="text-xs text-muted-foreground">Browser extension</p>
+const WalletContent = forwardRef<
+  HTMLDivElement,
+  {
+    webln: WebLNProvider | null;
+    hasNWC: boolean;
+    connections: NWCConnection[];
+    connectionInfo: Record<string, NWCInfo>;
+    activeConnection: string | null;
+    handleSetActive: (cs: string) => void;
+    handleRemoveConnection: (cs: string) => void;
+    setAddDialogOpen: (open: boolean) => void;
+  }
+>(
+  (
+    {
+      webln,
+      hasNWC,
+      connections,
+      connectionInfo,
+      activeConnection,
+      handleSetActive,
+      handleRemoveConnection,
+      setAddDialogOpen,
+    },
+    ref
+  ) => (
+    <div className="space-y-6 px-4 pb-4" ref={ref}>
+      {/* Current Status */}
+      <div className="space-y-3">
+        <h3 className="font-medium">Current Status</h3>
+        <div className="grid gap-3">
+          {/* WebLN */}
+          <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">WebLN</p>
+                <p className="text-xs text-muted-foreground">Browser extension</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {webln && <CheckCircle className="h-4 w-4 text-green-600" />}
+              <Badge variant={webln ? 'default' : 'secondary'} className="text-xs">
+                {webln ? 'Ready' : 'Not Found'}
+              </Badge>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {webln && <CheckCircle className="h-4 w-4 text-green-600" />}
-            <Badge variant={webln ? "default" : "secondary"} className="text-xs">
-              {webln ? "Ready" : "Not Found"}
-            </Badge>
-          </div>
-        </div>
-        {/* NWC */}
-        <div className="flex items-center justify-between p-3 border rounded-lg">
-          <div className="flex items-center gap-3">
-            <WalletMinimal className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-sm font-medium">Nostr Wallet Connect</p>
-              <p className="text-xs text-muted-foreground">
-                {connections.length > 0
-                  ? `${connections.length} wallet${connections.length !== 1 ? 's' : ''} connected`
-                  : "Remote wallet connection"
-                }
-              </p>
+          {/* NWC */}
+          <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <WalletMinimal className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Nostr Wallet Connect</p>
+                <p className="text-xs text-muted-foreground">
+                  {connections.length > 0
+                    ? `${connections.length} wallet${connections.length !== 1 ? 's' : ''} connected`
+                    : 'Remote wallet connection'}
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {hasNWC && <CheckCircle className="h-4 w-4 text-green-600" />}
-            <Badge variant={hasNWC ? "default" : "secondary"} className="text-xs">
-              {hasNWC ? "Ready" : "None"}
-            </Badge>
+            <div className="flex items-center gap-2">
+              {hasNWC && <CheckCircle className="h-4 w-4 text-green-600" />}
+              <Badge variant={hasNWC ? 'default' : 'secondary'} className="text-xs">
+                {hasNWC ? 'Ready' : 'None'}
+              </Badge>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <Separator />
-    {/* NWC Management */}
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-medium">Nostr Wallet Connect</h3>
-        <Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" />
-          Add
-        </Button>
-      </div>
-      {/* Connected Wallets List */}
-      {connections.length === 0 ? (
-        <div className="text-center py-6 text-muted-foreground">
-          <p className="text-sm">No wallets connected</p>
+      <Separator />
+      {/* NWC Management */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium">Nostr Wallet Connect</h3>
+          <Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
         </div>
-      ) : (
-        <div className="space-y-2">
-          {connections.map((connection) => {
-            const info = connectionInfo[connection.connectionString];
-            const isActive = activeConnection === connection.connectionString;
-            return (
-              <div key={connection.connectionString} className={`flex items-center justify-between p-3 border rounded-lg ${isActive ? 'ring-2 ring-primary' : ''}`}>
-                <div className="flex items-center gap-3">
-                  <WalletMinimal className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">
-                      {connection.alias || info?.alias || 'Lightning Wallet'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      NWC Connection
-                    </p>
+        {/* Connected Wallets List */}
+        {connections.length === 0 ? (
+          <div className="text-center py-6 text-muted-foreground">
+            <p className="text-sm">No wallets connected</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {connections.map((connection) => {
+              const info = connectionInfo[connection.connectionString];
+              const isActive = activeConnection === connection.connectionString;
+              return (
+                <div
+                  key={connection.connectionString}
+                  className={`flex items-center justify-between p-3 border rounded-lg ${isActive ? 'ring-2 ring-primary' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <WalletMinimal className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {connection.alias || info?.alias || 'Lightning Wallet'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">NWC Connection</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {isActive && <CheckCircle className="h-4 w-4 text-green-600" />}
-                  {!isActive && (
+                  <div className="flex items-center gap-2">
+                    {isActive && <CheckCircle className="h-4 w-4 text-green-600" />}
+                    {!isActive && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleSetActive(connection.connectionString)}
+                      >
+                        <Zap className="h-3 w-3" />
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => handleSetActive(connection.connectionString)}
+                      onClick={() => handleRemoveConnection(connection.connectionString)}
                     >
-                      <Zap className="h-3 w-3" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleRemoveConnection(connection.connectionString)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {/* Help */}
+      {!webln && connections.length === 0 && (
+        <>
+          <Separator />
+          <div className="text-center py-4 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Install a WebLN extension or connect a NWC wallet for zaps.
+            </p>
+          </div>
+        </>
       )}
     </div>
-    {/* Help */}
-    {!webln && connections.length === 0 && (
-      <>
-        <Separator />
-        <div className="text-center py-4 space-y-2">
-          <p className="text-sm text-muted-foreground">
-            Install a WebLN extension or connect a NWC wallet for zaps.
-          </p>
-        </div>
-      </>
-    )}
-  </div>
-));
+  )
+);
 WalletContent.displayName = 'WalletContent';
 
 export function WalletModal({ children, className }: WalletModalProps) {
@@ -218,12 +229,12 @@ export function WalletModal({ children, className }: WalletModalProps) {
     connectionInfo,
     addConnection,
     removeConnection,
-    setActiveConnection
+    setActiveConnection,
   } = useNWC();
 
   const { webln } = useWallet();
 
-  const hasNWC = connections.length > 0 && connections.some(c => c.isConnected);
+  const hasNWC = connections.length > 0 && connections.some((c) => c.isConnected);
   const { toast } = useToast();
 
   const handleAddConnection = async () => {

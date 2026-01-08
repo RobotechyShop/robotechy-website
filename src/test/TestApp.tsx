@@ -24,23 +24,19 @@ export function TestApp({ children }: TestAppProps) {
   const defaultConfig: AppConfig = {
     theme: 'light',
     relayMetadata: {
-      relays: [
-        { url: 'wss://relay.nostr.band', read: true, write: true },
-      ],
+      relays: [{ url: 'wss://relay.nostr.band', read: true, write: true }],
       updatedAt: 0,
     },
   };
 
   return (
     <UnheadProvider head={head}>
-      <AppProvider storageKey='test-app-config' defaultConfig={defaultConfig}>
+      <AppProvider storageKey="test-app-config" defaultConfig={defaultConfig}>
         <QueryClientProvider client={queryClient}>
-          <NostrLoginProvider storageKey='test-login'>
+          <NostrLoginProvider storageKey="test-login">
             <NostrProvider>
               <NWCProvider>
-                <BrowserRouter>
-                  {children}
-                </BrowserRouter>
+                <BrowserRouter>{children}</BrowserRouter>
               </NWCProvider>
             </NostrProvider>
           </NostrLoginProvider>

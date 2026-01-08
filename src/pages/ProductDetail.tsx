@@ -15,12 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  ArrowLeft,
-  Share2,
-  Package,
-  ImageIcon,
-} from 'lucide-react';
+import { ArrowLeft, Share2, Package, ImageIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface ProductDetailProps {
@@ -44,7 +39,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
   });
 
   const handleImageError = (index: number) => {
-    setImageErrors(prev => new Set(prev).add(index));
+    setImageErrors((prev) => new Set(prev).add(index));
   };
 
   const handleShare = async () => {
@@ -92,7 +87,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
             <div className="flex items-center justify-between h-20">
               <div className="flex items-center gap-3">
                 <a href="/" className="flex items-center gap-2">
-                  <img 
+                  <img
                     src="https://robotechy.com/cdn/shop/files/New_Robotechy_Logo_White_Background_195x.png?v=1639256993"
                     alt="Robotechy"
                     className="h-12 w-auto max-w-[195px]"
@@ -223,11 +218,11 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
               <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2">
                 {product.title}
               </h1>
-              
+
               <div className="text-2xl font-bold text-slate-900 dark:text-white">
                 {formatPriceFromTag(product.price)}
               </div>
-              
+
               {product.summary && (
                 <p className="text-slate-600 dark:text-slate-400 mt-3 italic text-sm">
                   {product.summary}
@@ -284,12 +279,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                 </Button>
               )}
 
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full"
-                onClick={handleShare}
-              >
+              <Button variant="outline" size="lg" className="w-full" onClick={handleShare}>
                 <Share2 className="h-5 w-5 mr-2" />
                 Share
               </Button>
@@ -312,7 +302,10 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                   <h3 className="font-semibold text-lg mb-3">Specifications</h3>
                   <dl className="space-y-2">
                     {product.specs.map(([key, value], index) => (
-                      <div key={index} className="flex justify-between text-sm py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                      <div
+                        key={index}
+                        className="flex justify-between text-sm py-2 border-b border-slate-100 dark:border-slate-800 last:border-0"
+                      >
                         <dt className="text-slate-600 dark:text-slate-400 font-medium">{key}</dt>
                         <dd className="text-slate-900 dark:text-white">{value}</dd>
                       </div>
@@ -332,13 +325,19 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                     {product.weight && (
                       <div className="flex justify-between text-sm py-2 border-b border-slate-100 dark:border-slate-800">
                         <dt className="text-slate-600 dark:text-slate-400 font-medium">Weight</dt>
-                        <dd className="text-slate-900 dark:text-white">{product.weight.value} {product.weight.unit}</dd>
+                        <dd className="text-slate-900 dark:text-white">
+                          {product.weight.value} {product.weight.unit}
+                        </dd>
                       </div>
                     )}
                     {product.dimensions && (
                       <div className="flex justify-between text-sm py-2">
-                        <dt className="text-slate-600 dark:text-slate-400 font-medium">Dimensions</dt>
-                        <dd className="text-slate-900 dark:text-white">{product.dimensions.value} {product.dimensions.unit}</dd>
+                        <dt className="text-slate-600 dark:text-slate-400 font-medium">
+                          Dimensions
+                        </dt>
+                        <dd className="text-slate-900 dark:text-white">
+                          {product.dimensions.value} {product.dimensions.unit}
+                        </dd>
                       </div>
                     )}
                   </dl>

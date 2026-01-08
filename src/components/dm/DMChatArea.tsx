@@ -11,7 +11,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ArrowLeft, Send, Loader2, AlertTriangle, Key, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,131 +31,136 @@ interface DMChatAreaProps {
   className?: string;
 }
 
-const MessageBubble = memo(({
-  message, 
-  isFromCurrentUser 
-}: { 
-  message: {
-    id: string;
-    pubkey: string;
-    kind: number;
-    tags: string[][];
-    decryptedContent?: string;
-    decryptedEvent?: NostrEvent;
-    error?: string;
-    created_at: number;
-    isSending?: boolean;
-  };
-  isFromCurrentUser: boolean;
-}) => {
-  // For NIP-17, use inner message kind (14/15); for NIP-04, use message kind (4)
-  const actualKind = message.decryptedEvent?.kind || message.kind;
-  const isNIP4Message = message.kind === 4;
-  const isFileAttachment = actualKind === 15; // Kind 15 = files/attachments
+const MessageBubble = memo(
+  ({
+    message,
+    isFromCurrentUser,
+  }: {
+    message: {
+      id: string;
+      pubkey: string;
+      kind: number;
+      tags: string[][];
+      decryptedContent?: string;
+      decryptedEvent?: NostrEvent;
+      error?: string;
+      created_at: number;
+      isSending?: boolean;
+    };
+    isFromCurrentUser: boolean;
+  }) => {
+    // For NIP-17, use inner message kind (14/15); for NIP-04, use message kind (4)
+    const actualKind = message.decryptedEvent?.kind || message.kind;
+    const isNIP4Message = message.kind === 4;
+    const isFileAttachment = actualKind === 15; // Kind 15 = files/attachments
 
-  // Create a NostrEvent object for NoteContent (only used for kind 15)
-  // For NIP-17 file attachments, use the decryptedEvent which has the actual tags
-  const messageEvent: NostrEvent = message.decryptedEvent || {
-    id: message.id,
-    pubkey: message.pubkey,
-    created_at: message.created_at,
-    kind: message.kind,
-    tags: message.tags,
-    content: message.decryptedContent || '',
-    sig: '', // Not needed for display
-  };
+    // Create a NostrEvent object for NoteContent (only used for kind 15)
+    // For NIP-17 file attachments, use the decryptedEvent which has the actual tags
+    const messageEvent: NostrEvent = message.decryptedEvent || {
+      id: message.id,
+      pubkey: message.pubkey,
+      created_at: message.created_at,
+      kind: message.kind,
+      tags: message.tags,
+      content: message.decryptedContent || '',
+      sig: '', // Not needed for display
+    };
 
-  return (
-    <div className={cn("flex mb-4", isFromCurrentUser ? "justify-end" : "justify-start")}>
-      <div className={cn(
-        "max-w-[70%] rounded-lg px-4 py-2",
-        isFromCurrentUser 
-          ? "bg-primary text-primary-foreground" 
-          : "bg-muted"
-      )}>
-        {message.error ? (
-          <Tooltip delayDuration={200}>
-            <TooltipTrigger asChild>
-              <p className="text-sm italic opacity-70 cursor-help">🔒 Failed to decrypt</p>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">{message.error}</p>
-            </TooltipContent>
-          </Tooltip>
-        ) : isFileAttachment ? (
-          // Kind 15: Use NoteContent to render files/media with imeta tags
-          <div className="text-sm">
-            <NoteContent event={messageEvent} className="whitespace-pre-wrap break-words" />
-          </div>
-        ) : (
-          // Kind 4 (NIP-04) and Kind 14 (NIP-17 text): Display plain text
-          <p className="text-sm whitespace-pre-wrap break-words">
-            {message.decryptedContent}
-          </p>
-        )}
-        <div className="flex items-center gap-2 mt-1">
-          <TooltipProvider>
+    return (
+      <div className={cn('flex mb-4', isFromCurrentUser ? 'justify-end' : 'justify-start')}>
+        <div
+          className={cn(
+            'max-w-[70%] rounded-lg px-4 py-2',
+            isFromCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
+          )}
+        >
+          {message.error ? (
             <Tooltip delayDuration={200}>
               <TooltipTrigger asChild>
-                <span className={cn(
-                  "text-xs opacity-70 cursor-default",
-                  isFromCurrentUser ? "text-primary-foreground" : "text-muted-foreground"
-                )}>
-                  {formatConversationTime(message.created_at)}
-                </span>
+                <p className="text-sm italic opacity-70 cursor-help">🔒 Failed to decrypt</p>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-xs">{formatFullDateTime(message.created_at)}</p>
+                <p className="text-xs">{message.error}</p>
               </TooltipContent>
             </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip delayDuration={200}>
-              <TooltipTrigger asChild>
-                <span className={cn(
-                  "flex-shrink-0 opacity-50",
-                  isFromCurrentUser ? "text-primary-foreground" : "text-muted-foreground"
-                )}>
-                  {message.kind === 4 ? (
-                    <Key className="h-3 w-3" />
-                  ) : (
-                    <ShieldCheck className="h-3 w-3" />
-                  )}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">
-                  {message.kind === 4 && "NIP-04 Kind 4 (Legacy DM)"}
-                  {message.kind === 14 && "NIP-17 Kind 14 (Private Message)"}
-                  {message.kind === 15 && "NIP-17 Kind 15 (Media)"}
-                  {message.kind !== 4 && message.kind !== 14 && message.kind !== 15 && `Kind ${message.kind}`}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          {isNIP4Message && (
+          ) : isFileAttachment ? (
+            // Kind 15: Use NoteContent to render files/media with imeta tags
+            <div className="text-sm">
+              <NoteContent event={messageEvent} className="whitespace-pre-wrap break-words" />
+            </div>
+          ) : (
+            // Kind 4 (NIP-04) and Kind 14 (NIP-17 text): Display plain text
+            <p className="text-sm whitespace-pre-wrap break-words">{message.decryptedContent}</p>
+          )}
+          <div className="flex items-center gap-2 mt-1">
             <TooltipProvider>
-              <Tooltip>
+              <Tooltip delayDuration={200}>
                 <TooltipTrigger asChild>
-                  <div className="flex-shrink-0">
-                    <AlertTriangle className="h-3 w-3 text-yellow-600 dark:text-yellow-500" />
-                  </div>
+                  <span
+                    className={cn(
+                      'text-xs opacity-70 cursor-default',
+                      isFromCurrentUser ? 'text-primary-foreground' : 'text-muted-foreground'
+                    )}
+                  >
+                    {formatConversationTime(message.created_at)}
+                  </span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-xs">Uses outdated NIP-04 encryption</p>
+                  <p className="text-xs">{formatFullDateTime(message.created_at)}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          )}
-          {message.isSending && (
-            <Loader2 className="h-3 w-3 animate-spin opacity-70" />
-          )}
+
+            <TooltipProvider>
+              <Tooltip delayDuration={200}>
+                <TooltipTrigger asChild>
+                  <span
+                    className={cn(
+                      'flex-shrink-0 opacity-50',
+                      isFromCurrentUser ? 'text-primary-foreground' : 'text-muted-foreground'
+                    )}
+                  >
+                    {message.kind === 4 ? (
+                      <Key className="h-3 w-3" />
+                    ) : (
+                      <ShieldCheck className="h-3 w-3" />
+                    )}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">
+                    {message.kind === 4 && 'NIP-04 Kind 4 (Legacy DM)'}
+                    {message.kind === 14 && 'NIP-17 Kind 14 (Private Message)'}
+                    {message.kind === 15 && 'NIP-17 Kind 15 (Media)'}
+                    {message.kind !== 4 &&
+                      message.kind !== 14 &&
+                      message.kind !== 15 &&
+                      `Kind ${message.kind}`}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {isNIP4Message && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex-shrink-0">
+                      <AlertTriangle className="h-3 w-3 text-yellow-600 dark:text-yellow-500" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Uses outdated NIP-04 encryption</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {message.isSending && <Loader2 className="h-3 w-3 animate-spin opacity-70" />}
+          </div>
         </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 MessageBubble.displayName = 'MessageBubble';
 
@@ -164,21 +175,16 @@ const ChatHeader = ({ pubkey, onBack }: { pubkey: string; onBack?: () => void })
   return (
     <div className="p-4 border-b flex items-center gap-3">
       {onBack && (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onBack}
-          className="md:hidden"
-        >
+        <Button variant="ghost" size="icon" onClick={onBack} className="md:hidden">
           <ArrowLeft className="h-5 w-5" />
         </Button>
       )}
-      
+
       <Avatar className="h-10 w-10">
         <AvatarImage src={avatarUrl} alt={displayName} />
         <AvatarFallback>{initials}</AvatarFallback>
       </Avatar>
-      
+
       <div className="flex-1 min-w-0">
         <h2 className="font-semibold truncate">{displayName}</h2>
         {metadata?.nip05 && (
@@ -197,16 +203,12 @@ const EmptyState = ({ isLoading }: { isLoading: boolean }) => {
           <>
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <p className="text-sm">Loading conversations...</p>
-            <p className="text-xs mt-2">
-              Fetching encrypted messages from relays
-            </p>
+            <p className="text-xs mt-2">Fetching encrypted messages from relays</p>
           </>
         ) : (
           <>
             <p className="text-sm">Select a conversation to start messaging</p>
-            <p className="text-xs mt-2">
-              Your messages are encrypted and stored locally
-            </p>
+            <p className="text-xs mt-2">Your messages are encrypted and stored locally</p>
           </>
         )}
       </div>
@@ -223,7 +225,7 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  
+
   // Determine default protocol based on mode
   const getDefaultProtocol = () => {
     if (protocolMode === PROTOCOL_MODE.NIP04_ONLY) return MESSAGE_PROTOCOL.NIP04;
@@ -232,17 +234,19 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
     // Fallback to NIP-17 for any unexpected mode
     return MESSAGE_PROTOCOL.NIP17;
   };
-  
+
   const [selectedProtocol, setSelectedProtocol] = useState<MessageProtocol>(getDefaultProtocol());
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  
+
   // Determine if selection is allowed
   const allowSelection = protocolMode === PROTOCOL_MODE.NIP04_OR_NIP17;
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      const scrollContainer = scrollAreaRef.current.querySelector(
+        '[data-radix-scroll-area-viewport]'
+      );
       if (scrollContainer) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
@@ -272,28 +276,33 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
     }
   }, [messageText, pubkey, user, sendMessage, selectedProtocol, toast]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  }, [handleSend]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    },
+    [handleSend]
+  );
 
   const handleLoadMore = useCallback(async () => {
     if (!scrollAreaRef.current || isLoadingMore) return;
-    
-    const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+
+    const scrollContainer = scrollAreaRef.current.querySelector(
+      '[data-radix-scroll-area-viewport]'
+    );
     if (!scrollContainer) return;
-    
+
     // Store current scroll position and height
     const previousScrollHeight = scrollContainer.scrollHeight;
     const previousScrollTop = scrollContainer.scrollTop;
-    
+
     setIsLoadingMore(true);
-    
+
     // Load more messages
     loadEarlierMessages();
-    
+
     // Wait for DOM to update, then restore relative scroll position
     setTimeout(() => {
       if (scrollContainer) {
@@ -307,7 +316,7 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
 
   if (!pubkey) {
     return (
-      <Card className={cn("h-full", className)}>
+      <Card className={cn('h-full', className)}>
         <EmptyState isLoading={isLoading} />
       </Card>
     );
@@ -315,7 +324,7 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
 
   if (!user) {
     return (
-      <Card className={cn("h-full flex items-center justify-center", className)}>
+      <Card className={cn('h-full flex items-center justify-center', className)}>
         <div className="text-center text-muted-foreground">
           <p className="text-sm">Please log in to view messages</p>
         </div>
@@ -324,9 +333,9 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
   }
 
   return (
-    <Card className={cn("h-full flex flex-col", className)}>
+    <Card className={cn('h-full flex flex-col', className)}>
       <ChatHeader pubkey={pubkey} onBack={onBack} />
-      
+
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
         {messages.length === 0 ? (
           <div className="h-full flex items-center justify-center">
@@ -367,7 +376,7 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
           </div>
         )}
       </ScrollArea>
-      
+
       <div className="p-4 border-t">
         <div className="flex gap-2">
           <Textarea

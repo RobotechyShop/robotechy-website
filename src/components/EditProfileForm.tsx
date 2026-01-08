@@ -151,15 +151,13 @@ export const EditProfileForm: React.FC = () => {
             <FormItem>
               <FormLabel>Bio</FormLabel>
               <FormControl>
-                <Textarea 
-                  placeholder="Tell others about yourself" 
-                  className="resize-none" 
-                  {...field} 
+                <Textarea
+                  placeholder="Tell others about yourself"
+                  className="resize-none"
+                  {...field}
                 />
               </FormControl>
-              <FormDescription>
-                A short description about yourself.
-              </FormDescription>
+              <FormDescription>A short description about yourself.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -207,9 +205,7 @@ export const EditProfileForm: React.FC = () => {
                 <FormControl>
                   <Input placeholder="https://yourwebsite.com" {...field} />
                 </FormControl>
-                <FormDescription>
-                  Your personal website or social media link.
-                </FormDescription>
+                <FormDescription>Your personal website or social media link.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -224,9 +220,7 @@ export const EditProfileForm: React.FC = () => {
                 <FormControl>
                   <Input placeholder="you@example.com" {...field} />
                 </FormControl>
-                <FormDescription>
-                  Your verified Nostr identifier.
-                </FormDescription>
+                <FormDescription>Your verified Nostr identifier.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -240,28 +234,17 @@ export const EditProfileForm: React.FC = () => {
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
                 <FormLabel className="text-base">Bot Account</FormLabel>
-                <FormDescription>
-                  Mark this account as automated or a bot.
-                </FormDescription>
+                <FormDescription>Mark this account as automated or a bot.</FormDescription>
               </div>
               <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
+                <Switch checked={field.value} onCheckedChange={field.onChange} />
               </FormControl>
             </FormItem>
           )}
         />
 
-        <Button 
-          type="submit" 
-          className="w-full md:w-auto" 
-          disabled={isPending || isUploading}
-        >
-          {(isPending || isUploading) && (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          )}
+        <Button type="submit" className="w-full md:w-auto" disabled={isPending || isUploading}>
+          {(isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save Profile
         </Button>
       </form>
@@ -303,13 +286,13 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
             placeholder={placeholder}
             name={field.name}
             value={field.value ?? ''}
-            onChange={e => field.onChange(e.target.value)}
+            onChange={(e) => field.onChange(e.target.value)}
             onBlur={field.onBlur}
           />
         </FormControl>
         <div className="flex items-center gap-2">
-          <input 
-            type="file" 
+          <input
+            type="file"
             ref={fileInputRef}
             accept="image/*"
             className="hidden"
@@ -330,19 +313,19 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
             Upload Image
           </Button>
           {field.value && (
-            <div className={`h-10 ${previewType === 'square' ? 'w-10' : 'w-24'} rounded overflow-hidden`}>
-              <img 
-                src={field.value} 
-                alt={`${label} preview`} 
+            <div
+              className={`h-10 ${previewType === 'square' ? 'w-10' : 'w-24'} rounded overflow-hidden`}
+            >
+              <img
+                src={field.value}
+                alt={`${label} preview`}
                 className="h-full w-full object-cover"
               />
             </div>
           )}
         </div>
       </div>
-      <FormDescription>
-        {description}
-      </FormDescription>
+      <FormDescription>{description}</FormDescription>
       <FormMessage />
     </FormItem>
   );

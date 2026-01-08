@@ -25,18 +25,19 @@ export function LoginArea({ className }: LoginAreaProps) {
   };
 
   return (
-    <div className={cn("inline-flex items-center justify-center", className)}>
+    <div className={cn('inline-flex items-center justify-center', className)}>
       {currentUser ? (
         <AccountSwitcher onAddAccountClick={() => setLoginDialogOpen(true)} />
       ) : (
         <div className="flex gap-3 justify-center">
           <Button
             onClick={() => setLoginDialogOpen(true)}
-            className='flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground w-full font-medium transition-all hover:bg-primary/90 animate-scale-in'
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground w-full font-medium transition-all hover:bg-primary/90 animate-scale-in"
           >
-            <User className='w-4 h-4' />
-            <span className='truncate'>Log in</span>
-          </Button><Button
+            <User className="w-4 h-4" />
+            <span className="truncate">Log in</span>
+          </Button>
+          <Button
             onClick={() => setSignupDialogOpen(true)}
             variant="outline"
             className="flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all"
@@ -54,10 +55,7 @@ export function LoginArea({ className }: LoginAreaProps) {
         onSignup={() => setSignupDialogOpen(true)}
       />
 
-      <SignupDialog
-        isOpen={signupDialogOpen}
-        onClose={() => setSignupDialogOpen(false)}
-      />
+      <SignupDialog isOpen={signupDialogOpen} onClose={() => setSignupDialogOpen(false)} />
     </div>
   );
 }

@@ -1,7 +1,13 @@
 import { ReactNode, useEffect } from 'react';
 import { z } from 'zod';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { AppContext, type AppConfig, type AppContextType, type Theme, type RelayMetadata } from '@/contexts/AppContext';
+import {
+  AppContext,
+  type AppConfig,
+  type AppContextType,
+  type Theme,
+  type RelayMetadata,
+} from '@/contexts/AppContext';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -13,11 +19,13 @@ interface AppProviderProps {
 
 // Zod schema for RelayMetadata validation
 const RelayMetadataSchema = z.object({
-  relays: z.array(z.object({
-    url: z.string().url(),
-    read: z.boolean(),
-    write: z.boolean(),
-  })),
+  relays: z.array(
+    z.object({
+      url: z.string().url(),
+      read: z.boolean(),
+      write: z.boolean(),
+    })
+  ),
   updatedAt: z.number(),
 }) satisfies z.ZodType<RelayMetadata>;
 
@@ -28,11 +36,7 @@ const AppConfigSchema = z.object({
 }) satisfies z.ZodType<AppConfig>;
 
 export function AppProvider(props: AppProviderProps) {
-  const {
-    children,
-    storageKey,
-    defaultConfig,
-  } = props;
+  const { children, storageKey, defaultConfig } = props;
 
   // App configuration state with localStorage persistence
   const [rawConfig, setConfig] = useLocalStorage<Partial<AppConfig>>(
@@ -43,7 +47,7 @@ export function AppProvider(props: AppProviderProps) {
       deserialize: (value: string) => {
         const parsed = JSON.parse(value);
         return AppConfigSchema.partial().parse(parsed);
-      }
+      },
     }
   );
 
@@ -62,11 +66,7 @@ export function AppProvider(props: AppProviderProps) {
   // Apply theme effects to document
   useApplyTheme(config.theme);
 
-  return (
-    <AppContext.Provider value={appContextValue}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={appContextValue}>{children}</AppContext.Provider>;
 }
 
 /**
@@ -79,8 +79,7 @@ function useApplyTheme(theme: Theme) {
     root.classList.remove('light', 'dark');
 
     if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
         ? 'dark'
         : 'light';
 

@@ -36,11 +36,7 @@ export function NIP19Page() {
     case 'naddr':
       // Handle NIP-99 marketplace products (kind 30402)
       if (typeof data === 'object' && 'kind' in data && data.kind === 30402) {
-        return (
-          <ProductDetail
-            identifier={data.identifier}
-          />
-        );
+        return <ProductDetail identifier={data.identifier} />;
       }
       // AI agent should implement other addressable event types here
       return <div>Addressable event placeholder</div>;

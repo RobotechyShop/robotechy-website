@@ -6,7 +6,8 @@ import { ContactDialog } from '@/components/ContactDialog';
 const RefundPolicy = () => {
   useSeoMeta({
     title: 'Refund Policy | Robotechy',
-    description: 'Refund and return policy for Robotechy - 30-day return policy for eligible items.',
+    description:
+      'Refund and return policy for Robotechy - 30-day return policy for eligible items.',
   });
 
   return (
@@ -33,9 +34,7 @@ const RefundPolicy = () => {
             To start a return, you can{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-blue hover:underline inline">
-                  contact us
-                </button>
+                <button className="text-robotechy-blue hover:underline inline">contact us</button>
               }
             />
             . If your return is accepted, we'll send you a return shipping label, as well as
@@ -60,14 +59,12 @@ const RefundPolicy = () => {
             <li>Sale items</li>
             <li>Gift cards</li>
           </ul>
-          <p>
-            Please get in touch if you have questions or concerns about your specific item.
-          </p>
+          <p>Please get in touch if you have questions or concerns about your specific item.</p>
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Exchanges</h2>
           <p>
-            The fastest way to ensure you get what you want is to return the item you have, and
-            once the return is accepted, make a separate purchase for the new item.
+            The fastest way to ensure you get what you want is to return the item you have, and once
+            the return is accepted, make a separate purchase for the new item.
           </p>
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Refunds</h2>
@@ -83,9 +80,7 @@ const RefundPolicy = () => {
             You can always{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-blue hover:underline inline">
-                  contact us
-                </button>
+                <button className="text-robotechy-blue hover:underline inline">contact us</button>
               }
             />{' '}
             for any return questions.

@@ -1,5 +1,5 @@
-import { type Theme } from "@/contexts/AppContext";
-import { useAppContext } from "@/hooks/useAppContext";
+import { type Theme } from '@/contexts/AppContext';
+import { useAppContext } from '@/hooks/useAppContext';
 
 /**
  * Hook to get and set the active theme
@@ -15,6 +15,6 @@ export function useTheme(): { theme: Theme; setTheme: (theme: Theme) => void } {
         ...currentConfig,
         theme,
       }));
-    }
-  }
+    },
+  };
 }

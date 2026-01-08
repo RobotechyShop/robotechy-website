@@ -18,8 +18,10 @@ export function usePostComment() {
       const tags: string[][] = [];
 
       // d-tag identifiers
-      const dRoot = root instanceof URL ? '' : root.tags.find(([name]) => name === 'd')?.[1] ?? '';
-      const dReply = reply instanceof URL ? '' : reply?.tags.find(([name]) => name === 'd')?.[1] ?? '';
+      const dRoot =
+        root instanceof URL ? '' : (root.tags.find(([name]) => name === 'd')?.[1] ?? '');
+      const dReply =
+        reply instanceof URL ? '' : (reply?.tags.find(([name]) => name === 'd')?.[1] ?? '');
 
       // Root event tags
       if (root instanceof URL) {
@@ -85,7 +87,7 @@ export function usePostComment() {
     onSuccess: (_, { root }) => {
       // Invalidate and refetch comments
       queryClient.invalidateQueries({
-        queryKey: ['nostr', 'comments', root instanceof URL ? root.toString() : root.id]
+        queryKey: ['nostr', 'comments', root instanceof URL ? root.toString() : root.id],
       });
     },
   });

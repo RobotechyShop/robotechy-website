@@ -15,18 +15,12 @@ interface DMStatusInfoProps {
 export const DMStatusInfo = ({ clearCacheAndRefetch }: DMStatusInfoProps) => {
   const [isClearing, setIsClearing] = useState(false);
   const { toast } = useToast();
-  const {
-    loadingPhase,
-    subscriptions,
-    scanProgress,
-    isDoingInitialLoad,
-    lastSync,
-    conversations,
-  } = useDMContext();
+  const { loadingPhase, subscriptions, scanProgress, isDoingInitialLoad, lastSync, conversations } =
+    useDMContext();
 
   const handleClearCache = async () => {
     if (!clearCacheAndRefetch) return;
-    
+
     setIsClearing(true);
     try {
       await clearCacheAndRefetch();
@@ -49,17 +43,47 @@ export const DMStatusInfo = ({ clearCacheAndRefetch }: DMStatusInfoProps) => {
   const getLoadingPhaseInfo = () => {
     switch (loadingPhase) {
       case LOADING_PHASES.IDLE:
-        return { label: 'Idle', description: 'Not yet initialized', icon: Loader2, color: 'text-muted-foreground' };
+        return {
+          label: 'Idle',
+          description: 'Not yet initialized',
+          icon: Loader2,
+          color: 'text-muted-foreground',
+        };
       case LOADING_PHASES.CACHE:
-        return { label: 'Loading from cache', description: 'Reading cached messages...', icon: Database, color: 'text-blue-500' };
+        return {
+          label: 'Loading from cache',
+          description: 'Reading cached messages...',
+          icon: Database,
+          color: 'text-blue-500',
+        };
       case LOADING_PHASES.RELAYS:
-        return { label: 'Loading from relays', description: 'Fetching messages from Nostr relays...', icon: Wifi, color: 'text-yellow-500' };
+        return {
+          label: 'Loading from relays',
+          description: 'Fetching messages from Nostr relays...',
+          icon: Wifi,
+          color: 'text-yellow-500',
+        };
       case LOADING_PHASES.SUBSCRIPTIONS:
-        return { label: 'Connecting subscriptions', description: 'Setting up real-time message sync...', icon: RefreshCw, color: 'text-orange-500' };
+        return {
+          label: 'Connecting subscriptions',
+          description: 'Setting up real-time message sync...',
+          icon: RefreshCw,
+          color: 'text-orange-500',
+        };
       case LOADING_PHASES.READY:
-        return { label: 'Ready', description: 'All systems operational', icon: CheckCircle2, color: 'text-green-500' };
+        return {
+          label: 'Ready',
+          description: 'All systems operational',
+          icon: CheckCircle2,
+          color: 'text-green-500',
+        };
       default:
-        return { label: 'Unknown', description: 'Status unknown', icon: Loader2, color: 'text-muted-foreground' };
+        return {
+          label: 'Unknown',
+          description: 'Status unknown',
+          icon: Loader2,
+          color: 'text-muted-foreground',
+        };
     }
   };
 
@@ -72,7 +96,7 @@ export const DMStatusInfo = ({ clearCacheAndRefetch }: DMStatusInfoProps) => {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
@@ -85,7 +109,9 @@ export const DMStatusInfo = ({ clearCacheAndRefetch }: DMStatusInfoProps) => {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <PhaseIcon className={`h-5 w-5 ${phaseInfo.color} ${loadingPhase !== LOADING_PHASES.READY ? 'animate-pulse' : ''}`} />
+            <PhaseIcon
+              className={`h-5 w-5 ${phaseInfo.color} ${loadingPhase !== LOADING_PHASES.READY ? 'animate-pulse' : ''}`}
+            />
             <div className="flex-1 space-y-1">
               <div className="flex items-center gap-2">
                 <p className="font-medium">{phaseInfo.label}</p>
@@ -111,7 +137,9 @@ export const DMStatusInfo = ({ clearCacheAndRefetch }: DMStatusInfoProps) => {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">NIP-4 (Legacy)</span>
-                    <span className="text-muted-foreground">{scanProgress.nip4.current} events</span>
+                    <span className="text-muted-foreground">
+                      {scanProgress.nip4.current} events
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground">{scanProgress.nip4.status}</p>
                 </div>
@@ -120,7 +148,9 @@ export const DMStatusInfo = ({ clearCacheAndRefetch }: DMStatusInfoProps) => {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">NIP-17 (Private)</span>
-                    <span className="text-muted-foreground">{scanProgress.nip17.current} events</span>
+                    <span className="text-muted-foreground">
+                      {scanProgress.nip17.current} events
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground">{scanProgress.nip17.status}</p>
                 </div>
@@ -211,4 +241,3 @@ export const DMStatusInfo = ({ clearCacheAndRefetch }: DMStatusInfoProps) => {
     </div>
   );
 };
-

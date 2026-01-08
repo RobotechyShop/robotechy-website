@@ -68,7 +68,7 @@ export function RelayListManager() {
 
     const normalized = normalizeRelayUrl(newRelayUrl);
 
-    if (relays.some(r => r.url === normalized)) {
+    if (relays.some((r) => r.url === normalized)) {
       toast({
         title: 'Relay already exists',
         description: 'This relay is already in your list.',
@@ -85,23 +85,19 @@ export function RelayListManager() {
   };
 
   const handleRemoveRelay = (url: string) => {
-    const newRelays = relays.filter(r => r.url !== url);
+    const newRelays = relays.filter((r) => r.url !== url);
     setRelays(newRelays);
     saveRelays(newRelays);
   };
 
   const handleToggleRead = (url: string) => {
-    const newRelays = relays.map(r =>
-      r.url === url ? { ...r, read: !r.read } : r
-    );
+    const newRelays = relays.map((r) => (r.url === url ? { ...r, read: !r.read } : r));
     setRelays(newRelays);
     saveRelays(newRelays);
   };
 
   const handleToggleWrite = (url: string) => {
-    const newRelays = relays.map(r =>
-      r.url === url ? { ...r, write: !r.write } : r
-    );
+    const newRelays = relays.map((r) => (r.url === url ? { ...r, write: !r.write } : r));
     setRelays(newRelays);
     saveRelays(newRelays);
   };
@@ -125,17 +121,19 @@ export function RelayListManager() {
   };
 
   const publishNIP65RelayList = (relayList: Relay[]) => {
-    const tags = relayList.map(relay => {
-      if (relay.read && relay.write) {
-        return ['r', relay.url];
-      } else if (relay.read) {
-        return ['r', relay.url, 'read'];
-      } else if (relay.write) {
-        return ['r', relay.url, 'write'];
-      }
-      // If neither read nor write, don't include (shouldn't happen)
-      return null;
-    }).filter((tag): tag is string[] => tag !== null);
+    const tags = relayList
+      .map((relay) => {
+        if (relay.read && relay.write) {
+          return ['r', relay.url];
+        } else if (relay.read) {
+          return ['r', relay.url, 'read'];
+        } else if (relay.write) {
+          return ['r', relay.url, 'write'];
+        }
+        // If neither read nor write, don't include (shouldn't happen)
+        return null;
+      })
+      .filter((tag): tag is string[] => tag !== null);
 
     publishEvent(
       {
@@ -177,7 +175,7 @@ export function RelayListManager() {
     } catch {
       return url;
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -277,9 +275,7 @@ export function RelayListManager() {
       </div>
 
       {!user && (
-        <p className="text-xs text-muted-foreground">
-          Log in to sync your relay list with Nostr
-        </p>
+        <p className="text-xs text-muted-foreground">Log in to sync your relay list with Nostr</p>
       )}
     </div>
   );

@@ -20,15 +20,15 @@ export function useWallet() {
 
   // Calculate status values reactively
   const hasNWC = useMemo(() => {
-    return connections.length > 0 && connections.some(c => c.isConnected);
+    return connections.length > 0 && connections.some((c) => c.isConnected);
   }, [connections]);
 
   // Determine preferred payment method
   const preferredMethod: WalletStatus['preferredMethod'] = activeNWC
     ? 'nwc'
     : webln
-    ? 'webln'
-    : 'manual';
+      ? 'webln'
+      : 'manual';
 
   const status: WalletStatus = {
     hasNWC,

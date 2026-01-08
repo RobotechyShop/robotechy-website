@@ -36,7 +36,7 @@ export function useComments(root: NostrEvent | URL, limit?: number) {
       };
 
       // Filter top-level comments (those with lowercase tag matching the root)
-      const topLevelComments = events.filter(comment => {
+      const topLevelComments = events.filter((comment) => {
         if (root instanceof URL) {
           return getTagValue(comment, 'i') === root.toString();
         } else if (NKinds.addressable(root.kind)) {
@@ -51,13 +51,13 @@ export function useComments(root: NostrEvent | URL, limit?: number) {
 
       // Helper function to get all descendants of a comment
       const getDescendants = (parentId: string): NostrEvent[] => {
-        const directReplies = events.filter(comment => {
+        const directReplies = events.filter((comment) => {
           const eTag = getTagValue(comment, 'e');
           return eTag === parentId;
         });
 
         const allDescendants = [...directReplies];
-        
+
         // Recursively get descendants of each direct reply
         for (const reply of directReplies) {
           allDescendants.push(...getDescendants(reply.id));
@@ -84,13 +84,13 @@ export function useComments(root: NostrEvent | URL, limit?: number) {
           return descendants.sort((a, b) => a.created_at - b.created_at);
         },
         getDirectReplies: (commentId: string) => {
-          const directReplies = events.filter(comment => {
+          const directReplies = events.filter((comment) => {
             const eTag = getTagValue(comment, 'e');
             return eTag === commentId;
           });
           // Sort direct replies by creation time (oldest first for threaded display)
           return directReplies.sort((a, b) => a.created_at - b.created_at);
-        }
+        },
       };
     },
     enabled: !!root,

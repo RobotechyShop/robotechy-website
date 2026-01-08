@@ -73,9 +73,8 @@ export function ShippingForm({
   shippingOptions,
 }: ShippingFormProps) {
   // Use provided shipping options or fall back to defaults
-  const options = shippingOptions && shippingOptions.length > 0
-    ? shippingOptions
-    : DEFAULT_SHIPPING_OPTIONS;
+  const options =
+    shippingOptions && shippingOptions.length > 0 ? shippingOptions : DEFAULT_SHIPPING_OPTIONS;
 
   const {
     register,
@@ -138,10 +137,7 @@ export function ShippingForm({
           value={selectedZone}
           onValueChange={(value) => setValue('shippingZone', value, { shouldValidate: true })}
         >
-          <SelectTrigger
-            tabIndex={1}
-            className={errors.shippingZone ? 'border-destructive' : ''}
-          >
+          <SelectTrigger tabIndex={1} className={errors.shippingZone ? 'border-destructive' : ''}>
             <SelectValue placeholder="Select shipping zone" />
           </SelectTrigger>
           <SelectContent>
@@ -172,9 +168,7 @@ export function ShippingForm({
             {...register('name')}
             className={errors.name ? 'border-destructive' : ''}
           />
-          {errors.name && (
-            <p className="text-sm text-destructive">{errors.name.message}</p>
-          )}
+          {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
         </div>
 
         <div className="space-y-2">
@@ -186,9 +180,7 @@ export function ShippingForm({
             {...register('address')}
             className={errors.address ? 'border-destructive' : ''}
           />
-          {errors.address && (
-            <p className="text-sm text-destructive">{errors.address.message}</p>
-          )}
+          {errors.address && <p className="text-sm text-destructive">{errors.address.message}</p>}
         </div>
 
         <div className="space-y-2">
@@ -211,9 +203,7 @@ export function ShippingForm({
               {...register('city')}
               className={errors.city ? 'border-destructive' : ''}
             />
-            {errors.city && (
-              <p className="text-sm text-destructive">{errors.city.message}</p>
-            )}
+            {errors.city && <p className="text-sm text-destructive">{errors.city.message}</p>}
           </div>
 
           <div className="space-y-2">
@@ -240,9 +230,7 @@ export function ShippingForm({
             {...register('country')}
             className={errors.country ? 'border-destructive' : ''}
           />
-          {errors.country && (
-            <p className="text-sm text-destructive">{errors.country.message}</p>
-          )}
+          {errors.country && <p className="text-sm text-destructive">{errors.country.message}</p>}
         </div>
       </div>
 
@@ -262,9 +250,7 @@ export function ShippingForm({
             {...register('email')}
             className={errors.email ? 'border-destructive' : ''}
           />
-          {errors.email && (
-            <p className="text-sm text-destructive">{errors.email.message}</p>
-          )}
+          {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
         </div>
 
         <div className="space-y-2">

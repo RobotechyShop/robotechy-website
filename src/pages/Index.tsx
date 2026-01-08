@@ -23,7 +23,8 @@ const Index = () => {
 
   useSeoMeta({
     title: 'Robotechy | 3D Printing Bitcoin Store | Bitcoin Seed Signer Cases',
-    description: 'This site is a 3D printing store that includes printing cases for Bitcoin Seed Signers amongst other Bitcoin accessories. We accept Bitcoin.',
+    description:
+      'This site is a 3D printing store that includes printing cases for Bitcoin Seed Signers amongst other Bitcoin accessories. We accept Bitcoin.',
   });
 
   const { data: products, isLoading } = useProducts({
@@ -35,7 +36,7 @@ const Index = () => {
   // Get product IDs from selected collection
   const getCollectionProductIds = (): string[] | null => {
     if (!selectedCollection || !collections) return null;
-    const collection = collections.find(c =>
+    const collection = collections.find((c) =>
       c.tags.find(([name, value]) => name === 'd' && value === selectedCollection)
     );
     if (!collection) return null;
@@ -51,7 +52,7 @@ const Index = () => {
 
   const collectionProductIds = getCollectionProductIds();
 
-  const filteredProducts = products?.filter(event => {
+  const filteredProducts = products?.filter((event) => {
     const product = parseProductEvent(event);
     if (!product) return false;
 
@@ -86,7 +87,8 @@ const Index = () => {
       <div
         className="relative bg-slate-100 dark:bg-slate-900 border-b overflow-hidden"
         style={{
-          backgroundImage: 'url(https://robotechy.com/cdn/shop/files/RobotechyBitcoinBannerImage_0a73c0f6-6311-46f1-91e3-9180d6baa493_1950x.jpg?v=1681345446)',
+          backgroundImage:
+            'url(https://robotechy.com/cdn/shop/files/RobotechyBitcoinBannerImage_0a73c0f6-6311-46f1-91e3-9180d6baa493_1950x.jpg?v=1681345446)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
@@ -165,7 +167,9 @@ const Index = () => {
                   <ShoppingCart className="h-8 w-8 text-slate-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">No products found</h3>
+                  <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">
+                    No products found
+                  </h3>
                   <p className="text-slate-600 dark:text-slate-400">
                     {searchQuery || selectedCollection
                       ? 'Try adjusting your filters or search query'
@@ -237,10 +241,7 @@ const Index = () => {
         </div>
       </section>
 
-      <Footer
-        selectedCollection={selectedCollection}
-        onCollectionClick={handleCollectionClick}
-      />
+      <Footer selectedCollection={selectedCollection} onCollectionClick={handleCollectionClick} />
     </div>
   );
 };

@@ -3,4 +3,4 @@
 
 // This file SHOULD NOT be edited or removed.
 
-export { useNostr } from "@nostrify/react";
+export { useNostr } from '@nostrify/react';

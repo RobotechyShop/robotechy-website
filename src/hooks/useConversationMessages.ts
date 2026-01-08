@@ -1,26 +1,26 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useDMContext } from "@/hooks/useDMContext";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDMContext } from '@/hooks/useDMContext';
 
 const MESSAGES_PER_PAGE = 25;
 
 /**
  * Hook to access paginated messages for a specific conversation.
- * 
+ *
  * Returns the most recent messages (default 25) with the ability to load earlier messages.
  * Automatically resets to default page size when switching conversations.
- * 
+ *
  * @example
  * ```tsx
  * import { useConversationMessages } from '@/contexts/DMContext';
- * 
+ *
  * function MessageThread({ recipientPubkey }: { recipientPubkey: string }) {
- *   const { 
- *     messages, 
- *     hasMoreMessages, 
+ *   const {
+ *     messages,
+ *     hasMoreMessages,
  *     loadEarlierMessages,
- *     totalCount 
+ *     totalCount
  *   } = useConversationMessages(recipientPubkey);
- * 
+ *
  *   return (
  *     <div>
  *       {hasMoreMessages && (
@@ -35,7 +35,7 @@ const MESSAGES_PER_PAGE = 25;
  *   );
  * }
  * ```
- * 
+ *
  * @param conversationId - The pubkey of the conversation participant
  * @returns Paginated message data with loading function
  */
@@ -58,7 +58,7 @@ export function useConversationMessages(conversationId: string) {
 
     const totalMessages = conversationData.messages.length;
     const hasMore = totalMessages > visibleCount;
-    
+
     // Return the most recent N messages (slice from the end)
     const visibleMessages = conversationData.messages.slice(-visibleCount);
 
@@ -72,7 +72,7 @@ export function useConversationMessages(conversationId: string) {
   }, [allMessages, conversationId, visibleCount]);
 
   const loadEarlierMessages = useCallback(() => {
-    setVisibleCount(prev => prev + MESSAGES_PER_PAGE);
+    setVisibleCount((prev) => prev + MESSAGES_PER_PAGE);
   }, []);
 
   // Reset visible count when conversation changes

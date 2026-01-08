@@ -15,9 +15,9 @@ interface ZapButtonProps {
 
 export function ZapButton({
   target,
-  className = "text-xs ml-1",
+  className = 'text-xs ml-1',
   showCount = true,
-  zapData: externalZapData
+  zapData: externalZapData,
 }: ZapButtonProps) {
   const { user } = useCurrentUser();
   const { data: author } = useAuthor(target?.pubkey || '');
@@ -25,13 +25,18 @@ export function ZapButton({
 
   // Only fetch data if not provided externally
   const { totalSats: fetchedTotalSats, isLoading } = useZaps(
-    externalZapData ? [] : target ?? [], // Empty array prevents fetching if external data provided
+    externalZapData ? [] : (target ?? []), // Empty array prevents fetching if external data provided
     webln,
     activeNWC
   );
 
   // Don't show zap button if user is not logged in, is the author, or author has no lightning address
-  if (!user || !target || user.pubkey === target.pubkey || (!author?.metadata?.lud16 && !author?.metadata?.lud06)) {
+  if (
+    !user ||
+    !target ||
+    user.pubkey === target.pubkey ||
+    (!author?.metadata?.lud16 && !author?.metadata?.lud06)
+  ) {
     return null;
   }
 
@@ -44,13 +49,11 @@ export function ZapButton({
       <div className={`flex items-center gap-1 ${className}`}>
         <Zap className="h-4 w-4" />
         <span className="text-xs">
-          {showLoading ? (
-            '...'
-          ) : showCount && totalSats > 0 ? (
-            `${totalSats.toLocaleString()}`
-          ) : (
-            'Zap'
-          )}
+          {showLoading
+            ? '...'
+            : showCount && totalSats > 0
+              ? `${totalSats.toLocaleString()}`
+              : 'Zap'}
         </span>
       </div>
     </ZapDialog>

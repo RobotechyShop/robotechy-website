@@ -50,13 +50,15 @@ export const DMMessagingInterface = ({ className }: DMMessagingInterfaceProps) =
         </DialogContent>
       </Dialog>
 
-      <div className={cn("flex gap-4 overflow-hidden", className)}>
+      <div className={cn('flex gap-4 overflow-hidden', className)}>
         {/* Conversation List - Left Sidebar */}
-        <div className={cn(
-          "md:w-80 md:flex-shrink-0",
-          isMobile && !showConversationList && "hidden",
-          isMobile && showConversationList && "w-full"
-        )}>
+        <div
+          className={cn(
+            'md:w-80 md:flex-shrink-0',
+            isMobile && !showConversationList && 'hidden',
+            isMobile && showConversationList && 'w-full'
+          )}
+        >
           <DMConversationList
             selectedPubkey={selectedPubkey}
             onSelectConversation={handleSelectConversation}
@@ -66,11 +68,13 @@ export const DMMessagingInterface = ({ className }: DMMessagingInterfaceProps) =
         </div>
 
         {/* Chat Area - Right Panel */}
-        <div className={cn(
-          "flex-1 md:min-w-0",
-          isMobile && !showChatArea && "hidden",
-          isMobile && showChatArea && "w-full"
-        )}>
+        <div
+          className={cn(
+            'flex-1 md:min-w-0',
+            isMobile && !showChatArea && 'hidden',
+            isMobile && showChatArea && 'w-full'
+          )}
+        >
           <DMChatArea
             pubkey={selectedPubkey}
             onBack={isMobile ? handleBack : undefined}
@@ -81,4 +85,3 @@ export const DMMessagingInterface = ({ className }: DMMessagingInterfaceProps) =
     </>
   );
 };
-

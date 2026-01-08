@@ -5,4 +5,4 @@ import App from './App';
 
 test('App', () => {
   render(<App />);
-})
+});

@@ -31,12 +31,14 @@ function formatOrderSummary(
   const orderIdShort = orderId.slice(0, 8);
 
   // Format items list
-  const itemsText = items.map(item => {
-    const price = parseFloat(item.product.price.amount);
-    const itemCurrency = item.product.price.currency;
-    const lineTotal = price * item.quantity;
-    return `- ${item.quantity}x ${item.product.title} @ ${formatPrice(price, itemCurrency)} = ${formatPrice(lineTotal, itemCurrency)}`;
-  }).join('\n');
+  const itemsText = items
+    .map((item) => {
+      const price = parseFloat(item.product.price.amount);
+      const itemCurrency = item.product.price.currency;
+      const lineTotal = price * item.quantity;
+      return `- ${item.quantity}x ${item.product.title} @ ${formatPrice(price, itemCurrency)} = ${formatPrice(lineTotal, itemCurrency)}`;
+    })
+    .join('\n');
 
   // Build address if provided
   const addressParts = [
@@ -47,9 +49,7 @@ function formatOrderSummary(
     shipping.country,
   ].filter(Boolean);
 
-  const addressText = addressParts.length > 0
-    ? `\nShip to:\n${addressParts.join('\n')}`
-    : '';
+  const addressText = addressParts.length > 0 ? `\nShip to:\n${addressParts.join('\n')}` : '';
 
   // Build contact info
   const contactParts: string[] = [];
@@ -125,7 +125,8 @@ export function useGammaCheckout() {
                     amount: paymentRequest.amount,
                     message: paymentRequest.message,
                     payment_options: paymentRequest.paymentOptions.map((opt) => ({
-                      type: opt.type === 'lightning' ? 'ln' : opt.type === 'bitcoin' ? 'ln' : 'lnurl',
+                      type:
+                        opt.type === 'lightning' ? 'ln' : opt.type === 'bitcoin' ? 'ln' : 'lnurl',
                       link: opt.detail,
                     })),
                   },
@@ -190,14 +191,16 @@ export function useGammaCheckout() {
         // This allows Isaac to see the order in Damus/Primal
         if (dmContext?.sendMessage) {
           const orderSummary = formatOrderSummary(orderId, items, shipping, totalPrice, currency);
-          dmContext.sendMessage({
-            recipientPubkey: MERCHANT_PUBKEY,
-            content: orderSummary,
-            protocol: MESSAGE_PROTOCOL.NIP04,
-          }).catch((error) => {
-            // Log but don't fail checkout if DM fails
-            console.warn('[Checkout] Failed to send order notification DM:', error);
-          });
+          dmContext
+            .sendMessage({
+              recipientPubkey: MERCHANT_PUBKEY,
+              content: orderSummary,
+              protocol: MESSAGE_PROTOCOL.NIP04,
+            })
+            .catch((error) => {
+              // Log but don't fail checkout if DM fails
+              console.warn('[Checkout] Failed to send order notification DM:', error);
+            });
         }
 
         // Update state to await payment

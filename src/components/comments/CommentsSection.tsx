@@ -16,11 +16,11 @@ interface CommentsSectionProps {
   limit?: number;
 }
 
-export function CommentsSection({ 
+export function CommentsSection({
   root,
-  title = "Comments",
-  emptyStateMessage = "No comments yet",
-  emptyStateSubtitle = "Be the first to share your thoughts!",
+  title = 'Comments',
+  emptyStateMessage = 'No comments yet',
+  emptyStateSubtitle = 'Be the first to share your thoughts!',
   className,
   limit = 500,
 }: CommentsSectionProps) {
@@ -41,15 +41,13 @@ export function CommentsSection({
   }
 
   return (
-    <Card className={cn("rounded-none sm:rounded-lg mx-0 sm:mx-0", className)}>
+    <Card className={cn('rounded-none sm:rounded-lg mx-0 sm:mx-0', className)}>
       <CardHeader className="px-2 pt-6 pb-4 sm:p-6">
         <CardTitle className="flex items-center space-x-2">
           <MessageSquare className="h-5 w-5" />
           <span>{title}</span>
           {!isLoading && (
-            <span className="text-sm font-normal text-muted-foreground">
-              ({comments.length})
-            </span>
+            <span className="text-sm font-normal text-muted-foreground">({comments.length})</span>
           )}
         </CardTitle>
       </CardHeader>
@@ -86,11 +84,7 @@ export function CommentsSection({
         ) : (
           <div className="space-y-4">
             {comments.map((comment) => (
-              <Comment
-                key={comment.id}
-                root={root}
-                comment={comment}
-              />
+              <Comment key={comment.id} root={root} comment={comment} />
             ))}
           </div>
         )}

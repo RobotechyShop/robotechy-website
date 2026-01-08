@@ -29,6 +29,6 @@ export function useLoginActions() {
       if (login) {
         removeLogin(login.id);
       }
-    }
+    },
   };
 }
