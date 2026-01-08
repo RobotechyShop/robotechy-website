@@ -1,0 +1,149 @@
+= Testing Guide
+:toc: auto
+:toclevels: 2
+
+== Test Framework
+
+The project uses Vitest with jsdom environment and React Testing Library.
+
+== Running Tests
+
+=== Full Test Suite
+
+[source,bash]
+----
+npm run test
+----
+
+This runs:
+
+1. TypeScript type checking (`tsc --noEmit`)
+2. ESLint linting
+3. Vitest unit tests
+4. Production build verification
+
+=== Single Test File
+
+[source,bash]
+----
+npx vitest run src/lib/genUserName.test.ts
+----
+
+=== Watch Mode
+
+[source,bash]
+----
+npx vitest
+----
+
+== Writing Tests
+
+=== Test File Location
+
+Place test files next to the code they test with `.test.ts` or `.test.tsx` extension:
+
+[source]
+----
+src/
+├── lib/
+│   ├── genUserName.ts
+│   └── genUserName.test.ts
+├── components/
+│   ├── NoteContent.tsx
+│   └── NoteContent.test.tsx
+----
+
+=== Using TestApp Wrapper
+
+Components that use context providers must be wrapped with `TestApp`:
+
+[source,tsx]
+----
+import { render, screen } from '@testing-library/react';
+import { TestApp } from '@/test/TestApp';
+import { MyComponent } from './MyComponent';
+
+describe('MyComponent', () => {
+  it('renders correctly', () => {
+    render(
+      <TestApp>
+        <MyComponent />
+      </TestApp>
+    );
+
+    expect(screen.getByText('Expected text')).toBeInTheDocument();
+  });
+});
+----
+
+=== Mocked APIs
+
+The test setup (`src/test/setup.ts`) provides mocks for:
+
+* `matchMedia`
+* `scrollTo`
+* `IntersectionObserver`
+* `ResizeObserver`
+
+== Test Categories
+
+=== Unit Tests
+
+Test individual functions and utilities:
+
+[source,tsx]
+----
+import { describe, it, expect } from 'vitest';
+import { formatPrice } from '@/lib/productUtils';
+
+describe('formatPrice', () => {
+  it('formats USD correctly', () => {
+    expect(formatPrice(100, 'USD')).toBe('$100.00');
+  });
+});
+----
+
+=== Component Tests
+
+Test React component behavior:
+
+[source,tsx]
+----
+import { render, screen, fireEvent } from '@testing-library/react';
+
+describe('Button', () => {
+  it('calls onClick when clicked', () => {
+    const onClick = vi.fn();
+    render(<Button onClick={onClick}>Click me</Button>);
+
+    fireEvent.click(screen.getByText('Click me'));
+
+    expect(onClick).toHaveBeenCalled();
+  });
+});
+----
+
+== Code Coverage
+
+Vitest can generate coverage reports:
+
+[source,bash]
+----
+npx vitest run --coverage
+----
+
+== Continuous Integration
+
+The `npm run test` command is designed for CI pipelines:
+
+* Exits with non-zero code on any failure
+* Uses dot reporter for minimal output
+* Runs production build to catch build-time errors
+
+== Best Practices
+
+1. **Test behavior, not implementation** - Focus on what the user sees
+2. **Use descriptive test names** - Describe the expected behavior
+3. **Keep tests isolated** - Each test should be independent
+4. **Don't test library code** - Focus on your application logic
+5. **Use meaningful assertions** - Test the important outcomes

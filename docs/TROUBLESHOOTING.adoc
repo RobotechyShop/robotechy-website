@@ -1,0 +1,55 @@
+= Troubleshooting Guide
+:toc: auto
+:toclevels: 2
+
+== Common Issues
+
+[cols="1,2", options="header"]
+|===
+|Problem |Solution
+
+|Dev server fails to start on port 8080
+|Port may be in use. Run `lsof -i :8080` to check. Either stop the conflicting service or use `npx vite --port 8081`
+
+|Missing dependencies for react-markdown
+|Run `npm install` to reinstall all dependencies. If persists, delete `node_modules` and reinstall
+
+|`style-to-js` does not provide export named 'default'
+|Clear Vite cache with `rm -rf node_modules/.vite`, restart dev server, and hard refresh browser (Ctrl+Shift+R). The `vite.config.ts` includes `optimizeDeps.include: ['style-to-js']` to handle this
+
+|"Could not resolve" errors for devlop, hast-util-to-jsx-runtime, etc
+|These are react-markdown 10.x peer dependencies. They should be in package.json. Run `npm install` and restart the dev server
+
+|TypeScript errors on build
+|Run `npm run test` to see full error output. Check for missing type imports or incorrect type usage
+
+|Products not loading from Nostr relays
+|Check relay connectivity. Verify MERCHANT_PUBKEY in `src/hooks/useProducts.ts` is correct
+
+|Wallet connection fails (NWC)
+|Ensure the NWC connection string is valid. Check that the wallet service is online
+
+|Images not displaying on products
+|Verify image URLs are accessible. Check for CORS issues. Images must be publicly accessible
+
+|Cart not persisting between sessions
+|Check localStorage is enabled in browser. Clear localStorage and retry
+
+|Checkout order not submitting
+|Ensure you are logged in with a Nostr extension. Check browser console for signing errors
+
+|Payment request not appearing after order
+|The merchant must be online to respond. Check relay connectivity. Verify MERCHANT_PUBKEY is correct
+
+|NWC payment fails with timeout
+|Check NWC connection string is valid. Wallet service must be online and have sufficient balance
+
+|Login not working with Nostr extension
+|Ensure a NIP-07 compatible extension (Alby, nos2x) is installed and unlocked
+
+|ESLint errors blocking build
+|Run `npx eslint --fix .` to auto-fix. Check for "// In a real" placeholder comments
+
+|Hot reload not working
+|Restart the dev server. Check for syntax errors preventing compilation
+|===

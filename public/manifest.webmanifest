@@ -1,0 +1,16 @@
+{
+  "name": "Robotechy",
+  "short_name": "Robotechy",
+  "description": "3D printing store specializing in Bitcoin Seed Signer cases and accessories. We accept Bitcoin payments.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#557b97",
+  "icons": [
+    {
+      "src": "https://robotechy.com/cdn/shop/files/Favicon_32x32.png?v=1641063479",
+      "sizes": "32x32",
+      "type": "image/png"
+    }
+  ]
+}

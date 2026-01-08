@@ -1,0 +1,115 @@
+= Installation Guide
+:toc: auto
+:toclevels: 2
+
+== Prerequisites
+
+* Node.js 18+ (Node.js 20+ recommended)
+* npm 9+ or compatible package manager
+* Git
+* A Nostr-compatible browser extension (Alby, nos2x) for testing login
+
+== Quick Start
+
+[source,bash]
+----
+# Clone the repository
+git clone https://github.com/RobotechyShop/robotechy-website.git
+cd robotechy-website
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+----
+
+The development server runs on http://localhost:8080 by default.
+
+== Environment Setup
+
+No environment variables are required for basic development. The application connects to public Nostr relays by default.
+
+=== Default Relays
+
+* `wss://relay.ditto.pub`
+* `wss://relay.nostr.band`
+* `wss://relay.damus.io`
+
+== Available Scripts
+
+[cols="1,2", options="header"]
+|===
+|Command |Description
+
+|`npm run dev`
+|Start development server with hot reload
+
+|`npm run build`
+|Build for production (outputs to `dist/`)
+
+|`npm run test`
+|Run full validation: TypeScript, ESLint, Vitest, Build
+
+|`npm run deploy`
+|Build and deploy via nostr-deploy-cli
+|===
+
+== Development Server Options
+
+=== Custom Port
+
+If port 8080 is in use, specify a different port:
+
+[source,bash]
+----
+npx vite --port 8081
+----
+
+=== Network Access
+
+The dev server binds to `::` (IPv6) making it accessible on the network.
+
+== Project Structure
+
+[source]
+----
+src/
+├── components/       # React components
+│   ├── ui/          # shadcn/ui base components
+│   ├── auth/        # Login/signup components
+│   ├── cart/        # Shopping cart components
+│   ├── checkout/    # Checkout flow components
+│   └── dm/          # Direct messaging components
+├── contexts/        # React context providers
+├── hooks/           # Custom React hooks
+├── lib/             # Utility functions
+├── pages/           # Route page components
+└── test/            # Test utilities
+----
+
+== IDE Setup
+
+=== VS Code Recommended Extensions
+
+* ESLint
+* Tailwind CSS IntelliSense
+* TypeScript Vue Plugin (Volar)
+
+=== Path Aliases
+
+The project uses `@/` as an alias for `src/`. Configure your IDE to recognize this in `tsconfig.json`.
+
+== Troubleshooting Installation
+
+See link:TROUBLESHOOTING.adoc[Troubleshooting Guide] for common issues.
+
+=== Clean Install
+
+If you encounter dependency issues:
+
+[source,bash]
+----
+rm -rf node_modules package-lock.json
+npm install
+----

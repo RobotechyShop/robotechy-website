@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "nostrbook-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "github:nostrbook/mcp"
+      ],
+      "env": {}
+    }
+  }
+}
