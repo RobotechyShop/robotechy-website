@@ -29,7 +29,7 @@ This is a Nostr client built with React 18, TailwindCSS 3, Vite, shadcn/ui, and 
 Uses NIP-99 classified listings (kind 30402) with Gamma Markets spec extensions:
 - **Kind 30402**: Products with tags for price, title, images, visibility, stock, specs, type, weight, dimensions
 - **Kind 30405**: Product collections
-- **Spec**: https://github.com/GammaMarkets/market-spec
+- **Spec**: https://github.com/GammaMarkets/market-spec/blob/main/spec.md
 - See `src/hooks/useProducts.ts` and `src/lib/productUtils.ts` for implementation
 
 ### Shopping Cart & Checkout (Gamma Markets Spec)
