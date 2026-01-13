@@ -88,7 +88,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
               <div className="flex items-center gap-3">
                 <a href="/" className="flex items-center gap-2">
                   <img
-                    src="https://robotechy.com/cdn/shop/files/New_Robotechy_Logo_White_Background_195x.png?v=1639256993"
+                    src="/images/robotechy-logo-195x.png"
                     alt="Robotechy"
                     className="h-12 w-auto max-w-[195px]"
                   />

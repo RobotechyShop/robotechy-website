@@ -10,7 +10,7 @@ export function Header() {
           <div className="flex items-center gap-3">
             <a href="/" className="flex items-center gap-2">
               <img
-                src="https://robotechy.com/cdn/shop/files/New_Robotechy_Logo_White_Background_300x300.png?v=1639256993"
+                src="/images/robotechy-logo-300x300.png"
                 alt="Robotechy"
                 className="h-8 object-contain"
               />

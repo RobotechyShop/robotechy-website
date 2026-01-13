@@ -87,8 +87,7 @@ const Index = () => {
       <div
         className="relative bg-slate-100 dark:bg-slate-900 border-b overflow-hidden"
         style={{
-          backgroundImage:
-            'url(https://robotechy.com/cdn/shop/files/RobotechyBitcoinBannerImage_0a73c0f6-6311-46f1-91e3-9180d6baa493_1950x.jpg?v=1681345446)',
+          backgroundImage: 'url(/images/bitcoin-banner.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
@@ -196,7 +195,7 @@ const Index = () => {
               className="grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all"
             >
               <img
-                src="https://robotechy.com/cdn/shop/files/Thingiverse_160x160@2x.png?v=1641060252"
+                src="/images/thingiverse.png"
                 alt="Thingiverse"
                 className="h-16 w-auto object-contain"
               />
@@ -208,7 +207,7 @@ const Index = () => {
               className="grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all"
             >
               <img
-                src="https://robotechy.com/cdn/shop/files/Specter_Solutions_160x160@2x.jpg?v=1641060356"
+                src="/images/specter-solutions.jpg"
                 alt="Specter Solutions"
                 className="h-16 w-auto object-contain"
               />
@@ -220,7 +219,7 @@ const Index = () => {
               className="grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all"
             >
               <img
-                src="https://robotechy.com/cdn/shop/files/BlockMit_2b4632f7-7a3f-46a8-8bc2-e38bb62d3bb8_160x160@2x.png?v=1641060517"
+                src="/images/blockmit.png"
                 alt="BlockMit"
                 className="h-16 w-auto object-contain"
               />
@@ -232,7 +231,7 @@ const Index = () => {
               className="grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all"
             >
               <img
-                src="https://robotechy.com/cdn/shop/files/SeedSigner_f691b070-137c-43f4-858f-432e244297c5_160x160@2x.png?v=1641060589"
+                src="/images/seedsigner.png"
                 alt="SeedSigner"
                 className="h-16 w-auto object-contain"
               />

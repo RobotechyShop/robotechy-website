@@ -8,7 +8,7 @@
   "theme_color": "#557b97",
   "icons": [
     {
-      "src": "https://robotechy.com/cdn/shop/files/Favicon_32x32.png?v=1641063479",
+      "src": "/images/favicon-32x32.png",
       "sizes": "32x32",
       "type": "image/png"
     }
