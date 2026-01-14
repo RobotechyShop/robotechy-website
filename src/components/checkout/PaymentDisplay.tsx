@@ -157,7 +157,7 @@ export function PaymentDisplay({
   if (!paymentRequest || !invoice) {
     return (
       <div className="flex flex-col items-center py-12 space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-robotechy-blue" />
+        <Loader2 className="h-8 w-8 animate-spin text-robotechy-green-dark" />
         <div className="text-center space-y-2">
           <p className="font-medium">Waiting for invoice...</p>
           <p className="text-sm text-muted-foreground">

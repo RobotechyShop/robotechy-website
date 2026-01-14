@@ -29,7 +29,7 @@ export function ProductCard({ event }: ProductCardProps) {
     <Link to={`/${naddr}`}>
       <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col border-slate-200 dark:border-slate-800">
         {firstImage && !imageError ? (
-          <div className="relative overflow-hidden aspect-square bg-slate-50 dark:bg-slate-900">
+          <div className="relative overflow-hidden aspect-square bg-slate-50 dark:bg-neutral-900">
             <img
               src={firstImage}
               alt={product.title}
@@ -45,8 +45,8 @@ export function ProductCard({ event }: ProductCardProps) {
             )}
           </div>
         ) : (
-          <div className="relative overflow-hidden aspect-square bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-            <div className="text-slate-400 dark:text-slate-600 text-center p-4">
+          <div className="relative overflow-hidden aspect-square bg-slate-100 dark:bg-neutral-850 flex items-center justify-center">
+            <div className="text-sage-400 dark:text-sage-600 text-center p-4">
               <svg
                 className="h-16 w-16 mx-auto mb-2"
                 fill="none"
@@ -66,25 +66,25 @@ export function ProductCard({ event }: ProductCardProps) {
         )}
 
         <CardContent className="p-5 flex-1 flex flex-col">
-          <h3 className="font-semibold text-base line-clamp-2 mb-2 group-hover:text-robotechy-blue transition-colors">
+          <h3 className="font-semibold text-base line-clamp-2 mb-2 group-hover:text-robotechy-green-dark transition-colors">
             {product.title}
           </h3>
 
           {product.summary && (
-            <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-3 flex-1">
+            <p className="text-sm text-sage-600 dark:text-sage-400 line-clamp-2 mb-3 flex-1">
               {product.summary}
             </p>
           )}
 
           <div className="mt-auto space-y-2">
             {product.stock !== undefined && (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-sage-500 dark:text-sage-400">
                 {product.stock > 0 ? `${product.stock} available` : 'Out of stock'}
               </p>
             )}
 
             <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-              <div className="text-xl font-bold text-robotechy-blue">
+              <div className="text-xl font-bold text-robotechy-green-dark dark:text-robotechy-green">
                 {formatPriceFromTag(product.price)}
               </div>
             </div>

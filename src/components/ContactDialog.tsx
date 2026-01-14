@@ -101,7 +101,7 @@ export function ContactDialog({ trigger }: ContactDialogProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="text-slate-700 hover:text-robotechy-blue dark:text-slate-300"
+            className="text-sage-700 hover:text-robotechy-green-dark dark:text-sage-300"
           >
             <Mail className="h-5 w-5" />
           </Button>
@@ -115,11 +115,11 @@ export function ContactDialog({ trigger }: ContactDialogProps) {
 
         {!user ? (
           <div className="py-8 text-center">
-            <LogIn className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+            <LogIn className="w-12 h-12 text-sage-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
               Sign in to send a message
             </h3>
-            <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
+            <p className="text-sage-600 dark:text-sage-400 text-sm mb-4">
               Log in with your Nostr account to send us an encrypted message.
             </p>
             <Button
@@ -140,7 +140,7 @@ export function ContactDialog({ trigger }: ContactDialogProps) {
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
               Message Sent!
             </h3>
-            <p className="text-slate-600 dark:text-slate-400 text-sm">
+            <p className="text-sage-600 dark:text-sage-400 text-sm">
               Thank you for reaching out. We'll respond soon via Nostr DM.
             </p>
           </div>
@@ -170,7 +170,7 @@ export function ContactDialog({ trigger }: ContactDialogProps) {
               {isSubmitting ? 'Sending...' : 'Send Message'}
             </Button>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+            <p className="text-xs text-sage-500 dark:text-sage-400 text-center">
               Your message will be sent as an encrypted Nostr DM.
             </p>
           </form>

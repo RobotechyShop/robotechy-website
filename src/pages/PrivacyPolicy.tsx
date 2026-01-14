@@ -11,7 +11,7 @@ const PrivacyPolicy = () => {
   });
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-white dark:bg-neutral-950">
       <Header />
 
       {/* Content */}
@@ -117,7 +117,7 @@ const PrivacyPolicy = () => {
                 href="https://policies.google.com/privacy?hl=en"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-robotechy-blue hover:underline"
+                className="text-robotechy-green-dark hover:underline"
               >
                 https://policies.google.com/privacy?hl=en
               </a>
@@ -126,7 +126,7 @@ const PrivacyPolicy = () => {
                 href="https://tools.google.com/dlpage/gaoptout"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-robotechy-blue hover:underline"
+                className="text-robotechy-green-dark hover:underline"
               >
                 https://tools.google.com/dlpage/gaoptout
               </a>
@@ -140,7 +140,7 @@ const PrivacyPolicy = () => {
               href="http://www.networkadvertising.org/understanding-online-advertising/how-does-it-work"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-robotechy-blue hover:underline"
+              className="text-robotechy-green-dark hover:underline"
             >
               http://www.networkadvertising.org/understanding-online-advertising/how-does-it-work
             </a>
@@ -154,7 +154,7 @@ const PrivacyPolicy = () => {
                 href="https://www.google.com/settings/ads/anonymous"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-robotechy-blue hover:underline"
+                className="text-robotechy-green-dark hover:underline"
               >
                 https://www.google.com/settings/ads/anonymous
               </a>
@@ -167,7 +167,7 @@ const PrivacyPolicy = () => {
               href="http://optout.aboutads.info/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-robotechy-blue hover:underline"
+              className="text-robotechy-green-dark hover:underline"
             >
               http://optout.aboutads.info/
             </a>
@@ -266,7 +266,7 @@ const PrivacyPolicy = () => {
               href="https://www.allaboutcookies.org"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-robotechy-blue hover:underline"
+              className="text-robotechy-green-dark hover:underline"
             >
               www.allaboutcookies.org
             </a>
@@ -292,12 +292,14 @@ const PrivacyPolicy = () => {
             like to make a complaint, please{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-blue hover:underline inline">contact us</button>
+                <button className="text-robotechy-green-dark hover:underline inline">
+                  contact us
+                </button>
               }
             />
             .
           </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-4">
+          <p className="text-sm text-sage-500 dark:text-sage-400 mt-4">
             Last updated: 1st January 2022
           </p>
           <p>

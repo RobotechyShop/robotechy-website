@@ -24,7 +24,7 @@ export function CartSummary({ onCheckout }: CartSummaryProps) {
         <Separator />
         <div className="flex justify-between text-base font-semibold">
           <span>Total</span>
-          <span className="text-robotechy-blue">{formatPrice(totalPrice, currency)}</span>
+          <span className="text-robotechy-green-dark">{formatPrice(totalPrice, currency)}</span>
         </div>
       </div>
 

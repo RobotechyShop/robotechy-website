@@ -21,9 +21,27 @@ export default {
 		extend: {
 			colors: {
 				robotechy: {
-					blue: '#557b97',
 					orange: '#fa5200',
 					green: '#9efe09',
+					'green-dark': '#5a9106', // darker shade for hover/links
+				},
+				neutral: {
+					850: '#1f1f1f',
+					900: '#1a1a1a',
+					950: '#121212',
+				},
+				// Green-tinted greys (sage) to replace blue-tinted slate
+				sage: {
+					50: '#f5f7f5',
+					100: '#e8ece8',
+					200: '#d1d9d1',
+					300: '#a8b8a8',
+					400: '#7a907a',
+					500: '#5a705a',
+					600: '#475747',
+					700: '#3a453a',
+					800: '#2d352d',
+					900: '#1f251f',
 				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

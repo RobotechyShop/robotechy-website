@@ -11,7 +11,7 @@ const TermsOfService = () => {
   });
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-white dark:bg-neutral-950">
       <Header />
 
       {/* Content */}
@@ -119,7 +119,7 @@ const TermsOfService = () => {
           <p>
             Your submission of personal information through the store is governed by our Privacy
             Policy. Please view our{' '}
-            <a href="/privacy-policy" className="text-robotechy-blue hover:underline">
+            <a href="/privacy-policy" className="text-robotechy-green-dark hover:underline">
               Privacy Policy
             </a>
             .
@@ -211,7 +211,9 @@ const TermsOfService = () => {
             Questions about the Terms of Service can be sent via our{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-blue hover:underline inline">contact form</button>
+                <button className="text-robotechy-green-dark hover:underline inline">
+                  contact form
+                </button>
               }
             />
             .

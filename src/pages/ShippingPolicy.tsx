@@ -10,7 +10,7 @@ const ShippingPolicy = () => {
   });
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-white dark:bg-neutral-950">
       <Header />
 
       {/* Content */}
@@ -54,7 +54,9 @@ const ShippingPolicy = () => {
             If you have any questions about shipping, please{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-blue hover:underline inline">contact us</button>
+                <button className="text-robotechy-green-dark hover:underline inline">
+                  contact us
+                </button>
               }
             />
             .
