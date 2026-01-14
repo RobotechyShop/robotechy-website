@@ -81,22 +81,8 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-950">
-        <header className="border-b bg-white dark:bg-slate-900 sticky top-0 z-50 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-20">
-              <div className="flex items-center gap-3">
-                <a href="/" className="flex items-center gap-2">
-                  <img
-                    src="/images/robotechy-logo-195x.png"
-                    alt="Robotechy"
-                    className="h-12 w-auto max-w-[195px]"
-                  />
-                </a>
-              </div>
-            </div>
-          </div>
-        </header>
+      <div className="min-h-screen bg-white dark:bg-neutral-950">
+        <Header />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Skeleton className="h-10 w-32 mb-6" />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -118,15 +104,15 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-neutral-950 flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="p-8 text-center space-y-4">
-            <div className="mx-auto w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
-              <Package className="h-8 w-8 text-slate-400" />
+            <div className="mx-auto w-16 h-16 bg-slate-100 dark:bg-neutral-850 rounded-full flex items-center justify-center">
+              <Package className="h-8 w-8 text-sage-400" />
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-2">Product not found</h3>
-              <p className="text-slate-600 dark:text-slate-400">
+              <p className="text-sage-600 dark:text-sage-400">
                 This product may have been removed or doesn't exist.
               </p>
             </div>
@@ -141,7 +127,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-white dark:bg-neutral-950">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -150,7 +136,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
           <Button
             variant="ghost"
             onClick={() => navigate('/')}
-            className="hover:bg-transparent hover:text-robotechy-blue -ml-3"
+            className="hover:bg-transparent hover:text-robotechy-green-dark -ml-3"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Shop
@@ -161,9 +147,9 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
           {/* Product Images */}
           <div className="space-y-4">
             {/* Main Image */}
-            <div className="bg-white dark:bg-slate-900 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
+            <div className="bg-white dark:bg-neutral-900 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
               {hasValidImage ? (
-                <div className="relative aspect-square bg-white dark:bg-slate-800">
+                <div className="relative aspect-square bg-white dark:bg-neutral-850">
                   <img
                     src={currentImage.url}
                     alt={`${product.title} - Image ${selectedImage + 1}`}
@@ -172,8 +158,8 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                   />
                 </div>
               ) : (
-                <div className="aspect-square bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                  <div className="text-center text-slate-400 dark:text-slate-600">
+                <div className="aspect-square bg-slate-100 dark:bg-neutral-850 flex items-center justify-center">
+                  <div className="text-center text-sage-400 dark:text-sage-600">
                     <ImageIcon className="h-24 w-24 mx-auto mb-4" />
                     <p className="text-sm">Image not available</p>
                   </div>
@@ -190,7 +176,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                     onClick={() => setSelectedImage(index)}
                     className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                       selectedImage === index
-                        ? 'border-robotechy-blue'
+                        ? 'border-robotechy-green-dark'
                         : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
                   >
@@ -202,8 +188,8 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                         onError={() => handleImageError(index)}
                       />
                     ) : (
-                      <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                        <ImageIcon className="h-6 w-6 text-slate-400" />
+                      <div className="w-full h-full bg-slate-100 dark:bg-neutral-850 flex items-center justify-center">
+                        <ImageIcon className="h-6 w-6 text-sage-400" />
                       </div>
                     )}
                   </button>
@@ -219,12 +205,12 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                 {product.title}
               </h1>
 
-              <div className="text-2xl font-bold text-slate-900 dark:text-white">
+              <div className="text-2xl font-bold text-robotechy-green-dark dark:text-robotechy-green">
                 {formatPriceFromTag(product.price)}
               </div>
 
               {product.summary && (
-                <p className="text-slate-600 dark:text-slate-400 mt-3 italic text-sm">
+                <p className="text-sage-600 dark:text-sage-400 mt-3 italic text-sm">
                   {product.summary}
                 </p>
               )}
@@ -246,7 +232,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                   className="w-24"
                 />
                 {product.stock !== undefined && (
-                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                  <span className="text-sm text-sage-600 dark:text-sage-400">
                     {product.stock > 0 ? `${product.stock} available` : 'Out of stock'}
                   </span>
                 )}
@@ -267,7 +253,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="w-full border-robotechy-blue text-robotechy-blue hover:bg-robotechy-blue/10"
+                    className="w-full border-robotechy-green-dark text-robotechy-green-dark hover:bg-robotechy-green-dark/10"
                     onClick={handleBuyNow}
                   >
                     Buy It Now
@@ -306,7 +292,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                         key={index}
                         className="flex justify-between text-sm py-2 border-b border-slate-100 dark:border-slate-800 last:border-0"
                       >
-                        <dt className="text-slate-600 dark:text-slate-400 font-medium">{key}</dt>
+                        <dt className="text-sage-600 dark:text-sage-400 font-medium">{key}</dt>
                         <dd className="text-slate-900 dark:text-white">{value}</dd>
                       </div>
                     ))}
@@ -324,7 +310,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                   <dl className="space-y-2">
                     {product.weight && (
                       <div className="flex justify-between text-sm py-2 border-b border-slate-100 dark:border-slate-800">
-                        <dt className="text-slate-600 dark:text-slate-400 font-medium">Weight</dt>
+                        <dt className="text-sage-600 dark:text-sage-400 font-medium">Weight</dt>
                         <dd className="text-slate-900 dark:text-white">
                           {product.weight.value} {product.weight.unit}
                         </dd>
@@ -332,7 +318,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                     )}
                     {product.dimensions && (
                       <div className="flex justify-between text-sm py-2">
-                        <dt className="text-slate-600 dark:text-slate-400 font-medium">
+                        <dt className="text-sage-600 dark:text-sage-400 font-medium">
                           Dimensions
                         </dt>
                         <dd className="text-slate-900 dark:text-white">

@@ -106,25 +106,25 @@ const Custom3DPrints = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-white dark:bg-neutral-950">
       <Header />
 
       {/* Hero Section */}
       <div className="bg-gradient-to-b from-slate-100 to-white dark:from-slate-900 dark:to-slate-950 py-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-robotechy-blue/10 rounded-full mb-6">
-            <Printer className="w-8 h-8 text-robotechy-blue" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-robotechy-green-dark/10 rounded-full mb-6">
+            <Printer className="w-8 h-8 text-robotechy-green-dark" />
           </div>
           <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
             Custom 3D Prints
           </h1>
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+          <p className="text-lg text-sage-600 dark:text-sage-400 max-w-2xl mx-auto">
             Have a design in mind? Found something on{' '}
             <a
               href="https://www.thingiverse.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-robotechy-blue hover:underline"
+              className="text-robotechy-green-dark hover:underline"
             >
               Thingiverse
             </a>
@@ -147,12 +147,12 @@ const Custom3DPrints = () => {
                 {specs.map((spec) => (
                   <div
                     key={spec.label}
-                    className="flex flex-col sm:flex-row sm:items-start gap-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
+                    className="flex flex-col sm:flex-row sm:items-start gap-2 p-4 bg-slate-50 dark:bg-neutral-850/50 rounded-lg"
                   >
-                    <span className="font-medium text-slate-700 dark:text-slate-300 sm:w-40 shrink-0">
+                    <span className="font-medium text-sage-700 dark:text-sage-300 sm:w-40 shrink-0">
                       {spec.label}:
                     </span>
-                    <span className="text-slate-600 dark:text-slate-400">{spec.value}</span>
+                    <span className="text-sage-600 dark:text-sage-400">{spec.value}</span>
                   </div>
                 ))}
               </div>
@@ -166,7 +166,7 @@ const Custom3DPrints = () => {
                 {materials.map((material) => (
                   <span
                     key={material}
-                    className="px-3 py-1.5 bg-robotechy-blue/10 text-robotechy-blue text-sm rounded-full"
+                    className="px-3 py-1.5 bg-robotechy-green-dark/10 text-robotechy-green-dark text-sm rounded-full"
                   >
                     {material}
                   </span>
@@ -184,11 +184,11 @@ const Custom3DPrints = () => {
             {!user ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <LogIn className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <LogIn className="w-12 h-12 text-sage-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
                     Sign in to send a request
                   </h3>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
+                  <p className="text-sage-600 dark:text-sage-400 text-sm mb-4">
                     Log in with your Nostr account to send us an encrypted message.
                   </p>
                   <Button
@@ -244,7 +244,7 @@ const Custom3DPrints = () => {
                       {isSubmitting ? 'Sending...' : 'Send Message'}
                     </Button>
 
-                    <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                    <p className="text-xs text-sage-500 dark:text-sage-400 text-center">
                       Your message will be sent as an encrypted Nostr DM.
                     </p>
                   </form>

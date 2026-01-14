@@ -74,7 +74,7 @@ export function CartItem({ item }: CartItemProps) {
 
       {/* Item Total */}
       <div className="text-right">
-        <p className="font-medium text-sm text-robotechy-blue">
+        <p className="font-medium text-sm text-robotechy-green-dark">
           {formatPriceFromTag({
             amount: itemTotal.toString(),
             currency: product.price.currency,

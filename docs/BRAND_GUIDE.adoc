@@ -1,0 +1,210 @@
+= Robotechy Brand Guide
+:toc:
+:toc-placement: preamble
+:icons: font
+
+This document defines the visual identity and design standards for the Robotechy website and brand.
+
+== Brand Overview
+
+Robotechy is a 3D printing store specializing in Bitcoin Seed Signer cases and accessories. The brand identity reflects a modern, tech-forward aesthetic with a focus on Bitcoin and maker culture.
+
+== Color Palette
+
+=== Primary Colors
+
+[cols="1,1,2,2"]
+|===
+|Name |Hex |RGB |Usage
+
+|*Vibrant Green*
+|`#9efe09`
+|rgb(158, 254, 9)
+|Primary brand color. Used for CTAs, prices (dark mode), login buttons, and key highlights.
+
+|*Dark Green*
+|`#5a9106`
+|rgb(90, 145, 6)
+|Darker shade of brand green. Used for links, hover states, prices (light mode), and interactive elements.
+
+|*Orange*
+|`#fa5200`
+|rgb(250, 82, 0)
+|Accent color for feature highlights and special callouts.
+|===
+
+=== Neutral Greys (Dark Mode)
+
+The dark theme uses pure neutral greys with no blue tint.
+
+[cols="1,1,2"]
+|===
+|Name |Hex |Usage
+
+|`neutral-950`
+|`#121212`
+|Deepest background
+
+|`neutral-900`
+|`#1a1a1a`
+|Primary dark background, header
+
+|`neutral-850`
+|`#1f1f1f`
+|Secondary dark surfaces, inputs
+|===
+
+=== Sage Greys (Text Colors)
+
+Text colors use a custom "sage" palette with a subtle green tint (not blue).
+
+[cols="1,1,2"]
+|===
+|Name |Hex |Usage
+
+|`sage-300`
+|`#a8b8a8`
+|Light text on dark backgrounds
+
+|`sage-400`
+|`#7a907a`
+|Muted text, icons, placeholders
+
+|`sage-500`
+|`#5a705a`
+|Secondary text
+
+|`sage-600`
+|`#475747`
+|Body text (light mode)
+
+|`sage-700`
+|`#3a453a`
+|Headings, emphasis (light mode)
+|===
+
+=== Colors to Avoid
+
+* *No blue tints* - The brand deliberately avoids blue. All greys should be neutral or have a subtle green tint.
+* Slate colors from Tailwind (e.g., `slate-400`, `slate-600`) have a blue tint and should not be used for text.
+
+== Typography
+
+=== Price Display
+
+Prices are a key element and use the brand green:
+
+* *Light mode*: `text-robotechy-green-dark` (#5a9106) for readability
+* *Dark mode*: `text-robotechy-green` (#9efe09) for vibrancy
+
+=== Text Hierarchy
+
+* *Headings*: Bold, `text-slate-900 dark:text-white`
+* *Body text*: `text-sage-600 dark:text-sage-400`
+* *Muted/secondary*: `text-sage-500 dark:text-sage-400`
+* *Links/interactive*: `text-robotechy-green-dark` with hover state
+
+== Logo
+
+=== Files
+
+* `robotechy-logo-300x300.png` - Primary logo (300x44px actual)
+* `robotechy-logo-195x.png` - Smaller variant (195x28px actual)
+
+=== Background
+
+The logo has a *transparent background* to work on both light and dark surfaces.
+
+=== Usage
+
+* Header: 32px height (`h-8`)
+* Always use `object-contain` to maintain aspect ratio
+
+== Dark Mode
+
+=== Implementation
+
+Dark mode is implemented using Tailwind's class-based approach (`darkMode: "class"`).
+
+=== Theme Toggle
+
+The header includes a theme toggle that cycles through:
+
+1. *Light* (Sun icon) - Light backgrounds, dark text
+2. *Dark* (Moon icon) - Dark backgrounds, light text
+3. *System* (Monitor icon) - Follows OS preference
+
+=== Background Colors
+
+[cols="1,2,2"]
+|===
+|Element |Light Mode |Dark Mode
+
+|Page background
+|`bg-white`
+|`bg-neutral-950`
+
+|Header
+|`bg-white`
+|`bg-neutral-900`
+
+|Filter section
+|`bg-white`
+|`bg-neutral-950`
+
+|Main content area
+|`bg-slate-50`
+|`bg-neutral-900`
+
+|Cards/inputs
+|`bg-white`
+|`bg-neutral-850`
+|===
+
+== Social Media
+
+=== Open Graph Image
+
+* File: `RobotechySocialSharingImage.png`
+* Dimensions: 1200 x 630px (optimal for all platforms)
+* Location: `/images/RobotechySocialSharingImage.png`
+
+== Tailwind Configuration
+
+All brand colors are defined in `tailwind.config.ts`:
+
+[source,javascript]
+----
+colors: {
+  robotechy: {
+    orange: '#fa5200',
+    green: '#9efe09',
+    'green-dark': '#5a9106',
+  },
+  neutral: {
+    850: '#1f1f1f',
+    900: '#1a1a1a',
+    950: '#121212',
+  },
+  sage: {
+    50: '#f5f7f5',
+    100: '#e8ece8',
+    200: '#d1d9d1',
+    300: '#a8b8a8',
+    400: '#7a907a',
+    500: '#5a705a',
+    600: '#475747',
+    700: '#3a453a',
+    800: '#2d352d',
+    900: '#1f251f',
+  },
+}
+----
+
+== Design Principles
+
+1. *No blue* - All greys are neutral or green-tinted
+2. *High contrast* - Prices and CTAs should stand out
+3. *Consistency* - Use shared components (e.g., `<Header />`) across all pages
+4. *Adaptive* - Colors should work well in both light and dark modes
+5. *Bitcoin-forward* - The aesthetic should appeal to the Bitcoin community

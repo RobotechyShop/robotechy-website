@@ -80,12 +80,12 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-white dark:bg-neutral-950">
       <Header />
 
       {/* Hero Banner */}
       <div
-        className="relative bg-slate-100 dark:bg-slate-900 border-b overflow-hidden"
+        className="relative bg-slate-100 dark:bg-neutral-900 border-b overflow-hidden"
         style={{
           backgroundImage: 'url(/images/bitcoin-banner.jpg)',
           backgroundSize: 'cover',
@@ -98,17 +98,17 @@ const Index = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-slate-50 dark:bg-slate-900 border-b">
+      <div className="bg-white dark:bg-neutral-950 border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-sage-400" />
               <Input
                 type="search"
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus-visible:ring-robotechy-blue"
+                className="pl-10 bg-white dark:bg-neutral-850 border-slate-200 dark:border-slate-700 focus-visible:ring-robotechy-green-dark"
               />
             </div>
 
@@ -116,7 +116,7 @@ const Index = () => {
               value={selectedCollection || 'all'}
               onValueChange={(value) => handleCollectionClick(value === 'all' ? null : value)}
             >
-              <SelectTrigger className="w-full md:w-[200px] bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-robotechy-blue">
+              <SelectTrigger className="w-full md:w-[200px] bg-white dark:bg-neutral-850 border-slate-200 dark:border-slate-700 focus:ring-robotechy-green-dark">
                 <SelectValue placeholder="All Products" />
               </SelectTrigger>
               <SelectContent>
@@ -138,7 +138,8 @@ const Index = () => {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="bg-slate-50 dark:bg-neutral-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -162,14 +163,14 @@ const Index = () => {
           <Card className="border-dashed border-slate-300 dark:border-slate-700">
             <CardContent className="py-16 px-8 text-center">
               <div className="max-w-md mx-auto space-y-4">
-                <div className="mx-auto w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
-                  <ShoppingCart className="h-8 w-8 text-slate-400" />
+                <div className="mx-auto w-16 h-16 bg-slate-100 dark:bg-neutral-850 rounded-full flex items-center justify-center">
+                  <ShoppingCart className="h-8 w-8 text-sage-400" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">
                     No products found
                   </h3>
-                  <p className="text-slate-600 dark:text-slate-400">
+                  <p className="text-sage-600 dark:text-sage-400">
                     {searchQuery || selectedCollection
                       ? 'Try adjusting your filters or search query'
                       : 'Check back soon for new products'}
@@ -179,12 +180,13 @@ const Index = () => {
             </CardContent>
           </Card>
         )}
+        </div>
       </main>
 
       {/* With Thanks Section */}
-      <section className="bg-slate-100 dark:bg-slate-800 py-12">
+      <section className="bg-slate-100 dark:bg-neutral-850 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center text-xl font-semibold text-slate-700 dark:text-slate-300 mb-8">
+          <h2 className="text-center text-xl font-semibold text-sage-700 dark:text-sage-300 mb-8">
             WITH THANKS TO:
           </h2>
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
