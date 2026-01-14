@@ -79,13 +79,32 @@ Key files:
 
 Use `@/` prefix for imports from src: `import { Button } from '@/components/ui/button'`
 
+## Pre-Commit Checks
+
+**Always run before committing** to avoid CI failures:
+
+```bash
+npm run format        # Fix Prettier formatting
+npm run lint:fix      # Fix ESLint issues
+npm run test          # Full validation (TypeScript, ESLint, Vitest, build)
+```
+
+Minimum check before commit:
+```bash
+npm run format && npm run lint
+```
+
 ## Robotechy Brand Colors
 
-- **Blue** `#557b97` - Headers, icons, prices
-- **Orange** `#fa5200` - Feature highlights, accents
-- **Green** `#9efe09` - Login buttons, primary CTAs
+See `docs/BRAND_GUIDE.adoc` for complete brand guidelines.
 
-Defined in `tailwind.config.ts` as `robotechy.blue`, `robotechy.orange`, `robotechy.green`
+- **Vibrant Green** `#9efe09` - Primary brand color, prices (dark mode), CTAs
+- **Dark Green** `#5a9106` - Links, hover states, prices (light mode)
+- **Orange** `#fa5200` - Feature highlights, accents
+
+**No blue** - All greys use neutral or green-tinted "sage" palette.
+
+Defined in `tailwind.config.ts` as `robotechy.green`, `robotechy.green-dark`, `robotechy.orange`
 
 ## Custom ESLint Rules
 
