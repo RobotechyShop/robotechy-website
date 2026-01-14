@@ -73,7 +73,10 @@ export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
                 );
               })}
               <li>
-                <a href="/custom-3d-prints" className="hover:text-robotechy-green-dark transition-colors">
+                <a
+                  href="/custom-3d-prints"
+                  className="hover:text-robotechy-green-dark transition-colors"
+                >
                   Custom 3D Prints
                 </a>
               </li>
@@ -83,22 +86,34 @@ export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
             <h4 className="font-semibold mb-3 text-slate-900 dark:text-white">Policies</h4>
             <ul className="space-y-2 text-sm text-sage-600 dark:text-sage-400">
               <li>
-                <a href="/shipping-policy" className="hover:text-robotechy-green-dark transition-colors">
+                <a
+                  href="/shipping-policy"
+                  className="hover:text-robotechy-green-dark transition-colors"
+                >
                   Shipping
                 </a>
               </li>
               <li>
-                <a href="/refund-policy" className="hover:text-robotechy-green-dark transition-colors">
+                <a
+                  href="/refund-policy"
+                  className="hover:text-robotechy-green-dark transition-colors"
+                >
                   Refunds
                 </a>
               </li>
               <li>
-                <a href="/privacy-policy" className="hover:text-robotechy-green-dark transition-colors">
+                <a
+                  href="/privacy-policy"
+                  className="hover:text-robotechy-green-dark transition-colors"
+                >
                   Privacy
                 </a>
               </li>
               <li>
-                <a href="/terms-of-service" className="hover:text-robotechy-green-dark transition-colors">
+                <a
+                  href="/terms-of-service"
+                  className="hover:text-robotechy-green-dark transition-colors"
+                >
                   Terms of Service
                 </a>
               </li>

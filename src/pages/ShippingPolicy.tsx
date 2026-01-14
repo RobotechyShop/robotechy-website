@@ -54,7 +54,9 @@ const ShippingPolicy = () => {
             If you have any questions about shipping, please{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-green-dark hover:underline inline">contact us</button>
+                <button className="text-robotechy-green-dark hover:underline inline">
+                  contact us
+                </button>
               }
             />
             .

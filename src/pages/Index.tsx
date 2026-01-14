@@ -140,46 +140,46 @@ const Index = () => {
       {/* Main Content */}
       <main className="bg-slate-50 dark:bg-neutral-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Card key={i} className="overflow-hidden">
-                <Skeleton className="aspect-square w-full" />
-                <div className="p-4 space-y-3">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-6 w-24" />
+          {isLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <Skeleton className="aspect-square w-full" />
+                  <div className="p-4 space-y-3">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-6 w-24" />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : filteredProducts && filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              {filteredProducts.map((product) => (
+                <ProductCard key={product.id} event={product} />
+              ))}
+            </div>
+          ) : (
+            <Card className="border-dashed border-slate-300 dark:border-slate-700">
+              <CardContent className="py-16 px-8 text-center">
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="mx-auto w-16 h-16 bg-slate-100 dark:bg-neutral-850 rounded-full flex items-center justify-center">
+                    <ShoppingCart className="h-8 w-8 text-sage-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">
+                      No products found
+                    </h3>
+                    <p className="text-sage-600 dark:text-sage-400">
+                      {searchQuery || selectedCollection
+                        ? 'Try adjusting your filters or search query'
+                        : 'Check back soon for new products'}
+                    </p>
+                  </div>
                 </div>
-              </Card>
-            ))}
-          </div>
-        ) : filteredProducts && filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} event={product} />
-            ))}
-          </div>
-        ) : (
-          <Card className="border-dashed border-slate-300 dark:border-slate-700">
-            <CardContent className="py-16 px-8 text-center">
-              <div className="max-w-md mx-auto space-y-4">
-                <div className="mx-auto w-16 h-16 bg-slate-100 dark:bg-neutral-850 rounded-full flex items-center justify-center">
-                  <ShoppingCart className="h-8 w-8 text-sage-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">
-                    No products found
-                  </h3>
-                  <p className="text-sage-600 dark:text-sage-400">
-                    {searchQuery || selectedCollection
-                      ? 'Try adjusting your filters or search query'
-                      : 'Check back soon for new products'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
 

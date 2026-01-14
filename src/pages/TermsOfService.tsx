@@ -211,7 +211,9 @@ const TermsOfService = () => {
             Questions about the Terms of Service can be sent via our{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-green-dark hover:underline inline">contact form</button>
+                <button className="text-robotechy-green-dark hover:underline inline">
+                  contact form
+                </button>
               }
             />
             .

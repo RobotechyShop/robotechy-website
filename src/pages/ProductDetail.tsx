@@ -318,9 +318,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                     )}
                     {product.dimensions && (
                       <div className="flex justify-between text-sm py-2">
-                        <dt className="text-sage-600 dark:text-sage-400 font-medium">
-                          Dimensions
-                        </dt>
+                        <dt className="text-sage-600 dark:text-sage-400 font-medium">Dimensions</dt>
                         <dd className="text-slate-900 dark:text-white">
                           {product.dimensions.value} {product.dimensions.unit}
                         </dd>

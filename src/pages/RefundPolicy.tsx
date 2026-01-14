@@ -34,7 +34,9 @@ const RefundPolicy = () => {
             To start a return, you can{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-green-dark hover:underline inline">contact us</button>
+                <button className="text-robotechy-green-dark hover:underline inline">
+                  contact us
+                </button>
               }
             />
             . If your return is accepted, we'll send you a return shipping label, as well as
@@ -80,7 +82,9 @@ const RefundPolicy = () => {
             You can always{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-green-dark hover:underline inline">contact us</button>
+                <button className="text-robotechy-green-dark hover:underline inline">
+                  contact us
+                </button>
               }
             />{' '}
             for any return questions.

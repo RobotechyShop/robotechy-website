@@ -292,7 +292,9 @@ const PrivacyPolicy = () => {
             like to make a complaint, please{' '}
             <ContactDialog
               trigger={
-                <button className="text-robotechy-green-dark hover:underline inline">contact us</button>
+                <button className="text-robotechy-green-dark hover:underline inline">
+                  contact us
+                </button>
               }
             />
             .
