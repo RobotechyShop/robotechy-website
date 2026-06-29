@@ -41,6 +41,7 @@ import { generateInvoice, validateLightningAddress } from './lib/lightning.js';
 import {
   parseOrderEvent,
   parsePaymentReceipt,
+  receiptDedupKey,
   createPaymentRequestEvent,
   createStatusUpdateEvent,
   ORDER_PROCESS_KIND,
@@ -144,12 +145,19 @@ async function handlePaymentReceipt(event, nostrClient) {
     return;
   }
 
-  // Skip if already processed (persisted across restarts)
-  if (processedStore.hasReceipt(event.id)) {
+  // Dedup on a STABLE key. `event` here is the inner NIP-17 rumor, which is
+  // intentionally unsigned (no `id`) - keying on `event.id` would be `undefined`
+  // for every receipt, collapsing all of them to one key so only the first ever
+  // fires a confirmation. Use `${orderId}:${preimage}` instead: it is the payment
+  // identity, so genuinely distinct receipts get distinct keys (never wrongly
+  // skipped) while the same receipt re-fetched within the lookback window - or a
+  // client retry that re-wraps the same payment - is correctly skipped.
+  const receiptKey = receiptDedupKey(receipt);
+  if (processedStore.hasReceipt(receiptKey)) {
     console.log(`[Payment] Skipping duplicate receipt for order ${receipt.orderId.slice(0, 8)}`);
     return;
   }
-  processedStore.addReceipt(event.id);
+  processedStore.addReceipt(receiptKey);
 
   console.log(`[Payment] Payment received!`);
   console.log(`  Order ID: ${receipt.orderId.slice(0, 8)}`);
