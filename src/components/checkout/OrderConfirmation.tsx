@@ -11,7 +11,7 @@ interface OrderConfirmationProps {
 export function OrderConfirmation({ orderId, onClose }: OrderConfirmationProps) {
   const [copied, setCopied] = useState(false);
   const { openMessages } = useMessagesDrawer();
-  const messageTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const messageTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Clear any pending "open drawer" timeout if this component unmounts.
   useEffect(() => {
