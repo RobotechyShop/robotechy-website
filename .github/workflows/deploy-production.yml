@@ -1,0 +1,71 @@
+name: Deploy to Production
+
+# Tag-driven production release, modelled on the thyme pipeline.
+#
+# Pushing a semver tag (e.g. `v1.2.3`) builds the site, runs the full check
+# suite, and publishes the static build to Nostr + Blossom via nostr-deploy-cli
+# (the same `npm run deploy` used locally). `workflow_dispatch` allows a manual
+# re-run of the latest tag without re-tagging.
+#
+# To cut a release:
+#   git tag v1.2.3 && git push origin v1.2.3
+#
+# Required repository secret:
+#   NOSTR_DEPLOY_CONFIG — the full contents of your working local
+#   `.env.nostr-deploy.local` (the project's Nostr identity + relay/Blossom
+#   settings). This pins the site's npub/subdomain. WITHOUT it, nostr-deploy-cli
+#   `--skip-setup` generates a NEW key and would publish to a different
+#   subdomain on every run, so the deploy step fails fast if it is missing.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+# Never let two production deploys run at once; don't cancel an in-flight one.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build, verify & deploy to Nostr
+    runs-on: ubuntu-latest
+    # Bind to a GitHub "production" environment so the NOSTR_DEPLOY_CONFIG
+    # secret can be scoped here and optional required reviewers / wait timers
+    # can gate releases.
+    environment: production
+    steps:
+      - name: Checkout the tagged commit
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Same gate the PR CI enforces: tsc --noEmit, eslint, vitest, and a
+      # production `vite build` (which leaves the static output in dist/).
+      - name: Type-check, lint, test & build
+        run: npm test
+
+      - name: Restore the project's Nostr deploy identity
+        env:
+          NOSTR_DEPLOY_CONFIG: ${{ secrets.NOSTR_DEPLOY_CONFIG }}
+        run: |
+          if [ -z "${NOSTR_DEPLOY_CONFIG}" ]; then
+            echo "::error::NOSTR_DEPLOY_CONFIG secret is not set — refusing to deploy with a throwaway identity (it would publish to a new subdomain)."
+            exit 1
+          fi
+          printf '%s' "${NOSTR_DEPLOY_CONFIG}" > .env.nostr-deploy.local
+
+      - name: Deploy to Nostr + Blossom
+        run: npx -y nostr-deploy-cli deploy --skip-setup
