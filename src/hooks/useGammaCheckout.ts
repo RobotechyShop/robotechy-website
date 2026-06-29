@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useContext } from 'react';
-import { useNostr } from '@nostrify/react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useCart } from '@/hooks/useCart';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
@@ -15,11 +14,13 @@ import {
 import { formatPrice } from '@/lib/productUtils';
 import { DMContext } from '@/contexts/DMContext';
 import { MESSAGE_PROTOCOL } from '@/lib/dmConstants';
-import type { ShippingInfo, CheckoutState } from '@/lib/cartTypes';
-import type { CartItem } from '@/lib/cartTypes';
+import type { ShippingInfo, CheckoutState, CartItem } from '@/lib/cartTypes';
 
 /**
- * Format order summary message for NIP-04 DM notification
+ * Format a human-readable order summary. This text is sent as a SECOND,
+ * gift-wrapped (NIP-17) inner kind 14 message alongside the structured kind 16
+ * order, so the order also renders in generic NIP-17 clients (Damus, Primal).
+ * It is fully encrypted - this is NOT the old leaky plaintext NIP-04 summary.
  */
 function formatOrderSummary(
   orderId: string,
@@ -30,7 +31,6 @@ function formatOrderSummary(
 ): string {
   const orderIdShort = orderId.slice(0, 8);
 
-  // Format items list
   const itemsText = items
     .map((item) => {
       const price = parseFloat(item.product.price.amount);
@@ -40,7 +40,6 @@ function formatOrderSummary(
     })
     .join('\n');
 
-  // Build address if provided
   const addressParts = [
     shipping.name,
     shipping.address,
@@ -51,13 +50,11 @@ function formatOrderSummary(
 
   const addressText = addressParts.length > 0 ? `\nShip to:\n${addressParts.join('\n')}` : '';
 
-  // Build contact info
   const contactParts: string[] = [];
   if (shipping.email) contactParts.push(`Email: ${shipping.email}`);
   if (shipping.phone) contactParts.push(`Phone: ${shipping.phone}`);
   const contactText = contactParts.length > 0 ? `\n${contactParts.join('\n')}` : '';
 
-  // Build message note
   const messageText = shipping.message ? `\nNote: ${shipping.message}` : '';
 
   return `📦 New Order #${orderIdShort}
@@ -71,12 +68,13 @@ ${addressText}${contactText}${messageText}`.trim();
 }
 
 export function useGammaCheckout() {
-  const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { items, totalPrice, currency, clearCart } = useCart();
   const { convertToSats } = useExchangeRate();
 
-  // Access DM context for sending order notification (optional - may be null if DM not enabled)
+  // Access DM context - REQUIRED for NIP-17 gift-wrapped commerce messaging.
+  // Orders, payment requests and receipts all travel as NIP-17 gift wraps so
+  // customer PII never appears in plaintext public events.
   const dmContext = useContext(DMContext);
 
   const [checkoutState, setCheckoutState] = useState<CheckoutState>({
@@ -84,70 +82,65 @@ export function useGammaCheckout() {
     status: 'idle',
   });
 
-  // Subscribe to payment requests for active order
+  // Watch for the merchant's gift-wrapped payment request (Kind 16 Type 2).
+  // Payment requests now arrive as NIP-17 gift wraps and are decrypted by the
+  // DMProvider, which exposes the inner rumor on each message's `decryptedEvent`.
+  // We scan the merchant conversation for a payment request matching our order.
   useEffect(() => {
     if (!checkoutState.orderId || checkoutState.status !== 'awaiting_payment') {
       return;
     }
 
-    const controller = new AbortController();
+    // Already have the payment request - nothing to do.
+    if (checkoutState.paymentRequest) {
+      return;
+    }
 
-    const subscribeToPaymentRequests = async () => {
-      try {
-        // Subscribe to Kind 16 events from the merchant
-        // Note: Don't use #order filter as many relays don't support it - filter client-side
-        const filter = {
-          kinds: [ORDER_PROCESS_KIND],
-          authors: [MERCHANT_PUBKEY],
-          since: Math.floor(Date.now() / 1000) - 60, // Look back 60 seconds
-        };
+    const participant = dmContext?.messages.get(MERCHANT_PUBKEY);
+    if (!participant) {
+      return;
+    }
 
-        for await (const msg of nostr.req([filter], { signal: controller.signal })) {
-          if (msg[0] === 'EVENT') {
-            const event = msg[2];
-
-            // Client-side filter: check if this event is for our order
-            const orderTag = event.tags.find((t: string[]) => t[0] === 'order');
-            if (orderTag?.[1] !== checkoutState.orderId) {
-              continue; // Not our order
-            }
-
-            const typeTag = event.tags.find((t: string[]) => t[0] === 'type');
-
-            if (typeTag?.[1] === ORDER_MESSAGE_TYPE.PAYMENT_REQUEST) {
-              const paymentRequest = parsePaymentRequest(event);
-              if (paymentRequest) {
-                setCheckoutState((prev) => ({
-                  ...prev,
-                  paymentRequest: {
-                    id: paymentRequest.orderId,
-                    type: 2,
-                    amount: paymentRequest.amount,
-                    message: paymentRequest.message,
-                    payment_options: paymentRequest.paymentOptions.map((opt) => ({
-                      type:
-                        opt.type === 'lightning' ? 'ln' : opt.type === 'bitcoin' ? 'ln' : 'lnurl',
-                      link: opt.detail,
-                    })),
-                  },
-                }));
-              }
-            }
-          }
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          console.error('Error subscribing to payment requests:', error);
-        }
+    for (const message of participant.messages) {
+      const inner = message.decryptedEvent;
+      if (!inner || inner.kind !== ORDER_PROCESS_KIND) {
+        continue;
       }
-    };
 
-    subscribeToPaymentRequests();
+      const typeTag = inner.tags.find((t) => t[0] === 'type');
+      if (typeTag?.[1] !== ORDER_MESSAGE_TYPE.PAYMENT_REQUEST) {
+        continue;
+      }
 
-    return () => {
-      controller.abort();
-    };
-  }, [nostr, checkoutState.orderId, checkoutState.status]);
+      const orderTag = inner.tags.find((t) => t[0] === 'order');
+      if (orderTag?.[1] !== checkoutState.orderId) {
+        continue;
+      }
+
+      const paymentRequest = parsePaymentRequest(inner);
+      if (paymentRequest) {
+        setCheckoutState((prev) => ({
+          ...prev,
+          paymentRequest: {
+            id: paymentRequest.orderId,
+            type: 2,
+            amount: paymentRequest.amount,
+            message: paymentRequest.message,
+            payment_options: paymentRequest.paymentOptions.map((opt) => ({
+              type: opt.type === 'lightning' ? 'ln' : opt.type === 'bitcoin' ? 'ln' : 'lnurl',
+              link: opt.detail,
+            })),
+          },
+        }));
+        break;
+      }
+    }
+  }, [
+    dmContext?.messages,
+    checkoutState.orderId,
+    checkoutState.status,
+    checkoutState.paymentRequest,
+  ]);
 
   const submitOrder = useCallback(
     async (shipping: ShippingInfo): Promise<string> => {
@@ -159,6 +152,10 @@ export function useGammaCheckout() {
         throw new Error('Your cart is empty');
       }
 
+      if (!dmContext?.sendMessage) {
+        throw new Error('Secure messaging is unavailable - cannot place order securely');
+      }
+
       setCheckoutState({
         orderId: null,
         status: 'submitting',
@@ -168,7 +165,8 @@ export function useGammaCheckout() {
         const orderId = generateOrderId();
         const totalSats = convertToSats(totalPrice, currency);
 
-        // Create the order event
+        // Build the order rumor (Kind 16 Type 1). This template carries the
+        // structured order tags AND the customer's PII (address/email/phone).
         const eventTemplate = createOrderEventTemplate(
           orderId,
           items,
@@ -177,31 +175,32 @@ export function useGammaCheckout() {
           totalSats
         );
 
-        // Sign and publish the event
-        const signedEvent = await user.signer.signEvent({
-          kind: eventTemplate.kind!,
-          content: eventTemplate.content!,
-          tags: eventTemplate.tags!,
-          created_at: eventTemplate.created_at!,
+        // Gift-wrap the order rumor to the merchant via NIP-17. The PII rides
+        // inside the NIP-44 encrypted, kind-13 sealed, kind-1059 wrapped envelope -
+        // no plaintext public event is published, and no separate NIP-04 summary
+        // DM is needed (the wrapped order already carries everything).
+        await dmContext.sendMessage({
+          recipientPubkey: MERCHANT_PUBKEY,
+          content: eventTemplate.content ?? '',
+          protocol: MESSAGE_PROTOCOL.NIP17,
+          rumorKind: eventTemplate.kind,
+          rumorTags: eventTemplate.tags,
         });
 
-        await nostr.event(signedEvent);
-
-        // Send NIP-04 DM notification to merchant (non-blocking)
-        // This allows Isaac to see the order in Damus/Primal
-        if (dmContext?.sendMessage) {
-          const orderSummary = formatOrderSummary(orderId, items, shipping, totalPrice, currency);
-          dmContext
-            .sendMessage({
-              recipientPubkey: MERCHANT_PUBKEY,
-              content: orderSummary,
-              protocol: MESSAGE_PROTOCOL.NIP04,
-            })
-            .catch((error) => {
-              // Log but don't fail checkout if DM fails
-              console.warn('[Checkout] Failed to send order notification DM:', error);
-            });
-        }
+        // Also send a gift-wrapped (NIP-17) readable kind 14 summary so the order
+        // renders in generic NIP-17 clients (Damus/Primal), not just clients that
+        // parse the structured kind 16. Both messages are encrypted - non-blocking
+        // so a failed summary never fails the authoritative order.
+        const orderSummary = formatOrderSummary(orderId, items, shipping, totalPrice, currency);
+        dmContext
+          .sendMessage({
+            recipientPubkey: MERCHANT_PUBKEY,
+            content: orderSummary,
+            protocol: MESSAGE_PROTOCOL.NIP17,
+          })
+          .catch((error) => {
+            console.warn('[Checkout] Failed to send readable order summary:', error);
+          });
 
         // Update state to await payment
         setCheckoutState({
@@ -223,7 +222,7 @@ export function useGammaCheckout() {
         throw error;
       }
     },
-    [user, items, totalPrice, currency, nostr, clearCart, dmContext]
+    [user, items, totalPrice, currency, convertToSats, clearCart, dmContext]
   );
 
   const submitPaymentReceipt = useCallback(
@@ -232,8 +231,13 @@ export function useGammaCheckout() {
         throw new Error('Cannot submit payment receipt');
       }
 
+      if (!dmContext?.sendMessage) {
+        throw new Error('Secure messaging is unavailable - cannot submit payment receipt');
+      }
+
       const totalSats = convertToSats(totalPrice, currency);
 
+      // Build the payment receipt rumor (Kind 17) and gift-wrap it to the merchant.
       const receiptTemplate = createPaymentReceiptTemplate(
         checkoutState.orderId,
         MERCHANT_PUBKEY,
@@ -243,21 +247,33 @@ export function useGammaCheckout() {
         totalSats
       );
 
-      const signedEvent = await user.signer.signEvent({
-        kind: receiptTemplate.kind!,
-        content: receiptTemplate.content!,
-        tags: receiptTemplate.tags!,
-        created_at: receiptTemplate.created_at!,
+      await dmContext.sendMessage({
+        recipientPubkey: MERCHANT_PUBKEY,
+        content: receiptTemplate.content ?? '',
+        protocol: MESSAGE_PROTOCOL.NIP17,
+        rumorKind: receiptTemplate.kind,
+        rumorTags: receiptTemplate.tags,
       });
 
-      await nostr.event(signedEvent);
+      // Also send a gift-wrapped readable kind 14 line so the receipt renders in
+      // generic NIP-17 clients (encrypted; non-blocking informational copy).
+      const receiptSummary = `🧾 Payment sent for order #${checkoutState.orderId.slice(0, 8)} — ${totalSats.toLocaleString()} sats (Lightning).`;
+      dmContext
+        .sendMessage({
+          recipientPubkey: MERCHANT_PUBKEY,
+          content: receiptSummary,
+          protocol: MESSAGE_PROTOCOL.NIP17,
+        })
+        .catch((error) => {
+          console.warn('[Checkout] Failed to send readable receipt summary:', error);
+        });
 
       setCheckoutState((prev) => ({
         ...prev,
         status: 'paid',
       }));
     },
-    [user, checkoutState.orderId, totalPrice, currency, nostr]
+    [user, checkoutState.orderId, totalPrice, currency, convertToSats, dmContext]
   );
 
   const resetCheckout = useCallback(() => {

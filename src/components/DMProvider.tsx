@@ -267,9 +267,17 @@ export function DMProvider({ children, config }: DMProviderProps) {
       recipientPubkey: string;
       content: string;
       attachments?: FileAttachment[];
+      rumorKind?: number;
+      rumorTags?: string[][];
     }
   >({
-    mutationFn: async ({ recipientPubkey, content, attachments = [] }) => {
+    mutationFn: async ({
+      recipientPubkey,
+      content,
+      attachments = [],
+      rumorKind,
+      rumorTags = [],
+    }) => {
       if (!user) {
         throw new Error('User is not logged in');
       }
@@ -293,11 +301,17 @@ export function DMProvider({ children, config }: DMProviderProps) {
       // Prepare content with file URLs
       const messageContent = prepareMessageContent(content, attachments);
 
-      // Build tags with imeta tags for attachments
-      const tags: string[][] = [['p', recipientPubkey], ...createImetaTags(attachments)];
+      // Build tags: base ['p', recipient] + imeta tags for attachments, then merge
+      // any caller-supplied rumor tags (e.g. Gamma Markets commerce tags).
+      const tags: string[][] = [
+        ['p', recipientPubkey],
+        ...createImetaTags(attachments),
+        ...rumorTags,
+      ];
 
-      // Use kind 15 for messages with file attachments, kind 14 for text-only
-      const messageKind = attachments && attachments.length > 0 ? 15 : 14;
+      // Inner rumor kind: caller override (e.g. 16/17 for commerce), else kind 15
+      // for messages with file attachments and kind 14 for text-only.
+      const messageKind = rumorKind ?? (attachments && attachments.length > 0 ? 15 : 14);
 
       const privateMessage: Omit<NostrEvent, 'id' | 'sig'> = {
         kind: messageKind,
@@ -941,12 +955,16 @@ export function DMProvider({ children, config }: DMProviderProps) {
         const messageContent = await user.signer.nip44.decrypt(sealEvent.pubkey, sealEvent.content);
         const messageEvent = JSON.parse(messageContent) as NostrEvent;
 
-        // Accept both kind 14 (text) and kind 15 (files/attachments)
-        if (messageEvent.kind !== 14 && messageEvent.kind !== 15) {
+        // Accept kind 14 (text), 15 (files/attachments), and the Gamma Markets
+        // commerce rumors: kind 16 (order/payment-request/status/shipping) and
+        // kind 17 (payment receipt). The full inner event (incl. tags) is exposed
+        // via decryptedEvent so callers can read structured commerce data.
+        const SUPPORTED_INNER_KINDS = [14, 15, 16, 17];
+        if (!SUPPORTED_INNER_KINDS.includes(messageEvent.kind)) {
           console.log(`[DM] ⚠️ NIP-17 MESSAGE WITH UNSUPPORTED INNER EVENT KIND:`, {
             giftWrapId: event.id,
             innerKind: messageEvent.kind,
-            expectedKinds: [14, 15],
+            expectedKinds: SUPPORTED_INNER_KINDS,
             sealPubkey: sealEvent.pubkey,
             messageEvent: messageEvent,
           });
@@ -955,7 +973,7 @@ export function DMProvider({ children, config }: DMProviderProps) {
               ...event,
               content: '',
               decryptedContent: '',
-              error: `Invalid message format - expected kind 14 or 15, got ${messageEvent.kind}`,
+              error: `Invalid message format - expected kind ${SUPPORTED_INNER_KINDS.join('/')}, got ${messageEvent.kind}`,
             },
             conversationPartner: event.pubkey,
             sealEvent, // Return the seal
@@ -1587,23 +1605,36 @@ export function DMProvider({ children, config }: DMProviderProps) {
       content: string;
       protocol?: MessageProtocol;
       attachments?: FileAttachment[];
+      rumorKind?: number;
+      rumorTags?: string[][];
     }) => {
       if (!enabled) {
         throw new Error('Direct messaging is not enabled');
       }
 
-      const { recipientPubkey, content, protocol = MESSAGE_PROTOCOL.NIP04, attachments } = params;
+      const {
+        recipientPubkey,
+        content,
+        protocol = MESSAGE_PROTOCOL.NIP04,
+        attachments,
+        rumorKind,
+        rumorTags = [],
+      } = params;
       if (!userPubkey) {
         throw new Error('You must be logged in to send messages');
       }
 
+      // Optimistic message kind: NIP-04 is always kind 4; NIP-17 uses the inner
+      // rumor kind (caller override for commerce, else the real text kind 14).
+      const optimisticKind = protocol === MESSAGE_PROTOCOL.NIP04 ? 4 : (rumorKind ?? 14);
+
       const optimisticId = `optimistic-${Date.now()}-${Math.random()}`;
       const optimisticMessage: DecryptedMessage = {
         id: optimisticId,
-        kind: protocol === MESSAGE_PROTOCOL.NIP04 ? 4 : 14, // Use kind 14 for NIP-17 (the real message kind)
+        kind: optimisticKind,
         pubkey: userPubkey,
         created_at: Math.floor(Date.now() / 1000), // Real timestamp
-        tags: [['p', recipientPubkey]],
+        tags: [['p', recipientPubkey], ...rumorTags],
         content: '',
         decryptedContent: content,
         sig: '',
@@ -1621,7 +1652,13 @@ export function DMProvider({ children, config }: DMProviderProps) {
         if (protocol === MESSAGE_PROTOCOL.NIP04) {
           await sendNIP4Message.mutateAsync({ recipientPubkey, content, attachments });
         } else if (protocol === MESSAGE_PROTOCOL.NIP17) {
-          await sendNIP17Message.mutateAsync({ recipientPubkey, content, attachments });
+          await sendNIP17Message.mutateAsync({
+            recipientPubkey,
+            content,
+            attachments,
+            rumorKind,
+            rumorTags,
+          });
         }
       } catch (error) {
         console.error(`[DM] Failed to send ${protocol} message:`, error);

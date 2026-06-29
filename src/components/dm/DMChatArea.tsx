@@ -31,6 +31,60 @@ interface DMChatAreaProps {
   className?: string;
 }
 
+// Gamma Markets commerce rumor kinds that render as cards instead of plain text.
+const COMMERCE_KINDS = new Set([16, 17]);
+
+/**
+ * Render a NIP-17 gift-wrapped commerce event (inner kind 16/17) as a compact
+ * card. Reads the structured Gamma Markets tags from the inner rumor.
+ */
+const CommerceCard = ({ event }: { event: NostrEvent }) => {
+  const getTag = (name: string) => event.tags.find((t) => t[0] === name)?.[1];
+
+  const orderId = getTag('order');
+  const orderShort = orderId ? orderId.slice(0, 8) : undefined;
+  const amount = getTag('amount');
+  const status = getTag('status');
+  const type = getTag('type');
+  const paymentTag = event.tags.find((t) => t[0] === 'payment');
+  const invoice = paymentTag?.[2];
+
+  let title = '🧾 Receipt';
+  if (event.kind === 16) {
+    switch (type) {
+      case '1':
+        title = '🛒 Order Placed';
+        break;
+      case '2':
+        title = '💳 Payment Request';
+        break;
+      case '3':
+        title = '📋 Status Update';
+        break;
+      case '4':
+        title = '🚚 Shipping';
+        break;
+      default:
+        title = '📦 Order Update';
+    }
+  }
+
+  return (
+    <div className="text-sm space-y-0.5">
+      <p className="font-semibold">{title}</p>
+      {orderShort && <p className="opacity-80">Order #{orderShort}</p>}
+      {amount && <p className="opacity-80">{Number(amount).toLocaleString()} sats</p>}
+      {status && <p className="opacity-80">Status: {status}</p>}
+      {invoice && (
+        <p className="opacity-80 font-mono text-xs break-all">⚡ {invoice.slice(0, 28)}…</p>
+      )}
+      {event.content && (
+        <p className="whitespace-pre-wrap break-words opacity-90 pt-1">{event.content}</p>
+      )}
+    </div>
+  );
+};
+
 const MessageBubble = memo(
   ({
     message,
@@ -53,6 +107,7 @@ const MessageBubble = memo(
     const actualKind = message.decryptedEvent?.kind || message.kind;
     const isNIP4Message = message.kind === 4;
     const isFileAttachment = actualKind === 15; // Kind 15 = files/attachments
+    const isCommerce = COMMERCE_KINDS.has(actualKind); // Kind 16/17 = order/receipt
 
     // Create a NostrEvent object for NoteContent (only used for kind 15)
     // For NIP-17 file attachments, use the decryptedEvent which has the actual tags
@@ -83,6 +138,10 @@ const MessageBubble = memo(
                 <p className="text-xs">{message.error}</p>
               </TooltipContent>
             </Tooltip>
+          ) : isCommerce ? (
+            // Kind 16/17: Render gift-wrapped commerce events (order, payment
+            // request, status, shipping, receipt) as a structured card.
+            <CommerceCard event={messageEvent} />
           ) : isFileAttachment ? (
             // Kind 15: Use NoteContent to render files/media with imeta tags
             <div className="text-sm">
@@ -129,13 +188,12 @@ const MessageBubble = memo(
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="text-xs">
-                    {message.kind === 4 && 'NIP-04 Kind 4 (Legacy DM)'}
-                    {message.kind === 14 && 'NIP-17 Kind 14 (Private Message)'}
-                    {message.kind === 15 && 'NIP-17 Kind 15 (Media)'}
-                    {message.kind !== 4 &&
-                      message.kind !== 14 &&
-                      message.kind !== 15 &&
-                      `Kind ${message.kind}`}
+                    {actualKind === 4 && 'NIP-04 Kind 4 (Legacy DM)'}
+                    {actualKind === 14 && 'NIP-17 Kind 14 (Private Message)'}
+                    {actualKind === 15 && 'NIP-17 Kind 15 (Media)'}
+                    {actualKind === 16 && 'NIP-17 Kind 16 (Order / Commerce)'}
+                    {actualKind === 17 && 'NIP-17 Kind 17 (Payment Receipt)'}
+                    {![4, 14, 15, 16, 17].includes(actualKind) && `Kind ${actualKind}`}
                   </p>
                 </TooltipContent>
               </Tooltip>

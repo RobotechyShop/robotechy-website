@@ -2,7 +2,7 @@
  * Nostr client for publishing events and subscribing to orders
  */
 
-import { SimplePool, finalizeEvent, nip04, nip19 } from 'nostr-tools';
+import { SimplePool, finalizeEvent, nip04, nip19, nip44, nip59 } from 'nostr-tools';
 import WebSocket from 'ws';
 
 // Set WebSocket for nostr-tools in Node.js environment
@@ -189,14 +189,123 @@ export class NostrClient {
   }
 
   /**
+   * Unwrap a NIP-17 gift wrap (kind 1059) addressed to the merchant.
+   *
+   * Performs the standard NIP-59 double-decrypt:
+   *   1. nip44-decrypt the gift wrap content (encrypted to the merchant by the
+   *      wrap's ephemeral pubkey) -> kind 13 seal.
+   *   2. nip44-decrypt the seal content (encrypted to the merchant by the real
+   *      sender) -> inner rumor (kind 14/16/17).
+   *
+   * Authenticates the sender by asserting `seal.pubkey === rumor.pubkey`, so the
+   * returned rumor's `pubkey` is the real (buyer) sender.
+   *
+   * @param {import('nostr-tools').Event} giftWrapEvent - kind 1059 event
+   * @returns {import('nostr-tools').Event | null} inner rumor, or null if invalid
+   */
+  unwrapGiftWrap(giftWrapEvent) {
+    try {
+      if (giftWrapEvent.kind !== 1059) {
+        return null;
+      }
+
+      // Step 1: decrypt the wrap with the ephemeral pubkey -> seal (kind 13)
+      const sealJson = nip44.decrypt(
+        giftWrapEvent.content,
+        nip44.getConversationKey(this.secretKey, giftWrapEvent.pubkey)
+      );
+      const seal = JSON.parse(sealJson);
+
+      if (seal.kind !== 13) {
+        console.warn(`[Nostr] Gift wrap ${giftWrapEvent.id?.slice(0, 8)}: invalid seal kind ${seal.kind}`);
+        return null;
+      }
+
+      // Step 2: decrypt the seal with the real sender's pubkey -> inner rumor
+      const rumorJson = nip44.decrypt(
+        seal.content,
+        nip44.getConversationKey(this.secretKey, seal.pubkey)
+      );
+      const rumor = JSON.parse(rumorJson);
+
+      // Authenticate the sender: the seal must have been signed by the same key
+      // that authored the rumor.
+      if (seal.pubkey !== rumor.pubkey) {
+        console.warn(
+          `[Nostr] Gift wrap ${giftWrapEvent.id?.slice(0, 8)}: sender not authenticated (seal/rumor pubkey mismatch)`
+        );
+        return null;
+      }
+
+      return rumor;
+    } catch (error) {
+      console.warn(`[Nostr] Failed to unwrap gift wrap ${giftWrapEvent.id?.slice(0, 8)}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Send a NIP-17 gift-wrapped message to a recipient.
+   *
+   * Wraps an arbitrary inner rumor (kind 14/16/17) following NIP-59: the rumor is
+   * authored by the merchant (unsigned), sealed in a kind 13 (signed by the
+   * merchant), and wrapped in a kind 1059 (signed by a fresh ephemeral key with a
+   * randomized past timestamp). Published to the merchant + recipient relay union.
+   *
+   * @param {string} recipientPubkey
+   * @param {{kind: number, content: string, tags: string[][], created_at?: number}} rumor
+   * @returns {Promise<import('nostr-tools').Event>} the published gift wrap
+   */
+  async sendGiftWrap(recipientPubkey, rumor) {
+    // nip59.wrapEvent builds rumor (pubkey = merchant, unsigned), seal (kind 13,
+    // signed by merchant, nip44-encrypted to recipient), and wrap (kind 1059,
+    // signed by a fresh ephemeral key, nip44-encrypted to recipient, single
+    // ['p', recipient] tag, randomized past created_at).
+    const giftWrap = nip59.wrapEvent(rumor, this.secretKey, recipientPubkey);
+
+    const targetRelays = await this.getPublishRelays(recipientPubkey);
+
+    console.log(
+      `[Nostr] Sending gift wrap (inner kind ${rumor.kind}) to ${recipientPubkey.slice(0, 8)}... via ${targetRelays.length} relays`
+    );
+
+    // Publish the already-signed gift wrap directly (don't re-sign with merchant key)
+    const results = await Promise.allSettled(
+      targetRelays.map(async (relay) => {
+        try {
+          await this.pool.publish([relay], giftWrap);
+          return { relay, success: true };
+        } catch (err) {
+          if (err.message?.includes('restricted') || err.message?.includes('Pay on')) {
+            return { relay, success: false, paid: true };
+          }
+          throw err;
+        }
+      })
+    );
+
+    const successes = results.filter((r) => r.status === 'fulfilled' && r.value?.success).length;
+    if (successes === 0) {
+      throw new Error('Failed to publish gift wrap to any relay');
+    }
+
+    console.log(`[Nostr] Gift wrap published to ${successes}/${targetRelays.length} relays`);
+    return giftWrap;
+  }
+
+  /**
    * Subscribe to events with a filter using polling
    * (Many relays have issues with subscribeMany, so we poll instead)
    * @param {import('nostr-tools').Filter} filter - Single filter object
    * @param {(event: import('nostr-tools').Event) => void} onEvent
    * @param {number} [intervalMs=5000] - Polling interval
+   * @param {number} [sinceLookbackSeconds=0] - When advancing the `since` cursor,
+   *   keep this many seconds of lookback. Required for NIP-17 gift wraps, whose
+   *   `created_at` is randomized up to 2 days in the past (NIP-59), so a fresh
+   *   wrap can carry a timestamp older than the newest one already seen.
    * @returns {() => void} - Unsubscribe function
    */
-  subscribe(filter, onEvent, intervalMs = 5000) {
+  subscribe(filter, onEvent, intervalMs = 5000, sinceLookbackSeconds = 0) {
     console.log(`[Nostr] Polling for ${JSON.stringify(filter)} every ${intervalMs}ms`);
 
     const seenEvents = new Set();
@@ -219,10 +328,11 @@ export class NostrClient {
           }
         }
 
-        // Update since to avoid re-fetching old events
+        // Update since to avoid re-fetching old events, keeping a lookback buffer
+        // so randomized-timestamp gift wraps aren't missed (deduped by id below).
         if (events.length > 0) {
           const maxCreatedAt = Math.max(...events.map(e => e.created_at));
-          currentSince = maxCreatedAt;
+          currentSince = maxCreatedAt - sinceLookbackSeconds;
         }
       } catch (error) {
         console.warn('[Nostr] Poll error:', error.message);
