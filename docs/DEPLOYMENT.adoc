@@ -1,0 +1,142 @@
+= Deployment Guide
+:toc: auto
+:toclevels: 2
+
+The storefront is a static site published to https://nostrdeploy.com[nostrdeploy.com]
+— the `vite build` output in `dist/` is uploaded to https://github.com/hzrd149/blossom[Blossom]
+servers and announced over Nostr relays, served from a stable npub-based subdomain.
+
+There are two ways to deploy:
+
+* *Automated (recommended)* — push a version tag and let CI build, verify and publish.
+* *Manual* — run `npm run deploy` from a machine that holds the deploy identity.
+
+== Production Deploy (CI)
+
+The link:../.github/workflows/deploy-production.yml[`deploy-production.yml`] workflow
+(modelled on the `thyme` pipeline) handles releases.
+
+[cols="1,3", options="header"]
+|===
+|Aspect |Behaviour
+
+|Trigger
+|Push of a semver tag matching `v*` (e.g. `v1.2.3`). A manual `workflow_dispatch`
+re-runs the latest tag without re-tagging.
+
+|Gate
+|`npm test` — TypeScript (`tsc --noEmit`), ESLint, Vitest, and a production
+`vite build`. A failure blocks the deploy.
+
+|Deploy
+|`npx nostr-deploy-cli deploy --skip-setup` (the same CLI as `npm run deploy`).
+
+|Concurrency
+|One production deploy at a time; an in-flight deploy is never cancelled.
+
+|Environment
+|Runs in the GitHub `production` environment, so the deploy secret is scoped
+there and optional required-reviewer / wait-timer gates can be added.
+|===
+
+=== Cutting a release
+
+[source,bash]
+----
+# Tag the commit you want to ship (on main, after CI is green) and push the tag.
+git tag v1.2.3
+git push origin v1.2.3
+----
+
+Pushing the tag starts the workflow. Watch it under the repository's *Actions* tab.
+For the first run, prefer a release-candidate tag (e.g. `v0.0.1-rc`) to confirm the
+site publishes to the expected subdomain before cutting a real release.
+
+== Required Secret: `NOSTR_DEPLOY_CONFIG`
+
+`nostr-deploy-cli` keeps each project's Nostr identity and settings in a local
+`.env.nostr-deploy.local` file (gitignored). That identity is what fixes the
+site's npub and its `*.nostrdeploy.com` subdomain.
+
+[WARNING]
+====
+With `--skip-setup`, if `.env.nostr-deploy.local` is *missing* the CLI silently
+*generates a brand-new key* and publishes to a *different* subdomain. To keep the
+production URL stable, CI restores the file from a secret before deploying, and
+*fails fast if the secret is absent* — it can never publish under a throwaway
+identity.
+====
+
+Set it once, before the first release:
+
+. Locally, confirm you have a working `.env.nostr-deploy.local` (created by
+`nostr-deploy-cli config`, or `nostr-deploy-cli auth -k nsec1...` to import an
+existing key).
+. Copy its *entire contents*.
+. In GitHub: *Settings → Secrets and variables → Actions* (or the `production`
+*Environment*) → *New repository secret*.
+.. Name: `NOSTR_DEPLOY_CONFIG`
+.. Value: the full file contents.
+
+[CAUTION]
+The deploy identity's `nsec` lives inside this secret — treat it like any other
+production credential. Never commit `.env.nostr-deploy.local` (it is covered by
+the `.env.*.local` rule in `.gitignore`).
+
+== Manual Deploy
+
+From a machine that already has `.env.nostr-deploy.local`:
+
+[source,bash]
+----
+npm run deploy        # = npm run build && npx -y nostr-deploy-cli deploy --skip-setup
+----
+
+First-time setup of the deploy identity on a new machine:
+
+[source,bash]
+----
+# Generate a new identity for this project...
+npx nostr-deploy-cli config
+
+# ...or import the existing production key (keep it safe!)
+npx nostr-deploy-cli auth -k nsec1...
+----
+
+== Docker (self-hosted alternative)
+
+The site (and the optional order service) can also run as a single container
+instead of the static Nostr deploy. See
+link:INSTALLATION.adoc#_docker_deployment[Installation → Docker Deployment].
+
+== Rollback
+
+nostrdeploy serves the most recently announced build. To roll back, re-deploy a
+known-good commit:
+
+[source,bash]
+----
+git checkout v1.2.2        # the previous good tag
+npm run deploy             # re-publish it
+----
+
+Or push the older tag again via `workflow_dispatch` against that ref.
+
+== Troubleshooting
+
+[cols="1,2", options="header"]
+|===
+|Symptom |Likely cause / fix
+
+|Deploy job fails immediately with a `NOSTR_DEPLOY_CONFIG` error
+|The secret isn't set (or is empty). Add it as described above.
+
+|Site published to an unexpected subdomain
+|`.env.nostr-deploy.local` was missing, so a new key was generated. Restore the
+correct config and re-deploy.
+
+|`npm test` fails in the deploy job
+|Fix the failing type/lint/test/build on `main` first, then re-tag.
+|===
+
+See also link:TROUBLESHOOTING.adoc[Troubleshooting Guide].
