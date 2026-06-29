@@ -13,7 +13,7 @@ import {
   type ProtocolMode,
 } from '@/lib/dmConstants';
 import { NSecSigner, type NostrEvent } from '@nostrify/nostrify';
-import { generateSecretKey } from 'nostr-tools';
+import { generateSecretKey, verifyEvent } from 'nostr-tools';
 import type { MessageProtocol } from '@/lib/dmConstants';
 import { MESSAGE_PROTOCOL } from '@/lib/dmConstants';
 import { DMContext, DMContextType, FileAttachment } from '@/contexts/DMContext';
@@ -146,6 +146,16 @@ function prepareMessageContent(content: string, attachments: FileAttachment[] = 
   const fileUrls = attachments.map((file) => file.url).join('\n');
   return content ? `${content}\n\n${fileUrls}` : fileUrls;
 }
+
+/**
+ * Commerce rumor tags that carry customer PII / order detail and must NOT be
+ * copied onto the optimistic message. Optimistic messages are persisted to the
+ * local IndexedDB cache in plaintext (before the encrypted seal arrives), so
+ * these would otherwise leak customer data to local storage. The real values
+ * still ride encrypted inside the NIP-17 gift wrap; the optimistic copy only
+ * needs what the UI renders (type/order/amount/status/payment/imeta).
+ */
+const OPTIMISTIC_OMITTED_TAGS = new Set(['address', 'email', 'phone', 'item']);
 
 /**
  * Create imeta tags for file attachments (NIP-92)
@@ -952,6 +962,30 @@ export function DMProvider({ children, config }: DMProviderProps) {
           };
         }
 
+        // Authenticate the sender cryptographically BEFORE trusting
+        // sealEvent.pubkey. The seal (kind 13) is a real signed event, so its
+        // signature is what proves the sender controls sealEvent.pubkey. Without
+        // this check a malicious sender could encrypt an arbitrary seal claiming
+        // any pubkey. Fail closed: drop the message if the signature is invalid.
+        // (Mirrors the backend unwrapGiftWrap hardening. The inner rumor is
+        // intentionally unsigned per NIP-59, so it is NOT verified here.)
+        if (!verifyEvent(sealEvent)) {
+          console.warn(`[DM] ⚠️ NIP-17 INVALID SEAL SIGNATURE - sender not authenticated`, {
+            giftWrapId: event.id,
+            sealPubkey: sealEvent.pubkey,
+          });
+          return {
+            processedMessage: {
+              ...event,
+              content: '',
+              decryptedContent: '',
+              error: 'Sender not authenticated - seal signature is invalid',
+            },
+            conversationPartner: event.pubkey,
+            sealEvent, // Return the seal
+          };
+        }
+
         const messageContent = await user.signer.nip44.decrypt(sealEvent.pubkey, sealEvent.content);
         const messageEvent = JSON.parse(messageContent) as NostrEvent;
 
@@ -1653,9 +1687,19 @@ export function DMProvider({ children, config }: DMProviderProps) {
         throw new Error('You must be logged in to send messages');
       }
 
-      // Optimistic message kind: NIP-04 is always kind 4; NIP-17 uses the inner
-      // rumor kind (caller override for commerce, else the real text kind 14).
-      const optimisticKind = protocol === MESSAGE_PROTOCOL.NIP04 ? 4 : (rumorKind ?? 14);
+      // Optimistic message kind: NIP-04 is always kind 4. For NIP-17, mirror the
+      // real send (sendNIP17Message): caller override (commerce 16/17), else kind
+      // 15 when there's an attachment (so file previews render immediately),
+      // otherwise text kind 14. Hardcoding kind 14 made file messages render as
+      // plain text until the real event arrived.
+      const hasAttachments = !!(attachments && attachments.length > 0);
+      const optimisticKind =
+        protocol === MESSAGE_PROTOCOL.NIP04 ? 4 : (rumorKind ?? (hasAttachments ? 15 : 14));
+
+      // Strip customer PII / order-detail tags before they are persisted to the
+      // local IndexedDB cache in plaintext (the optimistic copy is written before
+      // the encrypted seal arrives). The UI only renders type/order/amount/etc.
+      const optimisticTags = rumorTags.filter(([name]) => !OPTIMISTIC_OMITTED_TAGS.has(name));
 
       const optimisticId = `optimistic-${Date.now()}-${Math.random()}`;
       const optimisticMessage: DecryptedMessage = {
@@ -1663,7 +1707,9 @@ export function DMProvider({ children, config }: DMProviderProps) {
         kind: optimisticKind,
         pubkey: userPubkey,
         created_at: Math.floor(Date.now() / 1000), // Real timestamp
-        tags: [['p', recipientPubkey], ...rumorTags],
+        // Include imeta tags so attachments preview immediately (mirrors the real
+        // send), plus the PII-stripped commerce tags for the card.
+        tags: [['p', recipientPubkey], ...createImetaTags(attachments), ...optimisticTags],
         content: '',
         decryptedContent: content,
         sig: '',
