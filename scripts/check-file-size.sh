@@ -37,7 +37,7 @@ while IFS= read -r f; do
     emit_error "$f" "${lines} lines exceeds the ${LIMIT}-line cap. Split it into logically-cohesive modules."
     fail=1
   fi
-done < <(git ls-files 'src/*' | grep -E '\.(ts|tsx)$')
+done < <(git ls-files -- src | grep -E '\.(ts|tsx)$')
 
 if [ "$fail" -eq 0 ]; then
   echo "✓ file-size check passed (no new files over ${LIMIT} lines; baselined files did not grow)"
