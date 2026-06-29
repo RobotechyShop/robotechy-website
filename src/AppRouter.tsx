@@ -12,7 +12,7 @@ import TermsOfService from './pages/TermsOfService';
 
 export function AppRouter() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Index />} />

@@ -961,13 +961,17 @@ export function DMProvider({ children, config }: DMProviderProps) {
         // via decryptedEvent so callers can read structured commerce data.
         const SUPPORTED_INNER_KINDS = [14, 15, 16, 17];
         if (!SUPPORTED_INNER_KINDS.includes(messageEvent.kind)) {
-          console.log(`[DM] ⚠️ NIP-17 MESSAGE WITH UNSUPPORTED INNER EVENT KIND:`, {
-            giftWrapId: event.id,
-            innerKind: messageEvent.kind,
-            expectedKinds: SUPPORTED_INNER_KINDS,
-            sealPubkey: sealEvent.pubkey,
-            messageEvent: messageEvent,
-          });
+          // Gift wraps with non-DM inner kinds (e.g. kind 7 reactions) are common
+          // noise on shared relays — not an error. Log at debug level so it does
+          // not clutter the console for every unrelated wrapped event.
+          console.debug(
+            `[DM] Ignoring NIP-17 gift wrap with non-DM inner kind ${messageEvent.kind}`,
+            {
+              giftWrapId: event.id,
+              innerKind: messageEvent.kind,
+              expectedKinds: SUPPORTED_INNER_KINDS,
+            }
+          );
           return {
             processedMessage: {
               ...event,
