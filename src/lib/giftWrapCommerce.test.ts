@@ -7,6 +7,7 @@ import { generateSecretKey, getPublicKey, nip59 } from 'nostr-tools';
 import {
   createPaymentReceiptTemplate,
   createOrderTags,
+  parseCommerceAmount,
   parsePaymentRequest,
   ORDER_PROCESS_KIND,
   PAYMENT_RECEIPT_KIND,
@@ -152,5 +153,29 @@ describe('NIP-17 commerce gift wraps', () => {
       'preimage-proof-hex',
     ]);
     expect(inner.tags).toContainEqual(['amount', '500']);
+  });
+});
+
+describe('parseCommerceAmount (untrusted amount tag guard)', () => {
+  // The CommerceCard renders `{amount.toLocaleString()} sats` only when this
+  // returns a number - guarding against "NaN sats" from untrusted tag input.
+  it('parses a valid numeric amount', () => {
+    expect(parseCommerceAmount('1000')).toBe(1000);
+    expect(parseCommerceAmount('0')).toBe(0);
+    expect(parseCommerceAmount('1500.5')).toBe(1500.5);
+  });
+
+  it('returns undefined (never NaN) for missing/empty/non-numeric amounts', () => {
+    for (const bad of [undefined, '', '   ', 'abc', 'NaN', '1000sats', '12px']) {
+      const result = parseCommerceAmount(bad as string | undefined);
+      expect(result).toBeUndefined();
+      // The whole point: callers never end up formatting NaN.
+      expect(Number.isNaN(result as unknown as number)).toBe(false);
+    }
+  });
+
+  it('returns undefined for negative amounts', () => {
+    expect(parseCommerceAmount('-1')).toBeUndefined();
+    expect(parseCommerceAmount('-1000')).toBeUndefined();
   });
 });

@@ -31,6 +31,20 @@ export function generateOrderId(): string {
 }
 
 /**
+ * Parse an untrusted commerce `amount` tag value (sats) into a number suitable
+ * for display. Tags are untrusted input, so a missing/empty/non-numeric or
+ * negative value returns `undefined` rather than `NaN` so the UI can omit the
+ * amount instead of rendering "NaN sats".
+ */
+export function parseCommerceAmount(raw: string | undefined): number | undefined {
+  if (raw === undefined || raw.trim() === '') {
+    return undefined;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : undefined;
+}
+
+/**
  * Format shipping address as a single string
  */
 export function formatAddress(info: ShippingInfo): string {

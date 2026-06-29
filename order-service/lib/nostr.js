@@ -2,7 +2,7 @@
  * Nostr client for publishing events and subscribing to orders
  */
 
-import { SimplePool, finalizeEvent, nip04, nip19, nip44, nip59 } from 'nostr-tools';
+import { SimplePool, finalizeEvent, nip04, nip19, nip44, nip59, verifyEvent } from 'nostr-tools';
 import WebSocket from 'ws';
 
 // Set WebSocket for nostr-tools in Node.js environment
@@ -221,6 +221,17 @@ export class NostrClient {
         return null;
       }
 
+      // Authenticate the sender cryptographically: the seal's signature is what
+      // proves the sender controls `seal.pubkey`. The pubkey-equality check below
+      // is necessary but NOT sufficient - without verifying the seal signature a
+      // malicious sender could encrypt an arbitrary seal claiming any pubkey.
+      if (!verifyEvent(seal)) {
+        console.warn(
+          `[Nostr] Gift wrap ${giftWrapEvent.id?.slice(0, 8)}: seal signature invalid (sender not authenticated)`
+        );
+        return null;
+      }
+
       // Step 2: decrypt the seal with the real sender's pubkey -> inner rumor
       const rumorJson = nip44.decrypt(
         seal.content,
@@ -330,9 +341,12 @@ export class NostrClient {
 
         // Update since to avoid re-fetching old events, keeping a lookback buffer
         // so randomized-timestamp gift wraps aren't missed (deduped by id below).
+        // Keep the cursor monotonic: NIP-59 randomizes created_at up to 2 days in
+        // the past, so `maxCreatedAt - lookback` is often OLDER than the current
+        // cursor; never move backwards or the query window re-expands every poll.
         if (events.length > 0) {
           const maxCreatedAt = Math.max(...events.map(e => e.created_at));
-          currentSince = maxCreatedAt - sinceLookbackSeconds;
+          currentSince = Math.max(currentSince, maxCreatedAt - sinceLookbackSeconds);
         }
       } catch (error) {
         console.warn('[Nostr] Poll error:', error.message);

@@ -6,6 +6,7 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { MESSAGE_PROTOCOL, PROTOCOL_MODE, type MessageProtocol } from '@/lib/dmConstants';
 import { formatConversationTime, formatFullDateTime } from '@/lib/dmUtils';
+import { parseCommerceAmount } from '@/lib/gammaOrderUtils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -43,7 +44,9 @@ const CommerceCard = ({ event }: { event: NostrEvent }) => {
 
   const orderId = getTag('order');
   const orderShort = orderId ? orderId.slice(0, 8) : undefined;
-  const amount = getTag('amount');
+  // `amount` is untrusted tag input: only render it when it parses to a finite,
+  // non-negative number, otherwise omit the line entirely (never show "NaN sats").
+  const amount = parseCommerceAmount(getTag('amount'));
   const status = getTag('status');
   const type = getTag('type');
   const paymentTag = event.tags.find((t) => t[0] === 'payment');
@@ -73,7 +76,7 @@ const CommerceCard = ({ event }: { event: NostrEvent }) => {
     <div className="text-sm space-y-0.5">
       <p className="font-semibold">{title}</p>
       {orderShort && <p className="opacity-80">Order #{orderShort}</p>}
-      {amount && <p className="opacity-80">{Number(amount).toLocaleString()} sats</p>}
+      {amount !== undefined && <p className="opacity-80">{amount.toLocaleString()} sats</p>}
       {status && <p className="opacity-80">Status: {status}</p>}
       {invoice && (
         <p className="opacity-80 font-mono text-xs break-all">⚡ {invoice.slice(0, 28)}…</p>

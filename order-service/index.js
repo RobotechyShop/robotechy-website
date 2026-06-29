@@ -36,6 +36,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 import { config } from './lib/config.js';
 import { NostrClient, decodeNsec } from './lib/nostr.js';
+import { ProcessedStore } from './lib/processedStore.js';
 import { generateInvoice, validateLightningAddress } from './lib/lightning.js';
 import {
   parseOrderEvent,
@@ -50,9 +51,15 @@ import {
 // NIP-59 gift wrap kind (transport for all NIP-17 commerce messages)
 const GIFT_WRAP_KIND = 1059;
 
-// Track processed orders to avoid duplicates
-const processedOrders = new Set();
-const processedReceipts = new Set();
+// Gift wraps use randomized past timestamps per NIP-59, so the subscription
+// looks back 2 days to avoid missing any. The dedup store is pruned to the same
+// window (anything older can no longer be re-fetched by the `since` filter).
+const TWO_DAYS_IN_SECONDS = 2 * 24 * 60 * 60;
+
+// Track processed orders/receipts to avoid duplicates. Persisted to disk so a
+// restart doesn't re-process (and re-invoice) up to 2 days of historical gift
+// wraps re-fetched by the lookback `since` filter.
+const processedStore = new ProcessedStore(undefined, TWO_DAYS_IN_SECONDS);
 
 /**
  * Format a human-readable note to ride inside the gift-wrapped payment request
@@ -81,12 +88,12 @@ async function handleOrder(event, nostrClient) {
     return;
   }
 
-  // Skip if already processed
-  if (processedOrders.has(order.orderId)) {
+  // Skip if already processed (persisted across restarts to avoid re-invoicing)
+  if (processedStore.hasOrder(order.orderId)) {
     console.log(`[Order] Skipping duplicate order ${order.orderId.slice(0, 8)}`);
     return;
   }
-  processedOrders.add(order.orderId);
+  processedStore.addOrder(order.orderId);
 
   console.log(`[Order] New order received!`);
   console.log(`  Order ID: ${order.orderId.slice(0, 8)}`);
@@ -137,12 +144,12 @@ async function handlePaymentReceipt(event, nostrClient) {
     return;
   }
 
-  // Skip if already processed
-  if (processedReceipts.has(event.id)) {
+  // Skip if already processed (persisted across restarts)
+  if (processedStore.hasReceipt(event.id)) {
     console.log(`[Payment] Skipping duplicate receipt for order ${receipt.orderId.slice(0, 8)}`);
     return;
   }
-  processedReceipts.add(event.id);
+  processedStore.addReceipt(event.id);
 
   console.log(`[Payment] Payment received!`);
   console.log(`  Order ID: ${receipt.orderId.slice(0, 8)}`);
@@ -214,7 +221,6 @@ async function main() {
   // A single subscription carries every commerce message; we unwrap each gift
   // wrap and dispatch by the inner rumor's kind/type. (Gift wraps use randomized
   // past timestamps per NIP-59, so look back 2 days to avoid missing any.)
-  const TWO_DAYS_IN_SECONDS = 2 * 24 * 60 * 60;
   const giftWrapFilter = {
     kinds: [GIFT_WRAP_KIND],
     '#p': [nostrClient.pubkey],

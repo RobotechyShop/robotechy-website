@@ -955,6 +955,31 @@ export function DMProvider({ children, config }: DMProviderProps) {
         const messageContent = await user.signer.nip44.decrypt(sealEvent.pubkey, sealEvent.content);
         const messageEvent = JSON.parse(messageContent) as NostrEvent;
 
+        // Authenticate the sender: in NIP-59 the seal (kind 13) pubkey is the
+        // authenticated sender, so the inner rumor's pubkey MUST match the seal's
+        // pubkey. A mismatch means the rumor's `pubkey` was forged (spoofing) -
+        // reject the message and don't surface it.
+        if (messageEvent.pubkey !== sealEvent.pubkey) {
+          console.warn(
+            `[DM] ⚠️ NIP-17 SENDER SPOOFING - inner rumor pubkey does not match seal pubkey`,
+            {
+              giftWrapId: event.id,
+              sealPubkey: sealEvent.pubkey,
+              rumorPubkey: messageEvent.pubkey,
+            }
+          );
+          return {
+            processedMessage: {
+              ...event,
+              content: '',
+              decryptedContent: '',
+              error: 'Sender not authenticated - inner rumor pubkey does not match seal pubkey',
+            },
+            conversationPartner: event.pubkey,
+            sealEvent, // Return the seal
+          };
+        }
+
         // Accept kind 14 (text), 15 (files/attachments), and the Gamma Markets
         // commerce rumors: kind 16 (order/payment-request/status/shipping) and
         // kind 17 (payment receipt). The full inner event (incl. tags) is exposed
