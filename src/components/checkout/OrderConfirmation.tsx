@@ -1,6 +1,6 @@
 import { CheckCircle, Copy, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMessagesDrawer } from '@/hooks/useMessagesDrawer';
 
 interface OrderConfirmationProps {
@@ -11,6 +11,16 @@ interface OrderConfirmationProps {
 export function OrderConfirmation({ orderId, onClose }: OrderConfirmationProps) {
   const [copied, setCopied] = useState(false);
   const { openMessages } = useMessagesDrawer();
+  const messageTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Clear any pending "open drawer" timeout if this component unmounts.
+  useEffect(() => {
+    return () => {
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleCopyOrderId = async () => {
     await navigator.clipboard.writeText(orderId);
@@ -22,7 +32,10 @@ export function OrderConfirmation({ orderId, onClose }: OrderConfirmationProps) 
     // Close the checkout dialog first, then open the Messages drawer once its
     // close animation has finished to avoid the dialog/sheet focus-trap clash.
     onClose();
-    setTimeout(() => openMessages(orderId), 350);
+    if (messageTimeoutRef.current) {
+      clearTimeout(messageTimeoutRef.current);
+    }
+    messageTimeoutRef.current = setTimeout(() => openMessages(orderId), 350);
   };
 
   return (
