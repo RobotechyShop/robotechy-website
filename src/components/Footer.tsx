@@ -123,7 +123,7 @@ export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
         {/* Social Links */}
         <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-wrap justify-center gap-6">
           <a
-            href="https://njump.me/npub1yvhvefvam4sdz7pftrjtzj7uqantzpugmqkk7emf3v95rknxm45qhq7l3u"
+            href="https://njump.me/npub1yy0nyk6nj6tg4sx8nd7q5qcdw6pqd5e2cc0e8u2rmcgjhpvm63hsk67xe5"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-sage-600 dark:text-sage-400 hover:text-robotechy-green-dark transition-colors"
