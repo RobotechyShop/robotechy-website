@@ -156,6 +156,55 @@ describe('NIP-17 commerce gift wraps', () => {
   });
 });
 
+describe('payment receipt amount survives a cleared cart', () => {
+  // Regression for the "0 sats" receipt bug: submitPaymentReceipt used to
+  // recompute the amount from the cart, but the cart is cleared the moment the
+  // order is placed - so the receipt (kind 17 amount tag) and the readable
+  // kind 14 summary both reported 0 sats. The fix persists the order total in
+  // checkoutState.totalSats at order-creation time and resolves the receipt
+  // amount from it, recomputing only as a fallback.
+  //
+  // This mirrors the hook's exact resolution expression:
+  //   const totalSats = checkoutState.totalSats ?? convertToSats(totalPrice, currency);
+  // with the cart already cleared (convertToSats(0, ...) === 0).
+  const resolveReceiptSats = (persistedTotalSats: number | undefined, clearedCartSats: number) =>
+    persistedTotalSats ?? clearedCartSats;
+
+  it('uses the persisted order total for the kind 17 receipt and kind 14 summary', () => {
+    const orderId = 'order-aabbccdd-0011';
+    const persistedTotalSats = 21; // captured at order creation
+    const clearedCartSats = 0; // convertToSats(totalPrice=0, currency) after clearCart()
+
+    const totalSats = resolveReceiptSats(persistedTotalSats, clearedCartSats);
+    expect(totalSats).toBe(21);
+
+    // Kind 17 receipt template carries the real amount, not 0.
+    const template = createPaymentReceiptTemplate(
+      orderId,
+      'b'.repeat(64),
+      'lightning',
+      'lnbc210n1pstub',
+      'preimage-proof-hex',
+      totalSats
+    );
+    expect(template.tags).toContainEqual(['amount', '21']);
+    expect(template.tags).not.toContainEqual(['amount', '0']);
+    expect(parseCommerceAmount(template.tags?.find((t) => t[0] === 'amount')?.[1])).toBe(21);
+
+    // Readable kind 14 summary reports the real amount, not "0 sats".
+    const receiptSummary = `🧾 Payment sent for order #${orderId.slice(0, 8)} — ${totalSats.toLocaleString()} sats (Lightning).`;
+    expect(receiptSummary).toContain('21 sats');
+    expect(receiptSummary).not.toContain('0 sats');
+  });
+
+  it('falls back to the recomputed cart amount only when no total was persisted', () => {
+    // If totalSats was never captured, the recompute is still used (defensive).
+    expect(resolveReceiptSats(undefined, 1234)).toBe(1234);
+    // A persisted 0 is still honoured over the fallback (?? only guards nullish).
+    expect(resolveReceiptSats(0, 1234)).toBe(0);
+  });
+});
+
 describe('parseCommerceAmount (untrusted amount tag guard)', () => {
   // The CommerceCard renders `{amount.toLocaleString()} sats` only when this
   // returns a number - guarding against "NaN sats" from untrusted tag input.

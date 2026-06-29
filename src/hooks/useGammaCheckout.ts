@@ -202,10 +202,13 @@ export function useGammaCheckout() {
             console.warn('[Checkout] Failed to send readable order summary:', error);
           });
 
-        // Update state to await payment
+        // Update state to await payment. Persist the order total in sats here so
+        // the payment receipt reports the real amount - the cart is cleared
+        // immediately below, so recomputing from it later would yield 0 sats.
         setCheckoutState({
           orderId,
           status: 'awaiting_payment',
+          totalSats,
         });
 
         // Clear the cart after successful order submission
@@ -235,7 +238,10 @@ export function useGammaCheckout() {
         throw new Error('Secure messaging is unavailable - cannot submit payment receipt');
       }
 
-      const totalSats = convertToSats(totalPrice, currency);
+      // Use the amount captured when the order was created. The cart was cleared
+      // on order submission, so recomputing from totalPrice would give 0 sats -
+      // that recompute is kept only as a defensive fallback.
+      const totalSats = checkoutState.totalSats ?? convertToSats(totalPrice, currency);
 
       // Build the payment receipt rumor (Kind 17) and gift-wrap it to the merchant.
       const receiptTemplate = createPaymentReceiptTemplate(
@@ -273,7 +279,15 @@ export function useGammaCheckout() {
         status: 'paid',
       }));
     },
-    [user, checkoutState.orderId, totalPrice, currency, convertToSats, dmContext]
+    [
+      user,
+      checkoutState.orderId,
+      checkoutState.totalSats,
+      totalPrice,
+      currency,
+      convertToSats,
+      dmContext,
+    ]
   );
 
   const resetCheckout = useCallback(() => {
