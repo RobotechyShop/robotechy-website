@@ -2,141 +2,108 @@
 :toc: auto
 :toclevels: 2
 
-The storefront is a static site published to https://nostrdeploy.com[nostrdeploy.com]
-— the `vite build` output in `dist/` is uploaded to https://github.com/hzrd149/blossom[Blossom]
-servers and announced over Nostr relays, served from a stable npub-based subdomain.
+Production robotechy runs as a Docker container (`robotechy`) in the *apps-stack*
+on the self-hosted *black-panther* box. The container builds from this repo's
+`Dockerfile` and runs *both* the static frontend and the order-service backend
+(the order service can't run on a static/CDN host, which is why we don't deploy
+the build to a static target).
 
-There are two ways to deploy:
+[NOTE]
+There is also a `nostr-deploy-cli` (`npm run deploy`) path that publishes a
+static-only mirror to Nostr/Blossom. That is optional and *not* the production
+deployment — it has no order service.
 
-* *Automated (recommended)* — push a version tag and let CI build, verify and publish.
-* *Manual* — run `npm run deploy` from a machine that holds the deploy identity.
+== Architecture
 
-== Production Deploy (CI)
+[source]
+----
+ tag v1.2.3 on robotechy-website
+        │  (push)
+        ▼
+ .github/workflows/deploy-trigger.yml   ── repository_dispatch ──►  BenGWeeks/black-panther
+        │                                   (deploy-robotechy)              │
+                                                                            ▼
+                                              .github/workflows/deploy-robotechy.yml
+                                              runs-on: [self-hosted, black-panther]
+                                                            │
+                                                            ▼
+                                   cd apps-stack && docker compose up -d --build robotechy
+----
 
-The link:../.github/workflows/deploy-production.yml[`deploy-production.yml`] workflow
-(modelled on the `thyme` pipeline) handles releases.
+The self-hosted runner lives *on* black-panther and connects outbound to GitHub,
+so nothing is exposed to the internet.
 
-[cols="1,3", options="header"]
-|===
-|Aspect |Behaviour
-
-|Trigger
-|Push of a semver tag matching `v*` (e.g. `v1.2.3`). A manual `workflow_dispatch`
-re-runs the latest tag without re-tagging.
-
-|Gate
-|`npm test` — TypeScript (`tsc --noEmit`), ESLint, Vitest, and a production
-`vite build`. A failure blocks the deploy.
-
-|Deploy
-|`npx nostr-deploy-cli deploy --skip-setup` (the same CLI as `npm run deploy`).
-
-|Concurrency
-|One production deploy at a time; an in-flight deploy is never cancelled.
-
-|Environment
-|Runs in the GitHub `production` environment, so the deploy secret is scoped
-there and optional required-reviewer / wait-timer gates can be added.
-|===
-
-=== Cutting a release
+== Releasing
 
 [source,bash]
 ----
-# Tag the commit you want to ship (on main, after CI is green) and push the tag.
+# Tag the commit on main you want to ship, and push the tag.
 git tag v1.2.3
 git push origin v1.2.3
 ----
 
-Pushing the tag starts the workflow. Watch it under the repository's *Actions* tab.
-For the first run, prefer a release-candidate tag (e.g. `v0.0.1-rc`) to confirm the
-site publishes to the expected subdomain before cutting a real release.
+That fires `deploy-trigger.yml`, which dispatches `deploy-robotechy` to the
+black-panther repo; its runner rebuilds the container from the latest `main` and
+restarts it. (The Docker build context is the default branch, so tag the commit
+you want on `main` first.)
 
-== Required Secret: `NOSTR_DEPLOY_CONFIG`
+You can also deploy manually: in the *black-panther* repo, Actions → *Deploy
+robotechy* → *Run workflow*.
 
-`nostr-deploy-cli` keeps each project's Nostr identity and settings in a local
-`.env.nostr-deploy.local` file (gitignored). That identity is what fixes the
-site's npub and its `*.nostrdeploy.com` subdomain.
+== One-time setup
 
-[WARNING]
-====
-With `--skip-setup`, if `.env.nostr-deploy.local` is *missing* the CLI silently
-*generates a brand-new key* and publishes to a *different* subdomain. To keep the
-production URL stable, CI restores the file from a secret before deploying, and
-*fails fast if the secret is absent* — it can never publish under a throwaway
-identity.
-====
+=== 1. Self-hosted runner (on black-panther)
 
-Set it once, before the first release:
-
-. Locally, confirm you have a working `.env.nostr-deploy.local` (created by
-`nostr-deploy-cli config`, or `nostr-deploy-cli auth -k nsec1...` to import an
-existing key).
-. Copy its *entire contents*.
-. In GitHub: *Settings → Secrets and variables → Actions* (or the `production`
-*Environment*) → *New repository secret*.
-.. Name: `NOSTR_DEPLOY_CONFIG`
-.. Value: the full file contents.
-
-[CAUTION]
-The deploy identity's `nsec` lives inside this secret — treat it like any other
-production credential. Never commit `.env.nostr-deploy.local` (it is covered by
-the `.env.*.local` rule in `.gitignore`).
-
-== Manual Deploy
-
-From a machine that already has `.env.nostr-deploy.local`:
+Registered to `BenGWeeks/black-panther` with the label `black-panther`. To run it
+as a proper service (survives reboots):
 
 [source,bash]
 ----
-npm run deploy        # = npm run build && npx -y nostr-deploy-cli deploy --skip-setup
+cd ~/actions-runner
+sudo ./svc.sh install benweeks
+sudo ./svc.sh start
+sudo ./svc.sh status
 ----
 
-First-time setup of the deploy identity on a new machine:
+=== 2. Dispatch token (secret in robotechy-website)
+
+`deploy-trigger.yml` needs a token that can POST dispatches to the black-panther
+repo:
+
+* Create a token with access to `BenGWeeks/black-panther` (classic PAT with
+`repo` scope, or a fine-grained PAT scoped to that repo with *Contents: read &
+write*).
+* Add it as the `BLACK_PANTHER_DEPLOY_TOKEN` secret in robotechy-website
+(*Settings → Secrets and variables → Actions*).
+
+The trigger fails fast if the secret is missing.
+
+== Manual / fallback deploy (directly on the box)
 
 [source,bash]
 ----
-# Generate a new identity for this project...
-npx nostr-deploy-cli config
-
-# ...or import the existing production key (keep it safe!)
-npx nostr-deploy-cli auth -k nsec1...
+ssh black-panther.local
+cd ~/GitHub/black-panther/apps-stack
+git -C ~/GitHub/black-panther pull --ff-only
+docker compose up -d --build robotechy
+docker compose ps robotechy
 ----
-
-== Docker (self-hosted alternative)
-
-The site (and the optional order service) can also run as a single container
-instead of the static Nostr deploy. See
-link:INSTALLATION.adoc#_docker_deployment[Installation → Docker Deployment].
 
 == Rollback
 
-nostrdeploy serves the most recently announced build. To roll back, re-deploy a
-known-good commit:
+Tag and ship a previous good commit, or on the box check out the prior commit and
+rebuild:
 
 [source,bash]
 ----
-git checkout v1.2.2        # the previous good tag
-npm run deploy             # re-publish it
+cd ~/GitHub/black-panther/apps-stack
+docker compose up -d --build robotechy   # after main points at the good commit
 ----
 
-Or push the older tag again via `workflow_dispatch` against that ref.
+== Container reference
 
-== Troubleshooting
-
-[cols="1,2", options="header"]
-|===
-|Symptom |Likely cause / fix
-
-|Deploy job fails immediately with a `NOSTR_DEPLOY_CONFIG` error
-|The secret isn't set (or is empty). Add it as described above.
-
-|Site published to an unexpected subdomain
-|`.env.nostr-deploy.local` was missing, so a new key was generated. Restore the
-correct config and re-deploy.
-
-|`npm test` fails in the deploy job
-|Fix the failing type/lint/test/build on `main` first, then re-tag.
-|===
-
-See also link:TROUBLESHOOTING.adoc[Troubleshooting Guide].
+* Service `robotechy` in `apps-stack/docker-compose.yml`, published on `8084:3000`.
+* Env: `MERCHANT_NSEC`, `LIGHTNING_ADDRESS`, `FALLBACK_RELAYS` (order service);
+  without the first two it runs frontend-only.
+* See link:INSTALLATION.adoc#_docker_deployment[Installation → Docker Deployment]
+  for the image details and link:TROUBLESHOOTING.adoc[Troubleshooting].
