@@ -1,7 +1,7 @@
 import { useSeoMeta } from '@unhead/react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { ContactDialog } from '@/components/ContactDialog';
+import { MessageShopLink } from '@/components/messages/MessageShopLink';
 
 const ShippingPolicy = () => {
   useSeoMeta({
@@ -52,14 +52,7 @@ const ShippingPolicy = () => {
           <h2 className="text-2xl font-semibold mt-8 mb-4">Contact</h2>
           <p>
             If you have any questions about shipping, please{' '}
-            <ContactDialog
-              trigger={
-                <button className="text-robotechy-green-dark hover:underline inline">
-                  contact us
-                </button>
-              }
-            />
-            .
+            <MessageShopLink>contact us</MessageShopLink>.
           </p>
         </div>
       </main>

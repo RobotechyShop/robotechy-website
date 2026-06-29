@@ -1,11 +1,12 @@
 import { Home, Mail, ShoppingCart, Sun, Moon, Monitor } from 'lucide-react';
 import { LoginArea } from '@/components/auth/LoginArea';
-import { ContactDialog } from '@/components/ContactDialog';
 import { useTheme } from '@/hooks/useTheme';
+import { useMessagesDrawer } from '@/hooks/useMessagesDrawer';
 import type { Theme } from '@/contexts/AppContext';
 
 export function Header() {
   const { theme, setTheme } = useTheme();
+  const { openMessages } = useMessagesDrawer();
 
   const cycleTheme = () => {
     const themes: Theme[] = ['light', 'dark', 'system'];
@@ -37,16 +38,13 @@ export function Header() {
             >
               <Home className="h-5 w-5" />
             </a>
-            <ContactDialog
-              trigger={
-                <button
-                  className="p-2 text-sage-700 hover:text-robotechy-green-dark dark:text-sage-300 dark:hover:text-robotechy-green-dark transition-colors"
-                  title="Contact"
-                >
-                  <Mail className="h-5 w-5" />
-                </button>
-              }
-            />
+            <button
+              onClick={() => openMessages()}
+              className="p-2 text-sage-700 hover:text-robotechy-green-dark dark:text-sage-300 dark:hover:text-robotechy-green-dark transition-colors"
+              title="Messages"
+            >
+              <Mail className="h-5 w-5" />
+            </button>
             <button
               className="p-2 text-sage-700 hover:text-robotechy-green-dark dark:text-sage-300 dark:hover:text-robotechy-green-dark transition-colors"
               title="Cart"

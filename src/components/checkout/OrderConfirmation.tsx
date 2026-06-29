@@ -1,6 +1,7 @@
-import { CheckCircle, Copy } from 'lucide-react';
+import { CheckCircle, Copy, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { useMessagesDrawer } from '@/hooks/useMessagesDrawer';
 
 interface OrderConfirmationProps {
   orderId: string;
@@ -9,11 +10,19 @@ interface OrderConfirmationProps {
 
 export function OrderConfirmation({ orderId, onClose }: OrderConfirmationProps) {
   const [copied, setCopied] = useState(false);
+  const { openMessages } = useMessagesDrawer();
 
   const handleCopyOrderId = async () => {
     await navigator.clipboard.writeText(orderId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleMessage = () => {
+    // Close the checkout dialog first, then open the Messages drawer once its
+    // close animation has finished to avoid the dialog/sheet focus-trap clash.
+    onClose();
+    setTimeout(() => openMessages(orderId), 350);
   };
 
   return (
@@ -62,9 +71,13 @@ export function OrderConfirmation({ orderId, onClose }: OrderConfirmationProps) 
         </ul>
       </div>
 
-      <div className="pt-4">
+      <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
         <Button className="bg-robotechy-green hover:brightness-110 text-black" onClick={onClose}>
           Continue Shopping
+        </Button>
+        <Button variant="outline" onClick={handleMessage}>
+          <Mail className="h-4 w-4 mr-2" />
+          Message
         </Button>
       </div>
     </div>

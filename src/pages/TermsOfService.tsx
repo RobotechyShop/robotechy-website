@@ -1,7 +1,7 @@
 import { useSeoMeta } from '@unhead/react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { ContactDialog } from '@/components/ContactDialog';
+import { MessageShopLink } from '@/components/messages/MessageShopLink';
 
 const TermsOfService = () => {
   useSeoMeta({
@@ -209,14 +209,7 @@ const TermsOfService = () => {
           <h2 className="text-2xl font-semibold mt-8 mb-4">Section 21 - Contact Information</h2>
           <p>
             Questions about the Terms of Service can be sent via our{' '}
-            <ContactDialog
-              trigger={
-                <button className="text-robotechy-green-dark hover:underline inline">
-                  contact form
-                </button>
-              }
-            />
-            .
+            <MessageShopLink>contact form</MessageShopLink>.
           </p>
         </div>
       </main>

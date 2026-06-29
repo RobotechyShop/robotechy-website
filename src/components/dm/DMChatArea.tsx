@@ -29,6 +29,11 @@ interface DMChatAreaProps {
   pubkey: string | null;
   onBack?: () => void;
   className?: string;
+  /**
+   * When set, the order/receipt card whose `order` tag matches this id is
+   * visually highlighted (e.g. when arriving from order confirmation).
+   */
+  highlightOrderId?: string | null;
 }
 
 // Gamma Markets commerce rumor kinds that render as cards instead of plain text.
@@ -38,7 +43,7 @@ const COMMERCE_KINDS = new Set([16, 17]);
  * Render a NIP-17 gift-wrapped commerce event (inner kind 16/17) as a compact
  * card. Reads the structured Gamma Markets tags from the inner rumor.
  */
-const CommerceCard = ({ event }: { event: NostrEvent }) => {
+const CommerceCard = ({ event, isHighlighted }: { event: NostrEvent; isHighlighted?: boolean }) => {
   const getTag = (name: string) => event.tags.find((t) => t[0] === name)?.[1];
 
   const orderId = getTag('order');
@@ -70,7 +75,12 @@ const CommerceCard = ({ event }: { event: NostrEvent }) => {
   }
 
   return (
-    <div className="text-sm space-y-0.5">
+    <div
+      className={cn(
+        'text-sm space-y-0.5',
+        isHighlighted && 'ring-2 ring-robotechy-green rounded-md -m-1 p-1'
+      )}
+    >
       <p className="font-semibold">{title}</p>
       {orderShort && <p className="opacity-80">Order #{orderShort}</p>}
       {amount && <p className="opacity-80">{Number(amount).toLocaleString()} sats</p>}
@@ -89,6 +99,7 @@ const MessageBubble = memo(
   ({
     message,
     isFromCurrentUser,
+    highlightOrderId,
   }: {
     message: {
       id: string;
@@ -102,12 +113,20 @@ const MessageBubble = memo(
       isSending?: boolean;
     };
     isFromCurrentUser: boolean;
+    highlightOrderId?: string | null;
   }) => {
     // For NIP-17, use inner message kind (14/15); for NIP-04, use message kind (4)
     const actualKind = message.decryptedEvent?.kind || message.kind;
     const isNIP4Message = message.kind === 4;
     const isFileAttachment = actualKind === 15; // Kind 15 = files/attachments
     const isCommerce = COMMERCE_KINDS.has(actualKind); // Kind 16/17 = order/receipt
+    const isHighlightedOrder = Boolean(
+      isCommerce &&
+      highlightOrderId &&
+      (message.decryptedEvent || message).tags.some(
+        (t) => t[0] === 'order' && t[1] === highlightOrderId
+      )
+    );
 
     // Create a NostrEvent object for NoteContent (only used for kind 15)
     // For NIP-17 file attachments, use the decryptedEvent which has the actual tags
@@ -141,7 +160,7 @@ const MessageBubble = memo(
           ) : isCommerce ? (
             // Kind 16/17: Render gift-wrapped commerce events (order, payment
             // request, status, shipping, receipt) as a structured card.
-            <CommerceCard event={messageEvent} />
+            <CommerceCard event={messageEvent} isHighlighted={isHighlightedOrder} />
           ) : isFileAttachment ? (
             // Kind 15: Use NoteContent to render files/media with imeta tags
             <div className="text-sm">
@@ -274,7 +293,7 @@ const EmptyState = ({ isLoading }: { isLoading: boolean }) => {
   );
 };
 
-export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
+export const DMChatArea = ({ pubkey, onBack, className, highlightOrderId }: DMChatAreaProps) => {
   const { user } = useCurrentUser();
   const { sendMessage, protocolMode, isLoading } = useDMContext();
   const { messages, hasMoreMessages, loadEarlierMessages } = useConversationMessages(pubkey || '');
@@ -429,6 +448,7 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
                 key={message.id}
                 message={message}
                 isFromCurrentUser={message.pubkey === user.pubkey}
+                highlightOrderId={highlightOrderId}
               />
             ))}
           </div>
