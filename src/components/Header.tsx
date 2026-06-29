@@ -39,9 +39,11 @@ export function Header() {
               <Home className="h-5 w-5" />
             </a>
             <button
+              type="button"
               onClick={() => openMessages()}
               className="p-2 text-sage-700 hover:text-robotechy-green-dark dark:text-sage-300 dark:hover:text-robotechy-green-dark transition-colors"
               title="Messages"
+              aria-label="Messages"
             >
               <Mail className="h-5 w-5" />
             </button>

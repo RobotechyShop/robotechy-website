@@ -28,8 +28,17 @@ export function MessagesDrawer() {
   const { user } = useCurrentUser();
   const [showLoginDialog, setShowLoginDialog] = useState(false);
 
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    // Reset the nested login dialog when the drawer closes so it does not
+    // immediately reopen the next time the drawer is shown.
+    if (!open) {
+      setShowLoginDialog(false);
+    }
+  };
+
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="flex flex-col p-0 w-full sm:max-w-md">
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center gap-2">
