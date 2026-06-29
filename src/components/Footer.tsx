@@ -55,11 +55,13 @@ export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
             <div className="flex items-start gap-4 max-w-md mb-4">
               <Avatar className="h-16 w-16 shrink-0">
                 <AvatarImage src={isaacMetadata?.picture} alt={isaacName} />
-                <AvatarFallback className="text-lg">{isaacName.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="text-lg">
+                  {(isaacName.trim().charAt(0) || 'I').toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               <div>
                 <p className="text-sm font-medium text-slate-900 dark:text-white">{isaacName}</p>
-                <p className="text-sm text-sage-600 dark:text-sage-400 mt-1 whitespace-pre-line">
+                <p className="text-sm text-sage-600 dark:text-sage-400 mt-1 whitespace-pre-line line-clamp-3">
                   {isaacBio}
                 </p>
               </div>
