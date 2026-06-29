@@ -12,7 +12,20 @@ interface FooterProps {
 // Isaac's personal Nostr identity. The About Me section pulls his avatar and bio
 // live from this profile (kind 0 metadata) so it always matches his Nostr profile.
 const ISAAC_NPUB = 'npub17dfg3tynlv39m0e9z8a0t558e7plet96xg9g4uu6q84caykq8jtqwdy09f';
-const ISAAC_PUBKEY = nip19.decode(ISAAC_NPUB).data as string;
+
+// Decode the npub to a hex pubkey, guarding against an invalid/non-npub value so
+// the footer degrades gracefully (empty pubkey -> useAuthor no-ops) instead of
+// crashing at module init.
+function decodeNpub(npub: string): string {
+  try {
+    const decoded = nip19.decode(npub);
+    return decoded.type === 'npub' ? decoded.data : '';
+  } catch {
+    return '';
+  }
+}
+
+const ISAAC_PUBKEY = decodeNpub(ISAAC_NPUB);
 
 export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
   const { data: collections } = useCollections();
@@ -40,7 +53,7 @@ export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
           <div className="md:col-span-2">
             <h4 className="font-semibold mb-3 text-slate-900 dark:text-white">About Me</h4>
             <div className="flex items-start gap-4 max-w-md mb-4">
-              <Avatar className="h-16 w-16 shrink-0 rounded-full object-cover">
+              <Avatar className="h-16 w-16 shrink-0">
                 <AvatarImage src={isaacMetadata?.picture} alt={isaacName} />
                 <AvatarFallback className="text-lg">{isaacName.charAt(0)}</AvatarFallback>
               </Avatar>
