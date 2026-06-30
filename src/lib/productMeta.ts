@@ -49,8 +49,10 @@ export function truncateDescription(text: string, max: number = MAX_DESCRIPTION_
  * NOTE: Robotechy is a client-rendered SPA, so these tags are injected at
  * runtime and are visible to in-app navigation, native share sheets and any
  * future SSR/pre-render — but NOT to social crawlers, which read the raw HTML
- * shell. Store-level previews are handled statically in index.html. See the PR
- * "Limitations / follow-up" section.
+ * shell and do not execute JS. Crawler-visible previews are therefore limited
+ * to the static store-level tags baked into index.html; making per-product
+ * links unfurl for crawlers would require SSR or a crawler-aware shim that
+ * inlines these tags into the served HTML before the SPA boots.
  *
  * @param product Parsed NIP-99 product.
  * @param url     Fully-qualified page URL (e.g. `window.location.href`).
