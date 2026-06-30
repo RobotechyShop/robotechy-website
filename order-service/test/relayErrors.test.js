@@ -20,7 +20,7 @@ test('ignores known transient relay/network errors (case-insensitive)', () => {
     'socket hang up',
     'WebSocket connection failed',
     'rate-limited: noting too much',
-    'Request Timeout', // mixed case
+    'Connection timed out', // mixed case, relay/socket context
   ]) {
     assert.equal(isIgnorableRelayError(new Error(m)), true, `should ignore: ${m}`);
   }
@@ -47,6 +47,10 @@ test('coerces a non-string message without throwing', () => {
   assert.equal(isIgnorableRelayError({ message: 'ETIMEDOUT' }), true);
 });
 
-test('does not swallow an unrelated error merely containing the word "connection"', () => {
+test('does not swallow unrelated failures (bare "connection" / generic HTTP timeout)', () => {
   assert.equal(isIgnorableRelayError(new Error('Lightning node connection failed')), false);
+  // A generic HTTP-ish timeout (e.g. a Lightning/LNURL fetch) is a real error,
+  // not a relay/socket timeout — it must stay fatal.
+  assert.equal(isIgnorableRelayError(new Error('Request Timeout')), false);
+  assert.equal(isIgnorableRelayError(new Error('fetch timeout')), false);
 });

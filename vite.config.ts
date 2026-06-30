@@ -16,9 +16,9 @@ export default defineConfig(() => ({
   test: {
     globals: true,
     environment: 'jsdom',
-    // The order-service has its own node:test suite (`npm test` in order-service/)
-    // that Vitest can't run; exclude that subtree while leaving Vitest's default
-    // test discovery intact.
+    // The order-service has its own node:test suite (run via `node --test` in
+    // order-service/) that Vitest can't run; exclude that subtree while leaving
+    // Vitest's default test discovery intact.
     exclude: [...configDefaults.exclude, 'order-service/**'],
     setupFiles: './src/test/setup.ts',
     onConsoleLog(log) {

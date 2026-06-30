@@ -20,14 +20,15 @@ const RELAY_NOISE = [
   'network error',
   'non-101',
   'websocket',
-  // Specific connection phrases only — a bare 'connection' would swallow
-  // unrelated failures (e.g. Lightning/LNURL). 'timed out'/'timeout' below also
-  // catch "connection timed out".
+  // Specific connection/socket phrases only — a bare 'connection' or 'timeout'
+  // would swallow unrelated failures (e.g. a Lightning/LNURL HTTP timeout, which
+  // is a real error). Relay/socket timeouts reaching this handler always carry a
+  // connection/socket context or the errno form (ETIMEDOUT, below).
   'connection refused',
   'connection reset',
   'connection closed',
-  'timed out',
-  'timeout',
+  'connection timed out',
+  'socket timed out',
   'socket hang up',
   'econnrefused',
   'econnreset',
