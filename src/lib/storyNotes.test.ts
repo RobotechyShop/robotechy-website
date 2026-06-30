@@ -51,6 +51,25 @@ describe('extractImageUrls', () => {
     const event = makeEvent({ content: 'visit https://example.com/page for info' });
     expect(extractImageUrls(event)).toEqual([]);
   });
+
+  it('skips imeta attachments whose mime is not an image', () => {
+    const event = makeEvent({
+      tags: [['imeta', 'url https://media.example/clip.mp4', 'm video/mp4']],
+    });
+    expect(extractImageUrls(event)).toEqual([]);
+  });
+
+  it('keeps an imeta image whose extension is unusual but mime says image', () => {
+    const event = makeEvent({
+      tags: [['imeta', 'url https://media.example/pic', 'm image/png']],
+    });
+    expect(extractImageUrls(event)).toEqual(['https://media.example/pic']);
+  });
+
+  it('falls back to the URL extension when imeta declares no mime', () => {
+    const event = makeEvent({ tags: [['imeta', 'url https://img.example/d.png']] });
+    expect(extractImageUrls(event)).toEqual(['https://img.example/d.png']);
+  });
 });
 
 describe('isReply', () => {

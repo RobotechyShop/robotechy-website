@@ -15,7 +15,9 @@ import { genUserName } from '@/lib/genUserName';
 const Story = () => {
   const pubkey = shopOwnerPubkey();
   const author = useAuthor(pubkey);
-  const { data: notes, isLoading, isError } = useStoryNotes();
+  // Default to [] so a disabled query (empty pubkey from a malformed
+  // SHOP_OWNER_NPUB) renders the empty-state card rather than a blank section.
+  const { data: notes = [], isLoading, isError } = useStoryNotes();
 
   const metadata = author.data?.metadata;
   const name = metadata?.display_name || metadata?.name || genUserName(pubkey);
@@ -90,7 +92,7 @@ const Story = () => {
           </Card>
         )}
 
-        {!isLoading && !isError && notes && notes.length === 0 && (
+        {!isLoading && !isError && notes.length === 0 && (
           <Card className="border-sage-200 dark:border-sage-800">
             <CardContent className="py-12 text-center">
               <BookOpen className="w-12 h-12 text-sage-400 mx-auto mb-4" />
@@ -105,7 +107,7 @@ const Story = () => {
           </Card>
         )}
 
-        {!isLoading && !isError && notes && notes.length > 0 && (
+        {!isLoading && !isError && notes.length > 0 && (
           <ol className="list-none">
             {notes.map((event, index) => (
               <StoryNote key={event.id} event={event} isLast={index === notes.length - 1} />

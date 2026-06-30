@@ -10,6 +10,11 @@ function imageUrlRegex(): RegExp {
   return /https?:\/\/\S+?\.(?:png|jpe?g|gif|webp|avif)(?:\?\S*)?/gi;
 }
 
+/** True when a URL ends in a known image extension (ignoring any query string). */
+function looksLikeImageUrl(url: string): boolean {
+  return imageUrlRegex().test(url);
+}
+
 /**
  * Extract image URLs for a kind-1 note's visual storytelling.
  *
@@ -17,20 +22,30 @@ function imageUrlRegex(): RegExp {
  *  1. NIP-92 `imeta` tags (`['imeta', 'url <href>', 'm image/png', ...]`).
  *  2. Bare image URLs embedded in the note content.
  *
- * Duplicates are removed while preserving first-seen order so `imeta`-declared
- * images win over the same URL repeated inline.
+ * `imeta` tags also describe non-image attachments (e.g. `m video/mp4`), which
+ * must NOT be rendered via `<img>`. A declared `imeta` is therefore included
+ * only when its `m` (mime) is an `image/*` type, or — when no mime is declared —
+ * when the URL itself looks like an image. Duplicates are removed while
+ * preserving first-seen order so `imeta`-declared images win over the same URL
+ * repeated inline.
  */
 export function extractImageUrls(event: NostrEvent): string[] {
   const urls: string[] = [];
 
   for (const tag of event.tags) {
     if (tag[0] !== 'imeta') continue;
+
+    let url = '';
+    let mime: string | undefined;
     for (const part of tag.slice(1)) {
-      if (typeof part === 'string' && part.startsWith('url ')) {
-        const url = part.slice(4).trim();
-        if (url) urls.push(url);
-      }
+      if (typeof part !== 'string') continue;
+      if (part.startsWith('url ')) url = part.slice(4).trim();
+      else if (part.startsWith('m ')) mime = part.slice(2).trim();
     }
+
+    if (!url) continue;
+    const isImage = mime ? mime.startsWith('image/') : looksLikeImageUrl(url);
+    if (isImage) urls.push(url);
   }
 
   const matches = event.content.match(imageUrlRegex());
