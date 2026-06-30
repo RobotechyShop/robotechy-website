@@ -18,6 +18,9 @@ export default defineConfig(() => ({
   test: {
     globals: true,
     environment: 'jsdom',
+    // Frontend (Vitest) tests live under src/. The order-service has its own
+    // node:test suite (`npm test` in order-service/) that Vitest can't run.
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
     setupFiles: './src/test/setup.ts',
     onConsoleLog(log) {
       return !log.includes("React Router Future Flag Warning");
