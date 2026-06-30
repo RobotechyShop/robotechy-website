@@ -67,16 +67,15 @@ export class NostrClient {
   async fetchRelayList() {
     try {
       console.log('[Nostr] Fetching NIP-65 relay list...');
-      const events = await this.pool.querySync(
-        this.fallbackRelays,
-        { kinds: [10002], authors: [this.pubkey], limit: 1 }
-      );
+      const events = await this.pool.querySync(this.fallbackRelays, {
+        kinds: [10002],
+        authors: [this.pubkey],
+        limit: 1,
+      });
 
       if (events.length > 0) {
-        const relayTags = events[0].tags.filter(t => t[0] === 'r');
-        const fetchedRelays = relayTags
-          .map(t => t[1])
-          .filter(Boolean);
+        const relayTags = events[0].tags.filter((t) => t[0] === 'r');
+        const fetchedRelays = relayTags.map((t) => t[1]).filter(Boolean);
 
         if (fetchedRelays.length > 0) {
           this.relays = fetchedRelays;
@@ -100,15 +99,16 @@ export class NostrClient {
    */
   async getUserRelays(pubkey) {
     try {
-      const events = await this.pool.querySync(
-        this.relays,
-        { kinds: [10002], authors: [pubkey], limit: 1 }
-      );
+      const events = await this.pool.querySync(this.relays, {
+        kinds: [10002],
+        authors: [pubkey],
+        limit: 1,
+      });
 
       if (events.length > 0) {
         return events[0].tags
-          .filter(t => t[0] === 'r')
-          .map(t => t[1])
+          .filter((t) => t[0] === 'r')
+          .map((t) => t[1])
           .filter(Boolean);
       }
     } catch (error) {
@@ -154,14 +154,18 @@ export class NostrClient {
       })
     );
 
-    const successes = results.filter(r => r.status === 'fulfilled' && r.value?.success).length;
-    const failures = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value?.success)).length;
+    const successes = results.filter((r) => r.status === 'fulfilled' && r.value?.success).length;
+    const failures = results.filter(
+      (r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value?.success)
+    ).length;
 
     if (successes === 0) {
       throw new Error(`Failed to publish event to any relay`);
     }
 
-    console.log(`[Nostr] Published to ${successes}/${relays.length} relays (${failures} failed/skipped)`);
+    console.log(
+      `[Nostr] Published to ${successes}/${relays.length} relays (${failures} failed/skipped)`
+    );
     return event;
   }
 
@@ -184,7 +188,9 @@ export class NostrClient {
     // Publish to both merchant and recipient relays
     const targetRelays = await this.getPublishRelays(recipientPubkey);
 
-    console.log(`[Nostr] Sending DM to ${recipientPubkey.slice(0, 8)}... via ${targetRelays.length} relays`);
+    console.log(
+      `[Nostr] Sending DM to ${recipientPubkey.slice(0, 8)}... via ${targetRelays.length} relays`
+    );
     return this.publishEvent(eventTemplate, targetRelays);
   }
 
@@ -197,11 +203,14 @@ export class NostrClient {
    *   2. nip44-decrypt the seal content (encrypted to the merchant by the real
    *      sender) -> inner rumor (kind 14/16/17).
    *
-   * Authenticates the sender by asserting `seal.pubkey === rumor.pubkey`, so the
-   * returned rumor's `pubkey` is the real (buyer) sender.
+   * Authenticates the sender via the step-2 decrypt (which only succeeds when
+   * keyed to the real sender's `seal.pubkey`) plus a `seal.pubkey === rumor.pubkey`
+   * binding — NOT by verifying a seal signature (the seal is unsigned). The
+   * returned rumor is therefore an UNSIGNED inner event with no `id`/`sig`.
    *
    * @param {import('nostr-tools').Event} giftWrapEvent - kind 1059 event
-   * @returns {import('nostr-tools').Event | null} inner rumor, or null if invalid
+   * @returns {Omit<import('nostr-tools').Event, 'id'|'sig'> | null} the unsigned
+   *   inner rumor (no id/sig), or null if invalid
    */
   unwrapGiftWrap(giftWrapEvent) {
     try {
@@ -217,7 +226,9 @@ export class NostrClient {
       const seal = JSON.parse(sealJson);
 
       if (seal.kind !== 13) {
-        console.warn(`[Nostr] Gift wrap ${giftWrapEvent.id?.slice(0, 8)}: invalid seal kind ${seal.kind}`);
+        console.warn(
+          `[Nostr] Gift wrap ${giftWrapEvent.id?.slice(0, 8)}: invalid seal kind ${seal.kind}`
+        );
         return null;
       }
 
@@ -236,8 +247,9 @@ export class NostrClient {
       );
       const rumor = JSON.parse(rumorJson);
 
-      // Authenticate the sender: the seal must have been signed by the same key
-      // that authored the rumor.
+      // Bind the rumor to the seal. There is NO seal signature to verify (our
+      // seals are unsigned — see above); authentication comes from the step-2
+      // decrypt succeeding under `seal.pubkey` plus this pubkey match.
       if (seal.pubkey !== rumor.pubkey) {
         console.warn(
           `[Nostr] Gift wrap ${giftWrapEvent.id?.slice(0, 8)}: sender not authenticated (seal/rumor pubkey mismatch)`
@@ -247,7 +259,10 @@ export class NostrClient {
 
       return rumor;
     } catch (error) {
-      console.warn(`[Nostr] Failed to unwrap gift wrap ${giftWrapEvent.id?.slice(0, 8)}:`, error.message);
+      console.warn(
+        `[Nostr] Failed to unwrap gift wrap ${giftWrapEvent.id?.slice(0, 8)}:`,
+        error.message
+      );
       return null;
     }
   }
@@ -342,7 +357,7 @@ export class NostrClient {
         // the past, so `maxCreatedAt - lookback` is often OLDER than the current
         // cursor; never move backwards or the query window re-expands every poll.
         if (events.length > 0) {
-          const maxCreatedAt = Math.max(...events.map(e => e.created_at));
+          const maxCreatedAt = Math.max(...events.map((e) => e.created_at));
           currentSince = Math.max(currentSince, maxCreatedAt - sinceLookbackSeconds);
         }
       } catch (error) {
