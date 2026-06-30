@@ -1,0 +1,56 @@
+/**
+ * Tests for the unhandled-rejection classifier. Run with: node --test
+ */
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { isIgnorableRelayError } from '../lib/relayErrors.js';
+
+test('ignores the "connection timed out" rejection that previously crashed the service', () => {
+  assert.equal(isIgnorableRelayError(new Error('connection timed out')), true);
+  assert.equal(isIgnorableRelayError('connection timed out'), true);
+});
+
+test('ignores known transient relay/network errors (case-insensitive)', () => {
+  for (const m of [
+    'restricted: Pay on https://nostr.land for access.',
+    'blocked: kind 1059 is not allowed',
+    'ECONNREFUSED',
+    'ETIMEDOUT',
+    'socket hang up',
+    'WebSocket connection failed',
+    'rate-limited: noting too much',
+    'Connection timed out', // mixed case, relay/socket context
+  ]) {
+    assert.equal(isIgnorableRelayError(new Error(m)), true, `should ignore: ${m}`);
+  }
+});
+
+test('does NOT swallow a genuine programming error (stays fatal)', () => {
+  assert.equal(
+    isIgnorableRelayError(new TypeError("Cannot read properties of undefined (reading 'tags')")),
+    false
+  );
+  assert.equal(isIgnorableRelayError(new Error('orderId is required')), false);
+});
+
+test('handles null/undefined/empty reasons without throwing (not ignorable)', () => {
+  assert.equal(isIgnorableRelayError(null), false);
+  assert.equal(isIgnorableRelayError(undefined), false);
+  assert.equal(isIgnorableRelayError(''), false);
+  assert.equal(isIgnorableRelayError({}), false);
+});
+
+test('coerces a non-string message without throwing', () => {
+  assert.doesNotThrow(() => isIgnorableRelayError({ message: 123 }));
+  assert.equal(isIgnorableRelayError({ message: 123 }), false);
+  assert.equal(isIgnorableRelayError({ message: 'ETIMEDOUT' }), true);
+});
+
+test('does not swallow unrelated failures (bare "connection" / generic HTTP timeout)', () => {
+  assert.equal(isIgnorableRelayError(new Error('Lightning node connection failed')), false);
+  // A generic HTTP-ish timeout (e.g. a Lightning/LNURL fetch) is a real error,
+  // not a relay/socket timeout — it must stay fatal.
+  assert.equal(isIgnorableRelayError(new Error('Request Timeout')), false);
+  assert.equal(isIgnorableRelayError(new Error('fetch timeout')), false);
+});

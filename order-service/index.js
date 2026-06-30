@@ -12,22 +12,11 @@
  * encrypted wrap, never in plaintext public events.
  */
 
-// Handle unhandled rejections from nostr-tools (relay errors)
-process.on('unhandledRejection', (reason, promise) => {
-  const msg = reason?.message || String(reason) || '';
-  // Ignore relay-specific errors that don't affect overall operation
-  if (msg.includes('restricted') ||
-      msg.includes('Pay on') ||
-      msg.includes('blocked') ||
-      msg.includes('not allowed') ||
-      msg.includes('network error') ||
-      msg.includes('non-101') ||
-      msg.includes('WebSocket') ||
-      msg.includes('ECONNREFUSED') ||
-      msg.includes('ETIMEDOUT') ||
-      msg.includes('rate-limit') ||
-      msg.includes('noting too much')) {
-    console.warn('[Nostr] Ignoring relay rejection:', msg);
+// Handle unhandled rejections from nostr-tools (relay errors). A flaky relay must
+// never crash order processing — see lib/relayErrors.js for the classification.
+process.on('unhandledRejection', (reason) => {
+  if (isIgnorableRelayError(reason)) {
+    console.warn('[Nostr] Ignoring relay rejection:', reason?.message || reason);
     return;
   }
   console.error('[Fatal] Unhandled rejection:', reason);
@@ -35,6 +24,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 import { config } from './lib/config.js';
+import { isIgnorableRelayError } from './lib/relayErrors.js';
 import { NostrClient, decodeNsec } from './lib/nostr.js';
 import { ProcessedStore } from './lib/processedStore.js';
 import { generateInvoice, validateLightningAddress } from './lib/lightning.js';
@@ -108,11 +98,7 @@ async function handleOrder(event, nostrClient) {
   try {
     // Generate Lightning invoice
     console.log(`[Order] Generating invoice for ${order.amount} sats...`);
-    const invoice = await generateInvoice(
-      config.lightningAddress,
-      order.amount,
-      order.orderId
-    );
+    const invoice = await generateInvoice(config.lightningAddress, order.amount, order.orderId);
 
     // Build the Kind 16 Type 2 payment request rumor and gift-wrap it to the buyer.
     // The structured invoice data lives in the rumor tags; we fold a human-readable
@@ -130,7 +116,6 @@ async function handleOrder(event, nostrClient) {
     await nostrClient.sendGiftWrap(order.buyerPubkey, paymentRequestRumor);
 
     console.log(`[Order] ✓ Order ${order.orderId.slice(0, 8)} processed - payment request sent`);
-
   } catch (error) {
     console.error(`[Order] ✗ Failed to process order ${order.orderId.slice(0, 8)}:`, error.message);
   }
@@ -176,7 +161,9 @@ async function handlePaymentReceipt(event, nostrClient) {
   );
   try {
     await nostrClient.sendGiftWrap(receipt.buyerPubkey, statusRumor);
-    console.log(`[Payment] ✓ Gift-wrapped status update sent for order ${receipt.orderId.slice(0, 8)}`);
+    console.log(
+      `[Payment] ✓ Gift-wrapped status update sent for order ${receipt.orderId.slice(0, 8)}`
+    );
   } catch (error) {
     console.warn(`[Payment] Failed to send status gift wrap (non-fatal):`, error.message);
   }
@@ -190,9 +177,14 @@ async function handlePaymentReceipt(event, nostrClient) {
   };
   try {
     await nostrClient.sendGiftWrap(receipt.buyerPubkey, readableRumor);
-    console.log(`[Payment] ✓ Gift-wrapped readable thank-you sent for order ${receipt.orderId.slice(0, 8)}`);
+    console.log(
+      `[Payment] ✓ Gift-wrapped readable thank-you sent for order ${receipt.orderId.slice(0, 8)}`
+    );
   } catch (error) {
-    console.warn(`[Payment] Failed to send readable thank-you gift wrap (non-fatal):`, error.message);
+    console.warn(
+      `[Payment] Failed to send readable thank-you gift wrap (non-fatal):`,
+      error.message
+    );
   }
 }
 
@@ -236,24 +228,29 @@ async function main() {
   };
 
   // Start polling for gift wraps, unwrap, and dispatch by inner rumor kind/type.
-  const unsubGiftWraps = nostrClient.subscribe(giftWrapFilter, (giftWrap) => {
-    const rumor = nostrClient.unwrapGiftWrap(giftWrap);
-    if (!rumor) {
-      return; // Not decryptable / not authenticated / not for us
-    }
+  const unsubGiftWraps = nostrClient.subscribe(
+    giftWrapFilter,
+    (giftWrap) => {
+      const rumor = nostrClient.unwrapGiftWrap(giftWrap);
+      if (!rumor) {
+        return; // Not decryptable / not authenticated / not for us
+      }
 
-    const typeTag = rumor.tags?.find((t) => t[0] === 'type');
+      const typeTag = rumor.tags?.find((t) => t[0] === 'type');
 
-    if (rumor.kind === ORDER_PROCESS_KIND && typeTag?.[1] === ORDER_MESSAGE_TYPE.ORDER_CREATION) {
-      handleOrder(rumor, nostrClient);
-    } else if (rumor.kind === PAYMENT_RECEIPT_KIND) {
-      handlePaymentReceipt(rumor, nostrClient);
-    } else {
-      console.log(
-        `[Nostr] Ignoring gift wrap with inner kind ${rumor.kind}${typeTag ? ` type ${typeTag[1]}` : ''}`
-      );
-    }
-  }, 5000, TWO_DAYS_IN_SECONDS);
+      if (rumor.kind === ORDER_PROCESS_KIND && typeTag?.[1] === ORDER_MESSAGE_TYPE.ORDER_CREATION) {
+        handleOrder(rumor, nostrClient);
+      } else if (rumor.kind === PAYMENT_RECEIPT_KIND) {
+        handlePaymentReceipt(rumor, nostrClient);
+      } else {
+        console.log(
+          `[Nostr] Ignoring gift wrap with inner kind ${rumor.kind}${typeTag ? ` type ${typeTag[1]}` : ''}`
+        );
+      }
+    },
+    5000,
+    TWO_DAYS_IN_SECONDS
+  );
 
   // Handle graceful shutdown
   process.on('SIGINT', () => {
