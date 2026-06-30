@@ -26,6 +26,28 @@ export function addressableCoord(event: NostrEvent): string {
 }
 
 /**
+ * A stable cache/identity key for a comment thread's root.
+ *
+ * Addressable and replaceable events are rooted on their coordinate
+ * (`<kind>:<pubkey>:<d>`), which survives listing edits even though the event
+ * `id` changes; regular events use their `id`; URL roots use their string. Use
+ * this for the React-Query key, query invalidation and the React remount `key`
+ * so all three agree and a harmless product refetch doesn't fragment the cache
+ * or wipe in-progress input.
+ */
+export function commentRootRef(root: NostrEvent | URL): string {
+  if (root instanceof URL) {
+    return root.toString();
+  } else if (NKinds.addressable(root.kind)) {
+    return addressableCoord(root);
+  } else if (NKinds.replaceable(root.kind)) {
+    return `${root.kind}:${root.pubkey}:`;
+  } else {
+    return root.id;
+  }
+}
+
+/**
  * Build the relay filter that finds every kind-1111 comment referencing `root`,
  * at any depth. Uppercase scope tags (`#A`/`#I`/`#E`) point at the thread root
  * per NIP-22, so this returns the whole conversation, not just top-level items.

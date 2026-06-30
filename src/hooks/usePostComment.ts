@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { type NostrEvent } from '@nostrify/nostrify';
-import { COMMENT_KIND, buildCommentTags } from '@/lib/productComments';
+import { COMMENT_KIND, buildCommentTags, commentRootRef } from '@/lib/productComments';
 
 interface PostCommentParams {
   root: NostrEvent | URL; // The root event to comment on
@@ -25,9 +25,10 @@ export function usePostComment() {
       return event;
     },
     onSuccess: (_, { root }) => {
-      // Invalidate and refetch comments
+      // Invalidate and refetch comments. Keyed by the stable root reference
+      // (coordinate for addressable/replaceable roots) so it matches useComments.
       queryClient.invalidateQueries({
-        queryKey: ['nostr', 'comments', root instanceof URL ? root.toString() : root.id],
+        queryKey: ['nostr', 'comments', commentRootRef(root)],
       });
     },
   });

@@ -5,6 +5,7 @@ import {
   addressableCoord,
   buildCommentTags,
   commentFilterForRoot,
+  commentRootRef,
   dTagOf,
   getTagValue,
   isTopLevelComment,
@@ -63,6 +64,30 @@ describe('addressableCoord', () => {
 
   it('uses an empty d segment for events without a d tag', () => {
     expect(addressableCoord(makeProduct({ kind: 0, tags: [] }))).toBe(`0:${MERCHANT}:`);
+  });
+});
+
+describe('commentRootRef', () => {
+  it('uses the coordinate (not the event id) for an addressable product', () => {
+    expect(commentRootRef(makeProduct())).toBe(PRODUCT_COORD);
+  });
+
+  it('is stable across listing edits that change the event id', () => {
+    const v1 = makeProduct({ id: 'id-v1' });
+    const v2 = makeProduct({ id: 'id-v2' });
+    expect(commentRootRef(v1)).toBe(commentRootRef(v2));
+  });
+
+  it('uses an empty d segment for a replaceable root', () => {
+    expect(commentRootRef(makeProduct({ kind: 0, tags: [] }))).toBe(`0:${MERCHANT}:`);
+  });
+
+  it('uses the event id for a regular (non-addressable) root', () => {
+    expect(commentRootRef(makeProduct({ kind: 1, id: 'note1', tags: [] }))).toBe('note1');
+  });
+
+  it('uses the href for a URL root', () => {
+    expect(commentRootRef(new URL('https://shop.example/p/1'))).toBe('https://shop.example/p/1');
   });
 });
 

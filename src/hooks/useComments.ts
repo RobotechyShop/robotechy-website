@@ -1,13 +1,18 @@
 import { NostrEvent } from '@nostrify/nostrify';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
-import { commentFilterForRoot, getTagValue, isTopLevelComment } from '@/lib/productComments';
+import {
+  commentFilterForRoot,
+  commentRootRef,
+  getTagValue,
+  isTopLevelComment,
+} from '@/lib/productComments';
 
 export function useComments(root: NostrEvent | URL, limit?: number) {
   const { nostr } = useNostr();
 
   return useQuery({
-    queryKey: ['nostr', 'comments', root instanceof URL ? root.toString() : root.id, limit],
+    queryKey: ['nostr', 'comments', commentRootRef(root), limit],
     queryFn: async (c) => {
       const filter = commentFilterForRoot(root, limit);
 

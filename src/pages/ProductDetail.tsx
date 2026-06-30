@@ -14,6 +14,7 @@ import { CheckoutDialog } from '@/components/checkout/CheckoutDialog';
 import { ReviewsSection } from '@/components/reviews/ReviewsSection';
 import { productReviewCoord } from '@/lib/productReviews';
 import { CommentsSection } from '@/components/comments/CommentsSection';
+import { commentRootRef } from '@/lib/productComments';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -349,9 +350,11 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
         {/* Product Comments (NIP-22 kind 1111, rooted on the kind-30402 product) */}
         {event && (
           <div className="mt-8">
-            {/* key remounts the section per product so prior input never leaks */}
+            {/* key remounts the section per product so prior input never leaks.
+                Keyed by the stable product coordinate (not event.id, which
+                changes on listing edits) so harmless refetches don't remount. */}
             <CommentsSection
-              key={event.id}
+              key={commentRootRef(event)}
               root={event}
               emptyStateSubtitle="Be the first to start the discussion!"
             />
