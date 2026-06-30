@@ -77,6 +77,8 @@ interface DecryptionResult {
 interface DecryptedMessage extends NostrEvent {
   decryptedContent?: string;
   error?: string;
+  /** Non-DM gift wrap we silently skip — an ignore, NOT an error (not counted). */
+  ignored?: boolean;
   isSending?: boolean;
   clientFirstSeen?: number;
   decryptedEvent?: NostrEvent; // For NIP-17: the inner kind 14/15 event
@@ -672,8 +674,8 @@ export function DMProvider({ children, config }: DMProviderProps) {
               const { processedMessage, conversationPartner, sealEvent } =
                 await processNIP17GiftWrap(giftWrap);
 
-              // Skip messages with decryption errors
-              if (processedMessage.error) {
+              // Skip decryption errors and silently-ignored non-DM gift wraps
+              if (processedMessage.error || processedMessage.ignored) {
                 continue;
               }
 
@@ -1005,9 +1007,9 @@ export function DMProvider({ children, config }: DMProviderProps) {
         // via decryptedEvent so callers can read structured commerce data.
         const SUPPORTED_INNER_KINDS = [14, 15, 16, 17];
         if (!SUPPORTED_INNER_KINDS.includes(messageEvent.kind)) {
-          // Gift wraps with non-DM inner kinds (e.g. kind 7 reactions) are common
-          // noise on shared relays — not an error. Log at debug level so it does
-          // not clutter the console for every unrelated wrapped event.
+          // Non-DM inner kinds (e.g. kind 7 reactions) are common relay noise —
+          // not an error. Return `ignored` (not `error`) so callers skip silently
+          // without logging or incrementing the NIP-17 error counter.
           console.debug(
             `[DM] Ignoring NIP-17 gift wrap with non-DM inner kind ${messageEvent.kind}`,
             {
@@ -1021,7 +1023,7 @@ export function DMProvider({ children, config }: DMProviderProps) {
               ...event,
               content: '',
               decryptedContent: '',
-              error: `Invalid message format - expected kind ${SUPPORTED_INNER_KINDS.join('/')}, got ${messageEvent.kind}`,
+              ignored: true,
             },
             conversationPartner: event.pubkey,
             sealEvent, // Return the seal
@@ -1092,6 +1094,11 @@ export function DMProvider({ children, config }: DMProviderProps) {
       try {
         const { processedMessage, conversationPartner, sealEvent } =
           await processNIP17GiftWrap(event);
+
+        // Silently skip non-DM gift wraps (reactions etc.) — not a failure.
+        if (processedMessage.ignored) {
+          return;
+        }
 
         // Check if decryption failed
         if (processedMessage.error) {

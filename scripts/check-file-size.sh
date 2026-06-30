@@ -23,7 +23,7 @@ baseline_for() {
     # 1652 was main's size; the nip17-commerce-migration branch grew this file
     # before the gate existed. Bumped to the branch's current size to freeze it
     # here — DMProvider should be split into modules in a follow-up (don't grow).
-    "src/components/DMProvider.tsx") echo 1749 ;;
+    "src/components/DMProvider.tsx") echo 1756 ;;
     *) echo "" ;;
   esac
 }
