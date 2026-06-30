@@ -98,6 +98,7 @@ describe('buildProductEvent (edit)', () => {
       ['spec', 'color', 'black'],
       ['weight', '50', 'g'],
       ['shipping_option', '30406:merchantpubkey:ship-1', '0'],
+      ['status', 'sold'],
       ['client', 'example.com'],
     ],
   };
@@ -119,6 +120,10 @@ describe('buildProductEvent (edit)', () => {
       '30406:merchantpubkey:ship-1'
     );
     expect(tagsNamed(event.tags, 'client')).toHaveLength(0);
+  });
+
+  it('preserves a NIP-99 status tag the form does not manage', () => {
+    expect(event.tags.find(([n]) => n === 'status')).toEqual(['status', 'sold']);
   });
 
   it('does not duplicate managed tags from the original', () => {

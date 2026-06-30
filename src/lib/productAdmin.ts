@@ -39,9 +39,11 @@ const MANAGED_PRODUCT_TAGS = new Set([
   'location',
   't',
   'published_at',
-  'status',
   'client',
 ]);
+// NOTE: NIP-99 `status` ("active"/"sold") is intentionally NOT managed here — the
+// form edits Gamma `visibility`, not `status`. Leaving it unmanaged means an
+// existing `status` tag is preserved on edit rather than silently dropped.
 
 export type ProductVisibility = 'hidden' | 'on-sale' | 'pre-order';
 export type ProductFormatType = 'simple' | 'variable' | 'variation';
