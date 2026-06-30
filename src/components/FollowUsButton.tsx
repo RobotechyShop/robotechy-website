@@ -28,6 +28,12 @@ interface FollowUsButtonProps {
   className?: string;
   /** Button size, forwarded to the shadcn Button. */
   size?: 'default' | 'sm' | 'lg';
+  /**
+   * Whether to render the "View on Nostr" fallback link beneath the button.
+   * Defaults to true (footer / follow prompts); set false where the surrounding
+   * UI already links out, e.g. the story hero's action row.
+   */
+  showViewOnNostr?: boolean;
 }
 
 /**
@@ -39,7 +45,11 @@ interface FollowUsButtonProps {
  * - Signed out: opens the LoginDialog (auto-following once signed in) and always
  *   offers a "View on Nostr" fallback link so the shop can be followed externally.
  */
-export function FollowUsButton({ className, size = 'default' }: FollowUsButtonProps) {
+export function FollowUsButton({
+  className,
+  size = 'default',
+  showViewOnNostr = true,
+}: FollowUsButtonProps) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent, isPending: isPublishing } = useNostrPublish();
@@ -177,15 +187,17 @@ export function FollowUsButton({ className, size = 'default' }: FollowUsButtonPr
         {alreadyFollowing ? 'Following' : 'Follow Us'}
       </Button>
 
-      <a
-        href={SHOP_NJUMP_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-xs text-sage-600 dark:text-sage-400 hover:text-robotechy-green-dark transition-colors"
-      >
-        View on Nostr
-        <ExternalLink className="h-3 w-3" aria-hidden="true" />
-      </a>
+      {showViewOnNostr && (
+        <a
+          href={SHOP_NJUMP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-sage-600 dark:text-sage-400 hover:text-robotechy-green-dark transition-colors"
+        >
+          View on Nostr
+          <ExternalLink className="h-3 w-3" aria-hidden="true" />
+        </a>
+      )}
 
       <LoginDialog
         isOpen={showLogin}

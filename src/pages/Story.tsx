@@ -61,35 +61,38 @@ const Story = () => {
 
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Avatar overlaps the banner, profile-style. */}
-          <div className="-mt-12 flex items-end justify-between sm:-mt-14">
+          <div className="-mt-12 sm:-mt-14">
             <Avatar className="h-24 w-24 border-4 border-white shadow-md dark:border-neutral-950 sm:h-28 sm:w-28">
               <AvatarImage src={metadata?.picture} alt={name} />
               <AvatarFallback className="text-3xl">
                 {(name.trim().charAt(0) || 'R').toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="mb-2 flex items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => openMessages()}
-                className="gap-1.5"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Message
-              </Button>
-              <FollowUsButton size="sm" />
-            </div>
           </div>
 
-          <div className="mt-3 pb-2">
+          <div className="mt-3">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
               {name}
             </h1>
             <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-sage-600 dark:text-sage-400">
               {bio}
             </p>
+          </div>
+
+          {/* Action row — sits in the content area below the banner so the
+              buttons form a clean, aligned row (wraps on narrow screens). */}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => openMessages()}
+              className="gap-1.5"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Message
+            </Button>
+            <FollowUsButton size="sm" showViewOnNostr={false} />
           </div>
 
           <div className="mt-4 flex items-center gap-2 border-t border-sage-100 pt-4 text-sm font-medium text-robotechy-green-dark dark:border-sage-800">
