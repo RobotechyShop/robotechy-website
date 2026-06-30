@@ -3,6 +3,7 @@ import { useCollections } from '@/hooks/useProducts';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { FollowUsButton } from '@/components/FollowUsButton';
 
 interface FooterProps {
   selectedCollection?: string | null;
@@ -140,6 +141,13 @@ export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
               </li>
             </ul>
           </div>
+        </div>
+        {/* Follow Us prompt */}
+        <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col items-center gap-3 text-center">
+          <p className="text-sm font-medium text-slate-900 dark:text-white">
+            Follow Robotechy on Nostr
+          </p>
+          <FollowUsButton size="sm" />
         </div>
         {/* Social Links */}
         <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-wrap justify-center gap-6">
