@@ -65,6 +65,7 @@ export function Header() {
               href="/story"
               className="p-2 text-sage-700 hover:text-robotechy-green-dark dark:text-sage-300 dark:hover:text-robotechy-green-dark transition-colors"
               title="Story"
+              aria-label="Story"
             >
               <BookOpen className="h-5 w-5" />
             </a>

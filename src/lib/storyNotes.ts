@@ -40,11 +40,18 @@ export function extractImageUrls(event: NostrEvent): string[] {
 }
 
 /**
- * A kind-1 note is treated as a reply when it carries an `e` tag (NIP-10).
- * The story timeline shows only top-level posts, so replies are filtered out.
+ * A kind-1 note is treated as a reply when it carries an `e` tag that threads it
+ * onto another note (NIP-10). The story timeline shows only top-level posts, so
+ * those are filtered out.
+ *
+ * NIP-10 marked `e` tags are `['e', <id>, <relay?>, <marker?>]` where the marker
+ * is `root`, `reply` or `mention`. A `mention` marker is a quote/reference, not a
+ * threading link, so it does NOT make the note a reply — otherwise legitimate
+ * top-level posts that quote another note would be dropped. Unmarked (legacy
+ * positional) `e` tags are conservatively treated as replies.
  */
 export function isReply(event: NostrEvent): boolean {
-  return event.tags.some((tag) => tag[0] === 'e');
+  return event.tags.some((tag) => tag[0] === 'e' && tag[3] !== 'mention');
 }
 
 /**

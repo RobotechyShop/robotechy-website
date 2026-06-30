@@ -61,6 +61,16 @@ describe('isReply', () => {
   it('is false for a top-level note', () => {
     expect(isReply(makeEvent({ tags: [['t', 'robotechy']] }))).toBe(false);
   });
+
+  it('is false when the only e tag is a NIP-10 mention marker', () => {
+    const event = makeEvent({ tags: [['e', 'd'.repeat(64), '', 'mention']] });
+    expect(isReply(event)).toBe(false);
+  });
+
+  it('is true for a NIP-10 reply marker', () => {
+    const event = makeEvent({ tags: [['e', 'd'.repeat(64), '', 'reply']] });
+    expect(isReply(event)).toBe(true);
+  });
 });
 
 describe('stripImageUrls', () => {
