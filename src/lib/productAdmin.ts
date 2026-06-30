@@ -326,10 +326,13 @@ export function buildCollectionEvent(
   existing?: NostrEvent
 ): { kind: number; content: string; tags: string[][]; created_at: number } {
   const now = Math.floor(Date.now() / 1000);
+  // New collections get a unique suffix so two collections with the same title
+  // don't collide on the same addressable `d` (which would silently replace the
+  // first). Edits keep the existing `d` stable.
   const dTag =
     data.id?.trim() ||
     existing?.tags.find(([name]) => name === 'd')?.[1] ||
-    `collection-${slugify(data.title)}`;
+    `collection-${slugify(data.title)}-${randomSuffix()}`;
 
   const tags: string[][] = [
     ['d', dTag],

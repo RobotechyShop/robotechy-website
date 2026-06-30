@@ -263,6 +263,32 @@ describe('collections', () => {
     expect(event.content).toBe('group');
   });
 
+  it('gives new collections a unique d so same-title ones do not collide', () => {
+    const a = buildCollectionEvent({ title: 'Seed Signers', productIds: [] }, 'MERCHANT');
+    const b = buildCollectionEvent({ title: 'Seed Signers', productIds: [] }, 'MERCHANT');
+    const dA = tagVal(a.tags, 'd');
+    const dB = tagVal(b.tags, 'd');
+    expect(dA).toMatch(/^collection-seed-signers-[0-9a-f]{8}$/);
+    expect(dA).not.toBe(dB);
+  });
+
+  it('keeps the existing d stable when editing a collection', () => {
+    const existing = {
+      pubkey: 'MERCHANT',
+      content: '',
+      tags: [
+        ['d', 'collection-seed-signers-deadbeef'],
+        ['title', 'Old'],
+      ],
+    } as unknown as NostrEvent;
+    const edited = buildCollectionEvent(
+      { title: 'Seed Signers', productIds: ['p1'] },
+      'MERCHANT',
+      existing
+    );
+    expect(tagVal(edited.tags, 'd')).toBe('collection-seed-signers-deadbeef');
+  });
+
   it('builds a kind 5 deletion for collections', () => {
     const del = buildCollectionDeleteEvent({
       pubkey: 'PK',
