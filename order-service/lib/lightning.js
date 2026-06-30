@@ -49,6 +49,9 @@ export async function resolveLightningAddress(address) {
  * @param {string} callback - LNURL callback URL
  * @param {number} amountMsats - Amount in millisatoshis
  * @param {string} [comment] - Optional comment (order ID)
+ * @param {number} [commentAllowed=0] - Max comment length the LNURL endpoint
+ *   accepts (LUD-12). When 0/absent, no comment is sent — required because some
+ *   endpoints reject requests that include a comment they didn't advertise.
  * @returns {Promise<{pr: string, routes: any[]}>} - BOLT11 payment request
  */
 export async function requestInvoice(callback, amountMsats, comment = '', commentAllowed = 0) {

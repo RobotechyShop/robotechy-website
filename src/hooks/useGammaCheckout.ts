@@ -8,6 +8,7 @@ import {
   createOrderEventTemplate,
   createPaymentReceiptTemplate,
   parsePaymentRequest,
+  toGammaPaymentOptions,
   ORDER_PROCESS_KIND,
   ORDER_MESSAGE_TYPE,
 } from '@/lib/gammaOrderUtils';
@@ -126,10 +127,7 @@ export function useGammaCheckout() {
             type: 2,
             amount: paymentRequest.amount,
             message: paymentRequest.message,
-            payment_options: paymentRequest.paymentOptions.map((opt) => ({
-              type: opt.type === 'lightning' ? 'ln' : opt.type === 'bitcoin' ? 'ln' : 'lnurl',
-              link: opt.detail,
-            })),
+            payment_options: toGammaPaymentOptions(paymentRequest.paymentOptions),
           },
         }));
         break;

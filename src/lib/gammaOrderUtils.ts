@@ -1,4 +1,4 @@
-import type { CartItem, ShippingInfo } from '@/lib/cartTypes';
+import type { CartItem, ShippingInfo, GammaPaymentRequest } from '@/lib/cartTypes';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 // Gamma Markets event kinds
@@ -190,6 +190,26 @@ export function parsePaymentRequest(event: NostrEvent): {
     })),
     message: event.content || undefined,
   };
+}
+
+/**
+ * Map untrusted, parsed payment options onto the strict
+ * `GammaPaymentRequest['payment_options']` shape consumed by the checkout UI.
+ *
+ * Only `lightning` options are accepted and mapped to `'ln'` (a BOLT11
+ * invoice). Every other type (`bitcoin`, `fiat`, `other`, or anything a
+ * crafted/untrusted payment request might inject) is DROPPED rather than
+ * coerced — the payment UI treats every option as a Lightning invoice
+ * (`lightning:<link>`), so misclassifying e.g. an on-chain `bitcoin` address as
+ * `'ln'`/`'lnurl'` would route it through the wrong payment flow. Fail closed:
+ * unsupported options simply don't appear.
+ */
+export function toGammaPaymentOptions(
+  paymentOptions: Array<{ type: string; detail: string }>
+): GammaPaymentRequest['payment_options'] {
+  return paymentOptions
+    .filter((opt) => opt.type === 'lightning')
+    .map((opt) => ({ type: 'ln' as const, link: opt.detail }));
 }
 
 /**

@@ -9,6 +9,7 @@ import {
   createOrderTags,
   parseCommerceAmount,
   parsePaymentRequest,
+  toGammaPaymentOptions,
   ORDER_PROCESS_KIND,
   PAYMENT_RECEIPT_KIND,
   ORDER_MESSAGE_TYPE,
@@ -119,6 +120,21 @@ describe('NIP-17 commerce gift wraps', () => {
     expect(parsed?.orderId).toBe(orderId);
     expect(parsed?.amount).toBe(1000);
     expect(parsed?.paymentOptions).toEqual([{ type: 'lightning', detail: invoice }]);
+  });
+
+  it('maps only lightning payment options to ln and drops untrusted ones', () => {
+    // A crafted/untrusted payment request mixing a real lightning invoice with
+    // a bitcoin on-chain address and other unsupported types. Only the
+    // lightning option must survive, mapped to 'ln'; the rest are dropped so
+    // they can never be routed through the Lightning payment UI.
+    const mapped = toGammaPaymentOptions([
+      { type: 'bitcoin', detail: 'bc1qonchainaddressxxxxxxxxxxxxxxxxxxxx' },
+      { type: 'lightning', detail: 'lnbc1000n1pinvoicestub' },
+      { type: 'fiat', detail: 'https://pay.example/fiat' },
+      { type: 'other', detail: 'anything' },
+    ]);
+
+    expect(mapped).toEqual([{ type: 'ln', link: 'lnbc1000n1pinvoicestub' }]);
   });
 
   it('round-trips an inner kind 17 payment receipt template', () => {
