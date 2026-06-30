@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Share2, Package, ImageIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { OwnerProductActions } from '@/components/admin/OwnerProductActions';
 
 interface ProductDetailProps {
   identifier: string;
@@ -200,6 +201,8 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
 
           {/* Product Info */}
           <div className="space-y-6">
+            {event && <OwnerProductActions event={event} onDeleted={() => navigate('/')} />}
+
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2">
                 {product.title}

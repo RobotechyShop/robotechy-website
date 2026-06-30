@@ -16,6 +16,7 @@ import { Search, ShoppingCart } from 'lucide-react';
 import { parseProductEvent } from '@/lib/productUtils';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { OwnerToolbar } from '@/components/admin/OwnerToolbar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthor } from '@/hooks/useAuthor';
 import { shopOwnerPubkey } from '@/lib/shopOwner';
@@ -90,6 +91,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
       <Header />
+
+      <OwnerToolbar />
 
       {/* Hero Banner — photo-removed plate + live shop-owner avatar dropped into
           the original photo circle, so the portrait always matches Isaac's Nostr
