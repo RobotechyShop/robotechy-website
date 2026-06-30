@@ -7,6 +7,11 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { CommentForm } from './CommentForm';
 import { Comment } from './Comment';
 
+/** Default comment-query limit. Exported so callers that pre-fetch the count
+ *  (e.g. ProductFeedbackTabs) use the SAME limit and share the React Query
+ *  cache entry instead of issuing a second, differently-keyed query. */
+export const COMMENTS_DEFAULT_LIMIT = 500;
+
 interface CommentsSectionProps {
   root: NostrEvent | URL;
   title?: string;
@@ -25,7 +30,7 @@ export function CommentsSection({
   emptyStateMessage = 'No comments yet',
   emptyStateSubtitle = 'Be the first to share your thoughts!',
   className,
-  limit = 500,
+  limit = COMMENTS_DEFAULT_LIMIT,
 }: CommentsSectionProps) {
   const { data: commentsData, isLoading, error } = useComments(root, limit);
   const comments = commentsData?.topLevelComments || [];

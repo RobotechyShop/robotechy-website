@@ -61,6 +61,9 @@ async function gotoFirstProduct(page) {
   const firstProduct = page.locator('a[href^="/naddr1"]').first();
   await firstProduct.waitFor({ timeout: 15000 });
   const href = await firstProduct.getAttribute('href');
+  if (!href) {
+    throw new Error('First product card has no href — cannot navigate to the product page.');
+  }
   await page.goto(BASE_URL + href, { waitUntil: 'networkidle', timeout: 30000 });
   await page.waitForTimeout(1500);
   // Reviews + Comments are tabs (Reviews is the default). The Comments tab
