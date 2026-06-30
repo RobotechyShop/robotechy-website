@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useSeoMeta } from '@unhead/react';
+import { useHead } from '@unhead/react';
 import { useNavigate } from 'react-router-dom';
 import { useProduct } from '@/hooks/useProducts';
 import { useToast } from '@/hooks/useToast';
 import { useCart } from '@/hooks/useCart';
 import { formatPriceFromTag, parseProductEvent } from '@/lib/productUtils';
+import { buildProductMeta, SITE_NAME, SITE_URL } from '@/lib/productMeta';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/cart/CartDrawer';
@@ -34,10 +35,19 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
-  useSeoMeta({
-    title: product ? `${product.title} - Robotechy` : 'Loading...',
-    description: product?.summary?.slice(0, 160),
-  });
+  // Open Graph / Twitter Card meta for social sharing. These are injected at
+  // runtime (client-rendered SPA), so they drive in-app titles, native share
+  // sheets and any future SSR/pre-render — but social crawlers read the static
+  // index.html shell, which carries store-level previews. See PR limitations.
+  const productUrl =
+    typeof window !== 'undefined' ? window.location.href : `${SITE_URL}/${identifier}`;
+  useHead(
+    (product
+      ? buildProductMeta(product, productUrl)
+      : {
+          title: isLoading ? `Loading… | ${SITE_NAME}` : `Product not found | ${SITE_NAME}`,
+        }) as Parameters<typeof useHead>[0]
+  );
 
   const handleImageError = (index: number) => {
     setImageErrors((prev) => new Set(prev).add(index));
