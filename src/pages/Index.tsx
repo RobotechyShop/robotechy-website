@@ -16,10 +16,18 @@ import { Search, ShoppingCart } from 'lucide-react';
 import { parseProductEvent } from '@/lib/productUtils';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuthor } from '@/hooks/useAuthor';
+import { shopOwnerPubkey } from '@/lib/shopOwner';
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
+
+  // Live shop-owner profile drives the hero portrait (same source as the footer).
+  const owner = useAuthor(shopOwnerPubkey());
+  const ownerMeta = owner.data?.metadata;
+  const ownerName = ownerMeta?.display_name || ownerMeta?.name || 'Isaac';
 
   useSeoMeta({
     title: 'Robotechy | 3D Printing Bitcoin Store | Bitcoin Seed Signer Cases',
@@ -83,17 +91,31 @@ const Index = () => {
     <div className="min-h-screen bg-white dark:bg-neutral-950">
       <Header />
 
-      {/* Hero Banner */}
+      {/* Hero Banner — photo-removed plate + live shop-owner avatar dropped into
+          the original photo circle, so the portrait always matches Isaac's Nostr
+          profile (same source as the footer) instead of a baked-in photo. */}
       <div
         className="relative bg-slate-100 dark:bg-neutral-900 border-b overflow-hidden"
         style={{
-          backgroundImage: 'url(/images/bitcoin-banner.jpg)',
+          backgroundImage: 'url(/images/bitcoin-banner-plate.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
+        {/* Avatar positioned over the plate's circle: center x≈26.2%, vertically
+            centered; diameter ≈ the circle's 20.5% of the banner width. */}
+        <Avatar
+          className="absolute aspect-square h-auto -translate-x-1/2 -translate-y-1/2 border-4 border-white shadow-lg"
+          style={{ left: '26.2%', top: '50%', width: '20.5%' }}
+        >
+          <AvatarImage src={ownerMeta?.picture} alt={ownerName} className="object-cover" />
+          <AvatarFallback className="bg-neutral-800 text-2xl text-white">
+            {ownerName.slice(0, 1)}
+          </AvatarFallback>
+        </Avatar>
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 md:py-48">
-          {/* Empty space to show banner image */}
+          {/* Padding sets the hero height; the plate shows behind it. */}
         </div>
       </div>
 
