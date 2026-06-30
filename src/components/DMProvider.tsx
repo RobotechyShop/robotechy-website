@@ -962,14 +962,16 @@ export function DMProvider({ children, config }: DMProviderProps) {
           };
         }
 
-        // Sender authentication: this app's NIP-17 seals are intentionally
-        // UNSIGNED (no id/sig) — only the gift wrap is signed, with an ephemeral
-        // key, per NIP-59. So we do NOT signature-verify the seal (a previous
-        // verifyEvent(sealEvent) check here rejected EVERY message, since an
-        // unsigned seal can never pass). Authentication comes from the NIP-44
-        // decrypt below: the seal content was encrypted with the real sender's
-        // key to the recipient, so it only decrypts when keyed to the genuine
-        // sender's `sealEvent.pubkey` (a forged pubkey fails to decrypt), and the
+        // Sender authentication. NOTE: canonical NIP-59 uses a SIGNED kind-13
+        // seal, but this app makes an app-specific choice — its seal object is
+        // built without `id`/`sig` (only the gift wrap is signed, with an
+        // ephemeral key), so the seal is unsigned. We therefore do NOT
+        // signature-verify the seal (a previous verifyEvent(sealEvent) check here
+        // rejected EVERY message, since an unsigned seal can never pass).
+        // Instead, sender authentication relies on NIP-44 decrypt + pubkey
+        // binding: the seal content was encrypted with the real sender's key to
+        // the recipient, so it only decrypts when keyed to the genuine sender's
+        // `sealEvent.pubkey` (a forged pubkey fails to decrypt), and the
         // rumor↔seal pubkey match further down rejects any remaining spoof.
         const messageContent = await user.signer.nip44.decrypt(sealEvent.pubkey, sealEvent.content);
         const messageEvent = JSON.parse(messageContent) as NostrEvent;

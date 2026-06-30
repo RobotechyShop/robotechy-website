@@ -18,14 +18,16 @@ import type { CartItem, ShippingInfo } from './cartTypes';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 /**
- * These tests validate that the NIP-17 commerce migration produces standard,
- * interoperable gift wraps whose inner rumor kind (16/17) and structured tags
- * (including customer PII) survive an end-to-end wrap → unwrap round-trip, and
- * that the plaintext never leaks into the gift wrap envelope.
+ * These tests validate the Gamma commerce *rumor* shape — the inner kind (16/17)
+ * and structured tags (including customer PII) — survives a wrap → unwrap
+ * round-trip, and that the plaintext never leaks into the gift wrap envelope.
  *
- * The wrap/unwrap here use nostr-tools' nip59 (the same primitives the
- * order-service backend uses), so passing tests also assert frontend ↔ backend
- * envelope compatibility for the commerce inner kinds.
+ * NOTE on scope: the wrap/unwrap here use nostr-tools' `nip59` (which produces a
+ * SIGNED seal — the same primitives the order-service backend uses), NOT the
+ * storefront's hand-built NIP-17 envelope in `DMProvider` (which uses an
+ * unsigned seal). So these assert the rumor schema and backend-compatible nip59
+ * wrapping for the commerce kinds — not that the exact frontend envelope
+ * implementation round-trips.
  */
 
 // Minimal CartItem fixture for building an order rumor.

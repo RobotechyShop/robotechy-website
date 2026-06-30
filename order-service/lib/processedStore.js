@@ -14,7 +14,7 @@
  * keeps the file bounded.
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, renameSync, rmSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -46,9 +46,7 @@ export class ProcessedStore {
         return;
       }
       const raw = JSON.parse(readFileSync(this.filePath, 'utf-8'));
-      this.orders = new Map(
-        Object.entries(raw.orders || {}).map(([id, ts]) => [id, Number(ts)])
-      );
+      this.orders = new Map(Object.entries(raw.orders || {}).map(([id, ts]) => [id, Number(ts)]));
       this.receipts = new Map(
         Object.entries(raw.receipts || {}).map(([id, ts]) => [id, Number(ts)])
       );
@@ -75,16 +73,31 @@ export class ProcessedStore {
     }
   }
 
-  /** Persist the current state to disk (whole-file write; the store is small). */
+  /**
+   * Persist the current state to disk. Writes to a sibling temp file then renames
+   * it into place — rename is atomic on the same filesystem, so a crash mid-write
+   * can't leave a truncated `.processed.json` (which would fail to parse on the
+   * next `load()` and cause up to a lookback-window of gift wraps to be
+   * re-processed, firing duplicate invoices/status updates). The store is small,
+   * so a whole-file rewrite each time is fine.
+   */
   save() {
+    const tmpPath = `${this.filePath}.tmp`;
     try {
       const data = {
         orders: Object.fromEntries(this.orders),
         receipts: Object.fromEntries(this.receipts),
       };
-      writeFileSync(this.filePath, JSON.stringify(data), 'utf-8');
+      writeFileSync(tmpPath, JSON.stringify(data), 'utf-8');
+      renameSync(tmpPath, this.filePath);
     } catch (error) {
       console.warn(`[Store] Failed to persist processed store (${this.filePath}):`, error.message);
+      // Best-effort cleanup so a failed write doesn't leave a stray temp file.
+      try {
+        rmSync(tmpPath, { force: true });
+      } catch {
+        // ignore
+      }
     }
   }
 

@@ -22,9 +22,12 @@ function encryptTo(senderSk, recipientPk, plaintext) {
  * @param {string} opts.merchantPk - recipient
  * @param {string} [opts.rumorPubkey] - pubkey written into the inner rumor
  *   (defaults to the sender's pubkey; set differently to forge/spoof)
- * @param {boolean} [opts.tamperSealSig] - corrupt the seal so its signature is invalid
+ * @param {boolean} [opts.tamperSealPubkey] - reassign the seal's `pubkey` to a
+ *   different (forged) key after signing. Authentication then fails at step-2
+ *   decrypt — the conversation key derived from the forged pubkey doesn't match,
+ *   so nip44 decrypt throws — rather than via seal-signature verification.
  */
-function buildGiftWrap({ senderSk, merchantPk, rumorPubkey, tamperSealSig = false }) {
+function buildGiftWrap({ senderSk, merchantPk, rumorPubkey, tamperSealPubkey = false }) {
   const senderPk = getPublicKey(senderSk);
   const rumor = {
     kind: 16,
@@ -42,9 +45,10 @@ function buildGiftWrap({ senderSk, merchantPk, rumorPubkey, tamperSealSig = fals
   };
   let seal = finalizeEvent(sealTemplate, senderSk);
 
-  if (tamperSealSig) {
-    // Reassign the seal's pubkey to someone else without re-signing -> the
-    // signature no longer verifies for the claimed pubkey.
+  if (tamperSealPubkey) {
+    // Reassign the seal's pubkey to a forged key. The seal is no longer
+    // signature-verified, so this is caught at step-2 decrypt: the conversation
+    // key derived from the forged pubkey doesn't match, so nip44 decrypt fails.
     const victimPk = getPublicKey(generateSecretKey());
     seal = { ...seal, pubkey: victimPk };
   }
@@ -90,16 +94,16 @@ test('unwrapGiftWrap rejects a rumor whose pubkey != seal pubkey (spoofing)', ()
   client.pool.close([]);
 });
 
-test('unwrapGiftWrap rejects a seal with an invalid signature', () => {
+test('unwrapGiftWrap rejects a seal whose pubkey was reassigned (step-2 decrypt fails)', () => {
   const merchantSk = generateSecretKey();
   const merchantPk = getPublicKey(merchantSk);
   const senderSk = generateSecretKey();
 
   const client = new NostrClient(merchantSk, []);
-  const wrap = buildGiftWrap({ senderSk, merchantPk, tamperSealSig: true });
+  const wrap = buildGiftWrap({ senderSk, merchantPk, tamperSealPubkey: true });
 
   const rumor = client.unwrapGiftWrap(wrap);
-  assert.equal(rumor, null, 'seal with invalid signature must be rejected');
+  assert.equal(rumor, null, 'seal with a reassigned (forged) pubkey must be rejected');
   client.pool.close([]);
 });
 
@@ -129,9 +133,6 @@ test('subscribe keeps the since cursor monotonic (never moves backwards)', async
 
   assert.ok(sinceCalls.length >= 2, 'expected multiple polls');
   for (const since of sinceCalls) {
-    assert.ok(
-      since >= startSince,
-      `since cursor moved backwards: ${since} < ${startSince}`
-    );
+    assert.ok(since >= startSince, `since cursor moved backwards: ${since} < ${startSince}`);
   }
 });
