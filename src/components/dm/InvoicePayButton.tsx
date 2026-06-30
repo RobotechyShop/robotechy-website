@@ -115,7 +115,13 @@ export function InvoicePayButton({
           <QrCode className="h-3.5 w-3.5" />
           {hasWallet ? 'QR' : label}
         </Button>
-        <Button size="sm" variant="outline" className="h-8 px-2" onClick={copy} aria-label="Copy invoice">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 px-2"
+          onClick={copy}
+          aria-label="Copy invoice"
+        >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         </Button>
       </div>
