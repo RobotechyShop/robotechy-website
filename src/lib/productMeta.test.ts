@@ -49,6 +49,16 @@ describe('truncateDescription', () => {
     expect(result).toBe('abcd…');
     expect(result.length).toBe(5);
   });
+
+  it('returns an empty string for a non-positive maximum', () => {
+    expect(truncateDescription('abcdefghij', 0)).toBe('');
+    expect(truncateDescription('abcdefghij', -5)).toBe('');
+  });
+
+  it('never exceeds the maximum, including at max=1', () => {
+    expect(truncateDescription('abcdefghij', 1)).toBe('…');
+    expect(truncateDescription('abcdefghij', 1).length).toBe(1);
+  });
 });
 
 describe('buildProductMeta', () => {

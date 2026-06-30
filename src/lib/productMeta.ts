@@ -7,7 +7,8 @@ export const SITE_URL = 'https://robotechy.com';
 export const SITE_NAME = 'Robotechy';
 
 // Social platforms truncate long descriptions; keep ours within the widely-used
-// ~160 character budget so previews don't get clipped mid-word.
+// ~160 character budget so previews stay within platform limits (this is a hard
+// character cap, not word-boundary aware — it may cut mid-word).
 export const MAX_DESCRIPTION_LENGTH = 160;
 
 /**
@@ -27,8 +28,10 @@ export interface ProductHead {
 /**
  * Truncate `text` to at most `max` characters, appending an ellipsis (counted
  * within the budget) when the text is longer. Mirrors PlebeianApp/market#459.
+ * The result is always `<= max` characters for any `max >= 0`.
  */
 export function truncateDescription(text: string, max: number = MAX_DESCRIPTION_LENGTH): string {
+  if (max <= 0) return '';
   if (text.length <= max) return text;
   // Reserve one character for the single-glyph ellipsis so the result never
   // exceeds `max` (trailing whitespace before the ellipsis is trimmed).
