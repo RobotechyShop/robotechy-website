@@ -34,13 +34,18 @@ export function ReviewForm({ coord, existing, onSuccess }: ReviewFormProps) {
   const [showLogin, setShowLogin] = useState(false);
 
   // Keep the form in sync with the user's existing review: prefill when it
-  // loads/changes, and reset to empty when switching products (new `coord`) or
-  // when the existing review goes away — so prior input never leaks across
-  // products.
+  // loads or its rating/text changes, and reset to empty when the existing
+  // review goes away. We depend on the primitive fields (not the `existing`
+  // object) so a background refetch that returns the same values doesn't re-run
+  // the effect and clobber in-progress edits. (Switching products remounts this
+  // form via a `key={coord}` at the call site, so input can't leak across
+  // products.)
+  const existingStars = existing?.stars;
+  const existingText = existing?.text;
   useEffect(() => {
-    setStars(existing ? Math.round(existing.stars) : 0);
-    setContent(existing?.text ?? '');
-  }, [existing?.id, coord]); // eslint-disable-line react-hooks/exhaustive-deps
+    setStars(existingStars != null ? Math.round(existingStars) : 0);
+    setContent(existingText ?? '');
+  }, [existingStars, existingText]);
 
   const isEditing = !!existing;
 

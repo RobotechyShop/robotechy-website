@@ -57,8 +57,9 @@ export function ReviewsSection({ coord, className }: ReviewsSectionProps) {
       </CardHeader>
 
       <CardContent className="px-2 pb-6 pt-2 sm:p-6 sm:pt-0 space-y-6">
-        {/* Write / edit a review (or sign-in prompt) */}
-        <ReviewForm coord={coord} existing={ownReview} />
+        {/* Write / edit a review (or sign-in prompt). key={coord} remounts the
+            form on product change so prior input never leaks across products. */}
+        <ReviewForm key={coord} coord={coord} existing={ownReview} />
 
         {/* Reviews list */}
         {error ? (

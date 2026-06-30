@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { STARS_MAX } from '@/lib/productReviews';
@@ -95,10 +95,15 @@ export function StarRatingInput({
 }: StarRatingInputProps) {
   const [hover, setHover] = useState<number | null>(null);
   const shown = hover ?? value;
+  const buttonsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   const setStars = (next: number) => {
     if (disabled) return;
-    onChange(Math.max(0, Math.min(maxStars, next)));
+    const clamped = Math.max(0, Math.min(maxStars, next));
+    onChange(clamped);
+    // Roving tabindex: move focus to the newly-selected star so screen readers
+    // announce it and keyboard navigation stays predictable (min 1 star).
+    if (clamped >= 1) buttonsRef.current[clamped - 1]?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -108,7 +113,7 @@ export function StarRatingInput({
       setStars(Math.min(maxStars, (value || 0) + 1));
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
       e.preventDefault();
-      setStars(Math.max(0, (value || 0) - 1));
+      setStars(Math.max(1, (value || 1) - 1));
     }
   };
 
@@ -127,6 +132,9 @@ export function StarRatingInput({
         return (
           <button
             key={index}
+            ref={(el) => {
+              buttonsRef.current[index] = el;
+            }}
             type="button"
             role="radio"
             aria-checked={value === starValue}

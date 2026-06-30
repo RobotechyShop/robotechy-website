@@ -117,6 +117,18 @@ describe('parseReviewEvent', () => {
     expect(parsed!.categories).toEqual([{ category: 'quality', stars: 3 }]);
   });
 
+  it('drops non-numeric category ratings rather than coercing them to 0', () => {
+    const evt = makeReview({
+      tags: [
+        ['d', COORD],
+        ['rating', '1', 'thumb'],
+        ['rating', '0.6', 'quality'],
+        ['rating', 'bogus', 'delivery'], // dropped, not 0 stars
+      ],
+    });
+    expect(parseReviewEvent(evt)!.categories).toEqual([{ category: 'quality', stars: 3 }]);
+  });
+
   it('returns null for the wrong kind', () => {
     expect(parseReviewEvent(makeReview({ kind: 1 }))).toBeNull();
   });

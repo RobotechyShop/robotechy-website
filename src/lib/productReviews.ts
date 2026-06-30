@@ -144,11 +144,14 @@ export function parseReviewEvent(event: NostrEvent): ParsedReview | null {
 
   const categories: CategoryStars[] = ratingTags
     .filter((t) => t[2] && t[2] !== 'thumb')
-    .map((t) => {
-      const parsed = parseFloat(t[1]);
-      const score = Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed)) : 0;
-      return { category: t[2], stars: ratingToStars(score) };
-    });
+    .map((t) => ({ category: t[2], parsed: parseFloat(t[1]) }))
+    // Drop non-numeric category ratings rather than coercing them to 0 stars,
+    // so malformed relay data never leaks into the parsed output.
+    .filter((c) => Number.isFinite(c.parsed))
+    .map((c) => ({
+      category: c.category,
+      stars: ratingToStars(Math.max(0, Math.min(1, c.parsed))),
+    }));
 
   return {
     id: event.id,
