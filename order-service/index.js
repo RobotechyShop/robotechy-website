@@ -23,6 +23,8 @@ process.on('unhandledRejection', (reason) => {
   process.exit(1);
 });
 
+import { resolve } from 'path';
+import { pathToFileURL } from 'url';
 import { config } from './lib/config.js';
 import { isIgnorableRelayError } from './lib/relayErrors.js';
 import { NostrClient, decodeNsec } from './lib/nostr.js';
@@ -62,6 +64,21 @@ function formatInvoiceNote(orderId, amountSats) {
 }
 
 /**
+ * Format the human-readable kind-14 chat note that carries the SAME BOLT11 as
+ * the kind-16 payment-request card. Generic NIP-17 DM clients (0xchat, Amethyst's
+ * DM view, etc.) only render kind-14 chat rumors — they can't draw a kind-16
+ * marketplace order card — so without this the buyer never sees the invoice in
+ * those clients. The raw BOLT11 is included on its own line so LN-aware clients
+ * make it tappable. This is NOT a second invoice: it embeds the one invoice
+ * `generateInvoice` returned, so it cannot diverge from the website invoice
+ * (#7) — a single BOLT11 settles once, any second pay attempt simply fails.
+ */
+function formatInvoiceChatNote(orderId, amountSats, invoice) {
+  const orderIdShort = orderId.slice(0, 8);
+  return `⚡ Invoice for order #${orderIdShort} — ${amountSats.toLocaleString()} sats:\n${invoice}`;
+}
+
+/**
  * Format a human-readable thank-you note to ride inside the gift-wrapped status
  * update rumor's `content` field.
  */
@@ -72,19 +89,44 @@ function formatThankYouNote(orderId) {
 
 /**
  * Handle incoming order (Kind 16 Type 1)
+ *
+ * Generates exactly ONE Lightning invoice for the order and delivers that single
+ * BOLT11 two ways, both gift-wrapped to the buyer: a Kind 16 Type 2 payment
+ * request (the marketplace order card) AND a NIP-17 kind-14 chat note (a fallback
+ * for generic DM clients that can't render the kind-16 card). Both carry the
+ * IDENTICAL invoice and the same ['order', id] tag, so they can never diverge —
+ * the invariant that fixes #7 (DM invoice diverging from the website invoice).
+ * One BOLT11 settles once, so the kind-14 copy cannot enable double payment. No
+ * separate NIP-04 DM is used. The regression test in test/single-invoice.test.js
+ * locks this in.
+ *
+ * `generateInvoice` and `store` are injected (defaulting to the real LNURL
+ * implementation and the module-level persisted dedup store) so the order flow
+ * can be exercised hermetically in tests — no network and no disk writes — while
+ * production keeps using the on-disk store. The test can then assert
+ * `generateInvoice` is called exactly once with the returned BOLT11 ending up in
+ * the payment-request event.
+ *
+ * @param {Omit<import('nostr-tools').Event, 'id'|'sig'>} event - inner order rumor
+ * @param {NostrClient} nostrClient
+ * @param {{ generateInvoice?: typeof generateInvoice, store?: ProcessedStore }} [deps]
  */
-async function handleOrder(event, nostrClient) {
+export async function handleOrder(
+  event,
+  nostrClient,
+  { generateInvoice: genInvoice = generateInvoice, store = processedStore } = {}
+) {
   const order = parseOrderEvent(event);
   if (!order) {
     return;
   }
 
   // Skip if already processed (persisted across restarts to avoid re-invoicing)
-  if (processedStore.hasOrder(order.orderId)) {
+  if (store.hasOrder(order.orderId)) {
     console.log(`[Order] Skipping duplicate order ${order.orderId.slice(0, 8)}`);
     return;
   }
-  processedStore.addOrder(order.orderId);
+  store.addOrder(order.orderId);
 
   console.log(`[Order] New order received!`);
   console.log(`  Order ID: ${order.orderId.slice(0, 8)}`);
@@ -98,7 +140,7 @@ async function handleOrder(event, nostrClient) {
   try {
     // Generate Lightning invoice
     console.log(`[Order] Generating invoice for ${order.amount} sats...`);
-    const invoice = await generateInvoice(config.lightningAddress, order.amount, order.orderId);
+    const invoice = await genInvoice(config.lightningAddress, order.amount, order.orderId);
 
     // Build the Kind 16 Type 2 payment request rumor and gift-wrap it to the buyer.
     // The structured invoice data lives in the rumor tags; we fold a human-readable
@@ -114,6 +156,25 @@ async function handleOrder(event, nostrClient) {
 
     console.log(`[Order] Sending gift-wrapped payment request to buyer...`);
     await nostrClient.sendGiftWrap(order.buyerPubkey, paymentRequestRumor);
+
+    // ALSO deliver the SAME invoice as a gift-wrapped NIP-17 kind-14 chat note.
+    // Generic NIP-17 clients (0xchat, Amethyst DM view) can't render the kind-16
+    // order card, so they'd never show the invoice; the kind-14 fallback makes the
+    // raw BOLT11 visible (and tappable) there. Crucially it reuses `invoice` — the
+    // one and only invoice generated above — and carries the SAME ['order', id]
+    // tag as the kind-16 event so rich clients can correlate/dedupe the two. This
+    // is safe re #7: one BOLT11 settles once; a second pay attempt simply fails.
+    const invoiceChatRumor = {
+      kind: 14,
+      content: formatInvoiceChatNote(order.orderId, order.amount, invoice),
+      tags: [
+        ['p', order.buyerPubkey],
+        ['order', order.orderId],
+      ],
+    };
+
+    console.log(`[Order] Sending gift-wrapped kind-14 invoice note to buyer...`);
+    await nostrClient.sendGiftWrap(order.buyerPubkey, invoiceChatRumor);
 
     console.log(`[Order] ✓ Order ${order.orderId.slice(0, 8)} processed - payment request sent`);
   } catch (error) {
@@ -272,8 +333,18 @@ async function main() {
   console.log('[Service] Waiting for orders... (Ctrl+C to stop)\n');
 }
 
-// Run
-main().catch((error) => {
-  console.error('[Fatal]', error);
-  process.exit(1);
-});
+// Run — but only when executed directly (`node index.js`), not when this module
+// is imported (e.g. by the regression test, which imports `handleOrder`). Guard
+// with an entry-point check so importing the module has no network/relay side
+// effects. `resolve()` makes the script path absolute first (Node already gives
+// an absolute argv[1] for the main module, but resolving is a defensive no-op
+// that keeps pathToFileURL correct even if argv[1] were ever relative).
+const isEntryPoint =
+  process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+
+if (isEntryPoint) {
+  main().catch((error) => {
+    console.error('[Fatal]', error);
+    process.exit(1);
+  });
+}
