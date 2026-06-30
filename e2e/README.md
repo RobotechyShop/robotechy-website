@@ -91,6 +91,25 @@ NSEC=nsec1…<merchant> node e2e/owner-categories.mjs     # create a collection 
 > listing — run `owner-add-product.mjs` first if the test store is empty. Pass
 > `PRODUCT="<title>"` to target a specific product.
 
+### `product-reviews.mjs`
+
+Drives the kind-31555 product reviews. Signed out, it opens the first product,
+scrolls to the Reviews section and asserts it's read-only — the "Sign in to
+review" action opens the LoginDialog. Signed in (with `NSEC`, injected straight
+into `localStorage` in the `@nostrify` format), it picks a star rating, writes
+review text, submits, and asserts the published review renders in the list.
+
+```bash
+# signed-out phase only
+node e2e/product-reviews.mjs
+
+# both phases (publishes a kind-31555 review from the throwaway key)
+NSEC=nsec1… node e2e/product-reviews.mjs
+
+# capture screenshots into a directory (02/03/04-*.png)
+NSEC=nsec1… SHOT_DIR=docs/screenshots/NN node e2e/product-reviews.mjs
+```
+
 ## Common env vars
 
 | Var          | Default                 | Notes                                         |

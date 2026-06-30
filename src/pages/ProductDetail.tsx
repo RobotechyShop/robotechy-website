@@ -9,6 +9,8 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { CheckoutDialog } from '@/components/checkout/CheckoutDialog';
+import { ReviewsSection } from '@/components/reviews/ReviewsSection';
+import { productReviewCoord } from '@/lib/productReviews';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -333,6 +335,13 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
             )}
           </div>
         </div>
+
+        {/* Product Reviews */}
+        {event && (
+          <div className="mt-12">
+            <ReviewsSection coord={productReviewCoord(event.pubkey, product.id)} />
+          </div>
+        )}
       </div>
 
       <Footer />
