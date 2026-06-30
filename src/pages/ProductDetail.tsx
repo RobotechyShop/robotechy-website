@@ -11,7 +11,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { CheckoutDialog } from '@/components/checkout/CheckoutDialog';
-import { ReviewsSection } from '@/components/reviews/ReviewsSection';
+import { ProductFeedbackTabs } from '@/components/ProductFeedbackTabs';
 import { productReviewCoord } from '@/lib/productReviews';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -338,10 +338,14 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
           </div>
         </div>
 
-        {/* Product Reviews */}
+        {/* Product Reviews + Comments as tabs (Reviews default; Comments are
+            NIP-22 kind 1111 rooted on the kind-30402 product). */}
         {event && (
           <div className="mt-12">
-            <ReviewsSection coord={productReviewCoord(event.pubkey, product.id)} />
+            <ProductFeedbackTabs
+              event={event}
+              coord={productReviewCoord(event.pubkey, product.id)}
+            />
           </div>
         )}
       </div>
