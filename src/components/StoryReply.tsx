@@ -56,13 +56,13 @@ export function StoryReply({ event }: { event: NostrEvent }) {
           {user ? (
             <ZapButton
               target={event}
-              className="text-xs text-sage-500 hover:text-robotechy-green-dark"
+              className="text-xs text-sage-500 hover:text-robotechy-green-dark dark:text-sage-300"
             />
           ) : (
             <button
               type="button"
               onClick={() => setShowLogin(true)}
-              className="flex items-center gap-1 text-xs text-sage-500 transition-colors hover:text-robotechy-green-dark"
+              className="flex items-center gap-1 text-xs text-sage-500 transition-colors hover:text-robotechy-green-dark dark:text-sage-300"
             >
               <Zap className="h-4 w-4" />
               <span>Zap</span>
