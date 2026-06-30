@@ -193,7 +193,10 @@ export function buildProductDeleteEvent(event: NostrEvent): {
   tags: string[][];
   created_at: number;
 } {
-  const dTag = event.tags.find(([name]) => name === 'd')?.[1] ?? '';
+  const dTag = event.tags.find(([name]) => name === 'd')?.[1];
+  if (!dTag) {
+    throw new Error('Cannot delete a product without a d tag (addressable identifier).');
+  }
   const coordinate = `${PRODUCT_KIND}:${event.pubkey}:${dTag}`;
   return {
     kind: DELETE_KIND,
@@ -335,7 +338,10 @@ export function buildCollectionDeleteEvent(event: NostrEvent): {
   tags: string[][];
   created_at: number;
 } {
-  const dTag = event.tags.find(([name]) => name === 'd')?.[1] ?? '';
+  const dTag = event.tags.find(([name]) => name === 'd')?.[1];
+  if (!dTag) {
+    throw new Error('Cannot delete a collection without a d tag (addressable identifier).');
+  }
   return {
     kind: DELETE_KIND,
     content: 'Collection deleted',
@@ -354,7 +360,10 @@ export function buildShippingOptionDeleteEvent(event: NostrEvent): {
   tags: string[][];
   created_at: number;
 } {
-  const dTag = event.tags.find(([name]) => name === 'd')?.[1] ?? '';
+  const dTag = event.tags.find(([name]) => name === 'd')?.[1];
+  if (!dTag) {
+    throw new Error('Cannot delete a shipping option without a d tag (addressable identifier).');
+  }
   return {
     kind: DELETE_KIND,
     content: 'Shipping option deleted',

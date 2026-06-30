@@ -222,16 +222,19 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
                   placeholder="https://…/image.png"
                 />
                 <label className="cursor-pointer">
+                  {/* sr-only (not `hidden`) keeps the input focusable and
+                      operable by keyboard / screen readers. */}
                   <input
                     type="file"
                     accept="image/*"
-                    className="hidden"
+                    aria-label={`Upload image ${index + 1}`}
+                    className="peer sr-only"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) handleUpload(index, file);
                     }}
                   />
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-md border">
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-md border peer-focus-visible:ring-2 peer-focus-visible:ring-robotechy-green-dark">
                     {isUploading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (

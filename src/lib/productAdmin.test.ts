@@ -141,6 +141,15 @@ describe('buildProductDeleteEvent', () => {
   });
 });
 
+describe('delete builders fail fast without a d tag', () => {
+  const noD = { pubkey: 'PK', tags: [] } as unknown as NostrEvent;
+  it('throws for products, collections and shipping options', () => {
+    expect(() => buildProductDeleteEvent(noD)).toThrow(/d tag/);
+    expect(() => buildCollectionDeleteEvent(noD)).toThrow(/d tag/);
+    expect(() => buildShippingOptionDeleteEvent(noD)).toThrow(/d tag/);
+  });
+});
+
 describe('productEventToFormData round-trips through buildProductEvent', () => {
   it('keeps the d tag and key fields stable', () => {
     const created = buildProductEvent({ ...baseProduct, id: 'stable-id' });

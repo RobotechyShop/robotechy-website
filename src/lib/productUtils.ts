@@ -31,9 +31,19 @@ export function parseShippingOptionEvent(
 
   if (!d || !title || !priceTag) return null;
 
-  const countries = event.tags.filter(([name]) => name === 'country').map(([, code]) => code);
+  // Gamma encodes destinations as a single multi-value tag
+  // (`["country", "GB", "IE"]`), but some publishers emit one tag per code.
+  // flatMap over the tag values handles both shapes and round-trips the
+  // multi-value tag produced by the admin write path.
+  const countries = event.tags
+    .filter(([name]) => name === 'country')
+    .flatMap(([, ...codes]) => codes)
+    .filter(Boolean);
 
-  const regions = event.tags.filter(([name]) => name === 'region').map(([, code]) => code);
+  const regions = event.tags
+    .filter(([name]) => name === 'region')
+    .flatMap(([, ...codes]) => codes)
+    .filter(Boolean);
 
   const serviceTag = event.tags.find(([name]) => name === 'service')?.[1];
   const durationTag = event.tags.find(([name]) => name === 'duration');
@@ -169,7 +179,7 @@ export function parseProductEvent(event: NostrEvent): ProductData | null {
   const categories = event.tags.filter(([name]) => name === 't').map(([, category]) => category);
 
   const collections = event.tags
-    .filter(([name]) => name === 'a' && name.startsWith('30405:'))
+    .filter(([name, ref]) => name === 'a' && (ref ?? '').startsWith('30405:'))
     .map(([, ref]) => ref);
 
   const shippingOptions = event.tags
@@ -260,7 +270,7 @@ export function parseCollectionEvent(event: NostrEvent): CollectionData | null {
   const geohash = event.tags.find(([name]) => name === 'g')?.[1];
 
   const products = event.tags
-    .filter(([name]) => name === 'a' && name.startsWith('30402:'))
+    .filter(([name, ref]) => name === 'a' && (ref ?? '').startsWith('30402:'))
     .map(([, ref]) => ref);
 
   const shippingOptions = event.tags
