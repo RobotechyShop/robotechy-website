@@ -13,6 +13,7 @@ import { CartDrawer } from '@/components/cart/CartDrawer';
 import { CheckoutDialog } from '@/components/checkout/CheckoutDialog';
 import { ReviewsSection } from '@/components/reviews/ReviewsSection';
 import { productReviewCoord } from '@/lib/productReviews';
+import { CommentsSection } from '@/components/comments/CommentsSection';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -342,6 +343,18 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
         {event && (
           <div className="mt-12">
             <ReviewsSection coord={productReviewCoord(event.pubkey, product.id)} />
+          </div>
+        )}
+
+        {/* Product Comments (NIP-22 kind 1111, rooted on the kind-30402 product) */}
+        {event && (
+          <div className="mt-8">
+            {/* key remounts the section per product so prior input never leaks */}
+            <CommentsSection
+              key={event.id}
+              root={event}
+              emptyStateSubtitle="Be the first to start the discussion!"
+            />
           </div>
         )}
       </div>

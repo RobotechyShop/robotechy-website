@@ -1,6 +1,7 @@
-import { NKinds, NostrEvent, NostrFilter } from '@nostrify/nostrify';
+import { NostrEvent } from '@nostrify/nostrify';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
+import { commentFilterForRoot, getTagValue, isTopLevelComment } from '@/lib/productComments';
 
 export function useComments(root: NostrEvent | URL, limit?: number) {
   const { nostr } = useNostr();
@@ -8,46 +9,14 @@ export function useComments(root: NostrEvent | URL, limit?: number) {
   return useQuery({
     queryKey: ['nostr', 'comments', root instanceof URL ? root.toString() : root.id, limit],
     queryFn: async (c) => {
-      const filter: NostrFilter = { kinds: [1111] };
+      const filter = commentFilterForRoot(root, limit);
 
-      if (root instanceof URL) {
-        filter['#I'] = [root.toString()];
-      } else if (NKinds.addressable(root.kind)) {
-        const d = root.tags.find(([name]) => name === 'd')?.[1] ?? '';
-        filter['#A'] = [`${root.kind}:${root.pubkey}:${d}`];
-      } else if (NKinds.replaceable(root.kind)) {
-        filter['#A'] = [`${root.kind}:${root.pubkey}:`];
-      } else {
-        filter['#E'] = [root.id];
-      }
-
-      if (typeof limit === 'number') {
-        filter.limit = limit;
-      }
-
-      // Query for all kind 1111 comments that reference this addressable event regardless of depth
+      // Query for all kind 1111 comments that reference this root regardless of depth.
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       const events = await nostr.query([filter], { signal });
 
-      // Helper function to get tag value
-      const getTagValue = (event: NostrEvent, tagName: string): string | undefined => {
-        const tag = event.tags.find(([name]) => name === tagName);
-        return tag?.[1];
-      };
-
-      // Filter top-level comments (those with lowercase tag matching the root)
-      const topLevelComments = events.filter((comment) => {
-        if (root instanceof URL) {
-          return getTagValue(comment, 'i') === root.toString();
-        } else if (NKinds.addressable(root.kind)) {
-          const d = getTagValue(root, 'd') ?? '';
-          return getTagValue(comment, 'a') === `${root.kind}:${root.pubkey}:${d}`;
-        } else if (NKinds.replaceable(root.kind)) {
-          return getTagValue(comment, 'a') === `${root.kind}:${root.pubkey}:`;
-        } else {
-          return getTagValue(comment, 'e') === root.id;
-        }
-      });
+      // Filter top-level comments (those whose lowercase parent tag matches the root).
+      const topLevelComments = events.filter((comment) => isTopLevelComment(comment, root));
 
       // Helper function to get all descendants of a comment
       const getDescendants = (parentId: string): NostrEvent[] => {
