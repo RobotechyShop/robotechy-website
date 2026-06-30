@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { nip19 } from 'nostr-tools';
@@ -57,6 +57,10 @@ export function FollowUsButton({ className, size = 'default' }: FollowUsButtonPr
   // Set when a signed-out user clicks Follow, so we follow automatically once
   // they finish signing in (rather than making them click a second time).
   const [followAfterLogin, setFollowAfterLogin] = useState(false);
+  // LoginDialog calls onLogin() then onClose() on success, but onClose() alone
+  // on dismissal. This ref lets onClose tell the two apart so a successful login
+  // keeps the queued auto-follow instead of cancelling it.
+  const loginSucceededRef = useRef(false);
   // Optimistic "Following" state, set the moment a publish succeeds.
   const [justFollowed, setJustFollowed] = useState(false);
 
@@ -195,10 +199,18 @@ export function FollowUsButton({ className, size = 'default' }: FollowUsButtonPr
         isOpen={showLogin}
         onClose={() => {
           setShowLogin(false);
-          // User dismissed without signing in — cancel the queued auto-follow.
-          setFollowAfterLogin(false);
+          // Only a genuine dismissal cancels the queued auto-follow; a
+          // successful login (which also fires onClose) keeps it so the
+          // [user, followAfterLogin] effect can run.
+          if (!loginSucceededRef.current) {
+            setFollowAfterLogin(false);
+          }
+          loginSucceededRef.current = false;
         }}
-        onLogin={() => setShowLogin(false)}
+        onLogin={() => {
+          loginSucceededRef.current = true;
+          setShowLogin(false);
+        }}
       />
     </div>
   );
