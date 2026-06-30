@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 import react from '@vitejs/plugin-react-swc';
-import { defineConfig } from 'vitest/config';
+import { defineConfig, configDefaults } from 'vitest/config';
 
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
@@ -16,9 +16,10 @@ export default defineConfig(() => ({
   test: {
     globals: true,
     environment: 'jsdom',
-    // Frontend (Vitest) tests live under src/. The order-service has its own
-    // node:test suite (`npm test` in order-service/) that Vitest can't run.
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // The order-service has its own node:test suite (`npm test` in order-service/)
+    // that Vitest can't run; exclude that subtree while leaving Vitest's default
+    // test discovery intact.
+    exclude: [...configDefaults.exclude, 'order-service/**'],
     setupFiles: './src/test/setup.ts',
     onConsoleLog(log) {
       return !log.includes('React Router Future Flag Warning');
