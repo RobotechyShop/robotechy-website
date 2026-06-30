@@ -318,7 +318,8 @@ export function DMProvider({ children, config }: DMProviderProps) {
       const tags: string[][] = [
         ['p', recipientPubkey],
         ...createImetaTags(attachments),
-        ...rumorTags,
+        // Commerce rumorTags may already carry the recipient p tag — drop it.
+        ...rumorTags.filter(([n, v]) => !(n === 'p' && v === recipientPubkey)),
       ];
 
       // Inner rumor kind: caller override (e.g. 16/17 for commerce), else kind 15
@@ -1691,7 +1692,10 @@ export function DMProvider({ children, config }: DMProviderProps) {
       // Strip customer PII / order-detail tags before they are persisted to the
       // local IndexedDB cache in plaintext (the optimistic copy is written before
       // the encrypted seal arrives). The UI only renders type/order/amount/etc.
-      const optimisticTags = rumorTags.filter(([name]) => !OPTIMISTIC_OMITTED_TAGS.has(name));
+      const optimisticTags = rumorTags.filter(
+        ([name, value]) =>
+          !OPTIMISTIC_OMITTED_TAGS.has(name) && !(name === 'p' && value === recipientPubkey)
+      );
 
       const optimisticId = `optimistic-${Date.now()}-${Math.random()}`;
       const optimisticMessage: DecryptedMessage = {
