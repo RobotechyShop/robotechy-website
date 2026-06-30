@@ -30,10 +30,14 @@ function makeProduct(partial: Partial<NostrEvent> = {}): NostrEvent {
   } as NostrEvent;
 }
 
+// Deterministic, collision-free id generator for test comments — avoids
+// Math.random() so failures reproduce identically.
+let commentSeq = 0;
+
 /** A kind-1111 comment event. */
 function makeComment(tags: string[][], partial: Partial<NostrEvent> = {}): NostrEvent {
   return {
-    id: Math.random().toString(36).slice(2),
+    id: `comment-${++commentSeq}`,
     kind: COMMENT_KIND,
     pubkey: COMMENTER,
     created_at: 2000,
@@ -128,10 +132,10 @@ describe('isTopLevelComment', () => {
     expect(isTopLevelComment(comment, product)).toBe(true);
   });
 
-  it('is false when the a tag points at a different coordinate (a reply)', () => {
+  it('is false for a reply whose lowercase parent tag is an e tag (the parent comment), not the product a tag', () => {
     const comment = makeComment([
-      ['A', PRODUCT_COORD],
-      ['e', 'some-parent-comment'],
+      ['A', PRODUCT_COORD], // uppercase root scope still points at the product
+      ['e', 'some-parent-comment'], // lowercase parent is another comment → not top-level
     ]);
     expect(isTopLevelComment(comment, product)).toBe(false);
   });
