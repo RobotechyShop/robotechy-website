@@ -1,0 +1,76 @@
+name: Coverage
+
+# Runs Vitest with coverage on PRs and on main, and fails the PR if line
+# coverage falls below a fixed floor.
+#
+# Strategy (fixed minimum threshold, not vs-main diff):
+# The house pattern (lightning-piggy-mobile) re-runs coverage on `main` in a
+# sibling worktree and fails on a >0.5pp drop. That diff is only meaningful once
+# `main` itself can produce a coverage summary. Until THIS PR merges, `main` has
+# no coverage tooling or config, so a vs-main comparison would treat main as 0%
+# and become a no-op for this PR. To gate something real on the current tree we
+# use a fixed floor instead: MIN_LINE_COVERAGE, set just under the tree's current
+# line coverage (25.33% at time of writing) with a small margin so routine churn
+# doesn't flip it. Raise the floor as coverage improves; once this is on main a
+# future PR can switch to the vs-main diff.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  coverage:
+    name: Coverage gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest with coverage
+        run: npm run test:coverage
+
+      - name: Enforce coverage floor
+        env:
+          # Minimum tolerated line coverage, in percent. Tweak in this file only.
+          # Set to current (~25.33%) minus headroom so the current tree passes and
+          # only a real regression trips the gate.
+          MIN_LINE_COVERAGE: '24'
+        run: |
+          SUMMARY=coverage/coverage-summary.json
+          if [[ ! -f "$SUMMARY" ]]; then
+            echo "::error::Coverage summary missing ($SUMMARY) — did vitest coverage run?"
+            exit 1
+          fi
+          PCT=$(node -e "const p=require('./coverage/coverage-summary.json').total.lines.pct; console.log(typeof p === 'number' ? p : 0)")
+          echo "Line coverage: $PCT%"
+          echo "Floor:         $MIN_LINE_COVERAGE%"
+
+          # awk handles floats; bash arithmetic is integer-only.
+          BELOW=$(awk -v pct="$PCT" -v min="$MIN_LINE_COVERAGE" \
+            'BEGIN { print (pct < min) ? "yes" : "no" }')
+
+          if [[ "$BELOW" == "yes" ]]; then
+            echo "::error::Coverage regressed: $PCT% < floor $MIN_LINE_COVERAGE%. Add unit tests to recover, or justify lowering the floor in coverage.yml."
+            exit 1
+          fi
+
+          echo "Coverage gate passed."
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
