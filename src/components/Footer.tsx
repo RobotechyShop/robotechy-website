@@ -102,6 +102,11 @@ export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
                   Custom 3D Prints
                 </a>
               </li>
+              <li>
+                <a href="/story" className="hover:text-robotechy-green-dark transition-colors">
+                  Our Story
+                </a>
+              </li>
             </ul>
           </div>
           <div>

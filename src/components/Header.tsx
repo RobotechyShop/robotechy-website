@@ -1,4 +1,4 @@
-import { Home, Mail, ShoppingCart, Sun, Moon, Monitor } from 'lucide-react';
+import { Home, BookOpen, Mail, ShoppingCart, Sun, Moon, Monitor } from 'lucide-react';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { useTheme } from '@/hooks/useTheme';
 import { useMessagesDrawer } from '@/hooks/useMessagesDrawer';
@@ -60,6 +60,14 @@ export function Header() {
               title="Home"
             >
               <Home className="h-5 w-5" />
+            </a>
+            <a
+              href="/story"
+              className="p-2 text-sage-700 hover:text-robotechy-green-dark dark:text-sage-300 dark:hover:text-robotechy-green-dark transition-colors"
+              title="Story"
+              aria-label="Story"
+            >
+              <BookOpen className="h-5 w-5" />
             </a>
             <button
               type="button"
