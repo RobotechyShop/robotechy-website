@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ShareProductButton } from '@/components/ShareProductButton';
 import { formatPriceFromTag, parseProductEvent } from '@/lib/productUtils';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
@@ -26,8 +27,16 @@ export function ProductCard({ event }: ProductCardProps) {
   const isOutOfStock = product.stock !== undefined && product.stock === 0;
 
   return (
-    <Link to={`/${naddr}`}>
-      <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col border-slate-200 dark:border-slate-800">
+    <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col border-slate-200 dark:border-slate-800">
+      {/* A "stretched link" overlay covers the whole card for navigation. This
+          keeps the Share button a sibling (not nested inside the anchor), so we
+          avoid invalid interactive-in-anchor markup. The Share button sits at a
+          higher z-index, so clicks on it never reach the link. */}
+      <Link to={`/${naddr}`} aria-label={product.title} className="absolute inset-0 z-0" />
+      <div className="absolute top-2 right-2 z-10">
+        <ShareProductButton product={product} variant="icon" size="icon" />
+      </div>
+      <div className="contents">
         {firstImage && !imageError ? (
           <div className="relative overflow-hidden aspect-square bg-slate-50 dark:bg-neutral-900">
             <img
@@ -90,7 +99,7 @@ export function ProductCard({ event }: ProductCardProps) {
             </div>
           </div>
         </CardContent>
-      </Card>
-    </Link>
+      </div>
+    </Card>
   );
 }

@@ -69,6 +69,25 @@ node e2e/follow-us.mjs
 NSEC=nsec1… node e2e/follow-us.mjs
 ```
 
+### `share-product.mjs`
+
+Drives the product "Share" button. Signed out, it opens the first product card's
+Share menu, asserts the "Copy link" and "Share to Nostr" items render, checks the
+product's `naddr` (exposed via a `data-product-naddr` attribute) decodes to a
+kind-30402 pointer, and asserts that clicking "Share to Nostr" opens the
+LoginDialog. Signed in (with `NSEC`, injected into `localStorage` in the
+`@nostrify` format — no UI sign-in step), it opens the composer, asserts it's
+prefilled with the njump link, posts the note and asserts the kind-1 publish
+succeeds (the "Shared" state).
+
+```bash
+# signed-out phase only
+node e2e/share-product.mjs
+
+# both phases (publishes a kind-1 note from the throwaway key)
+NSEC=nsec1… node e2e/share-product.mjs
+```
+
 ### Store-owner product management
 
 These drive the owner-only catalog tools. They require the storefront to be
