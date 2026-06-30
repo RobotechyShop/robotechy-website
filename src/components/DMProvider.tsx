@@ -77,6 +77,8 @@ interface DecryptionResult {
 interface DecryptedMessage extends NostrEvent {
   decryptedContent?: string;
   error?: string;
+  /** Non-DM gift wrap we silently skip — an ignore, NOT an error (not counted). */
+  ignored?: boolean;
   isSending?: boolean;
   clientFirstSeen?: number;
   decryptedEvent?: NostrEvent; // For NIP-17: the inner kind 14/15 event
@@ -146,6 +148,16 @@ function prepareMessageContent(content: string, attachments: FileAttachment[] = 
   const fileUrls = attachments.map((file) => file.url).join('\n');
   return content ? `${content}\n\n${fileUrls}` : fileUrls;
 }
+
+/**
+ * Commerce rumor tags that carry customer PII / order detail and must NOT be
+ * copied onto the optimistic message. Optimistic messages are persisted to the
+ * local IndexedDB cache in plaintext (before the encrypted seal arrives), so
+ * these would otherwise leak customer data to local storage. The real values
+ * still ride encrypted inside the NIP-17 gift wrap; the optimistic copy only
+ * needs what the UI renders (type/order/amount/status/payment/imeta).
+ */
+const OPTIMISTIC_OMITTED_TAGS = new Set(['address', 'email', 'phone', 'item']);
 
 /**
  * Create imeta tags for file attachments (NIP-92)
@@ -267,9 +279,17 @@ export function DMProvider({ children, config }: DMProviderProps) {
       recipientPubkey: string;
       content: string;
       attachments?: FileAttachment[];
+      rumorKind?: number;
+      rumorTags?: string[][];
     }
   >({
-    mutationFn: async ({ recipientPubkey, content, attachments = [] }) => {
+    mutationFn: async ({
+      recipientPubkey,
+      content,
+      attachments = [],
+      rumorKind,
+      rumorTags = [],
+    }) => {
       if (!user) {
         throw new Error('User is not logged in');
       }
@@ -293,11 +313,18 @@ export function DMProvider({ children, config }: DMProviderProps) {
       // Prepare content with file URLs
       const messageContent = prepareMessageContent(content, attachments);
 
-      // Build tags with imeta tags for attachments
-      const tags: string[][] = [['p', recipientPubkey], ...createImetaTags(attachments)];
+      // Build tags: base ['p', recipient] + imeta tags for attachments, then merge
+      // any caller-supplied rumor tags (e.g. Gamma Markets commerce tags).
+      const tags: string[][] = [
+        ['p', recipientPubkey],
+        ...createImetaTags(attachments),
+        // Commerce rumorTags may already carry the recipient p tag — drop it.
+        ...rumorTags.filter(([n, v]) => !(n === 'p' && v === recipientPubkey)),
+      ];
 
-      // Use kind 15 for messages with file attachments, kind 14 for text-only
-      const messageKind = attachments && attachments.length > 0 ? 15 : 14;
+      // Inner rumor kind: caller override (e.g. 16/17 for commerce), else kind 15
+      // for messages with file attachments and kind 14 for text-only.
+      const messageKind = rumorKind ?? (attachments && attachments.length > 0 ? 15 : 14);
 
       const privateMessage: Omit<NostrEvent, 'id' | 'sig'> = {
         kind: messageKind,
@@ -648,8 +675,8 @@ export function DMProvider({ children, config }: DMProviderProps) {
               const { processedMessage, conversationPartner, sealEvent } =
                 await processNIP17GiftWrap(giftWrap);
 
-              // Skip messages with decryption errors
-              if (processedMessage.error) {
+              // Skip decryption errors and silently-ignored non-DM gift wraps
+              if (processedMessage.error || processedMessage.ignored) {
                 continue;
               }
 
@@ -938,24 +965,66 @@ export function DMProvider({ children, config }: DMProviderProps) {
           };
         }
 
+        // Sender authentication. NOTE: canonical NIP-59 uses a SIGNED kind-13
+        // seal, but this app makes an app-specific choice — its seal is built
+        // without `id`/`sig` (only the gift wrap is signed, with an ephemeral
+        // key). So we do NOT signature-verify the seal (a previous
+        // verifyEvent(sealEvent) here rejected EVERY message). Instead, auth
+        // relies on NIP-44 decrypt + pubkey binding: the seal content is
+        // encrypted with the real sender's key, so it only decrypts when keyed
+        // to the genuine `sealEvent.pubkey` (a forged pubkey fails), and the
+        // rumor↔seal pubkey match below rejects any remaining spoof.
         const messageContent = await user.signer.nip44.decrypt(sealEvent.pubkey, sealEvent.content);
         const messageEvent = JSON.parse(messageContent) as NostrEvent;
 
-        // Accept both kind 14 (text) and kind 15 (files/attachments)
-        if (messageEvent.kind !== 14 && messageEvent.kind !== 15) {
-          console.log(`[DM] ⚠️ NIP-17 MESSAGE WITH UNSUPPORTED INNER EVENT KIND:`, {
-            giftWrapId: event.id,
-            innerKind: messageEvent.kind,
-            expectedKinds: [14, 15],
-            sealPubkey: sealEvent.pubkey,
-            messageEvent: messageEvent,
-          });
+        // Authenticate the sender: in NIP-59 the seal (kind 13) pubkey is the
+        // authenticated sender, so the inner rumor's pubkey MUST match the seal's
+        // pubkey. A mismatch means the rumor's `pubkey` was forged (spoofing) -
+        // reject the message and don't surface it.
+        if (messageEvent.pubkey !== sealEvent.pubkey) {
+          console.warn(
+            `[DM] ⚠️ NIP-17 SENDER SPOOFING - inner rumor pubkey does not match seal pubkey`,
+            {
+              giftWrapId: event.id,
+              sealPubkey: sealEvent.pubkey,
+              rumorPubkey: messageEvent.pubkey,
+            }
+          );
           return {
             processedMessage: {
               ...event,
               content: '',
               decryptedContent: '',
-              error: `Invalid message format - expected kind 14 or 15, got ${messageEvent.kind}`,
+              error: 'Sender not authenticated - inner rumor pubkey does not match seal pubkey',
+            },
+            conversationPartner: event.pubkey,
+            sealEvent, // Return the seal
+          };
+        }
+
+        // Accept kind 14 (text), 15 (files/attachments), and the Gamma Markets
+        // commerce rumors: kind 16 (order/payment-request/status/shipping) and
+        // kind 17 (payment receipt). The full inner event (incl. tags) is exposed
+        // via decryptedEvent so callers can read structured commerce data.
+        const SUPPORTED_INNER_KINDS = [14, 15, 16, 17];
+        if (!SUPPORTED_INNER_KINDS.includes(messageEvent.kind)) {
+          // Non-DM inner kinds (e.g. kind 7 reactions) are common relay noise —
+          // not an error. Return `ignored` (not `error`) so callers skip silently
+          // without logging or incrementing the NIP-17 error counter.
+          console.debug(
+            `[DM] Ignoring NIP-17 gift wrap with non-DM inner kind ${messageEvent.kind}`,
+            {
+              giftWrapId: event.id,
+              innerKind: messageEvent.kind,
+              expectedKinds: SUPPORTED_INNER_KINDS,
+            }
+          );
+          return {
+            processedMessage: {
+              ...event,
+              content: '',
+              decryptedContent: '',
+              ignored: true,
             },
             conversationPartner: event.pubkey,
             sealEvent, // Return the seal
@@ -1026,6 +1095,11 @@ export function DMProvider({ children, config }: DMProviderProps) {
       try {
         const { processedMessage, conversationPartner, sealEvent } =
           await processNIP17GiftWrap(event);
+
+        // Silently skip non-DM gift wraps (reactions etc.) — not a failure.
+        if (processedMessage.ignored) {
+          return;
+        }
 
         // Check if decryption failed
         if (processedMessage.error) {
@@ -1587,23 +1661,51 @@ export function DMProvider({ children, config }: DMProviderProps) {
       content: string;
       protocol?: MessageProtocol;
       attachments?: FileAttachment[];
+      rumorKind?: number;
+      rumorTags?: string[][];
     }) => {
       if (!enabled) {
         throw new Error('Direct messaging is not enabled');
       }
 
-      const { recipientPubkey, content, protocol = MESSAGE_PROTOCOL.NIP04, attachments } = params;
+      const {
+        recipientPubkey,
+        content,
+        protocol = MESSAGE_PROTOCOL.NIP04,
+        attachments,
+        rumorKind,
+        rumorTags = [],
+      } = params;
       if (!userPubkey) {
         throw new Error('You must be logged in to send messages');
       }
 
+      // Optimistic message kind: NIP-04 is always kind 4. For NIP-17, mirror the
+      // real send (sendNIP17Message): caller override (commerce 16/17), else kind
+      // 15 when there's an attachment (so file previews render immediately),
+      // otherwise text kind 14. Hardcoding kind 14 made file messages render as
+      // plain text until the real event arrived.
+      const hasAttachments = !!(attachments && attachments.length > 0);
+      const optimisticKind =
+        protocol === MESSAGE_PROTOCOL.NIP04 ? 4 : (rumorKind ?? (hasAttachments ? 15 : 14));
+
+      // Strip customer PII / order-detail tags before they are persisted to the
+      // local IndexedDB cache in plaintext (the optimistic copy is written before
+      // the encrypted seal arrives). The UI only renders type/order/amount/etc.
+      const optimisticTags = rumorTags.filter(
+        ([name, value]) =>
+          !OPTIMISTIC_OMITTED_TAGS.has(name) && !(name === 'p' && value === recipientPubkey)
+      );
+
       const optimisticId = `optimistic-${Date.now()}-${Math.random()}`;
       const optimisticMessage: DecryptedMessage = {
         id: optimisticId,
-        kind: protocol === MESSAGE_PROTOCOL.NIP04 ? 4 : 14, // Use kind 14 for NIP-17 (the real message kind)
+        kind: optimisticKind,
         pubkey: userPubkey,
         created_at: Math.floor(Date.now() / 1000), // Real timestamp
-        tags: [['p', recipientPubkey]],
+        // Include imeta tags so attachments preview immediately (mirrors the real
+        // send), plus the PII-stripped commerce tags for the card.
+        tags: [['p', recipientPubkey], ...createImetaTags(attachments), ...optimisticTags],
         content: '',
         decryptedContent: content,
         sig: '',
@@ -1621,7 +1723,13 @@ export function DMProvider({ children, config }: DMProviderProps) {
         if (protocol === MESSAGE_PROTOCOL.NIP04) {
           await sendNIP4Message.mutateAsync({ recipientPubkey, content, attachments });
         } else if (protocol === MESSAGE_PROTOCOL.NIP17) {
-          await sendNIP17Message.mutateAsync({ recipientPubkey, content, attachments });
+          await sendNIP17Message.mutateAsync({
+            recipientPubkey,
+            content,
+            attachments,
+            rumorKind,
+            rumorTags,
+          });
         }
       } catch (error) {
         console.error(`[DM] Failed to send ${protocol} message:`, error);

@@ -89,6 +89,24 @@ export function parsePaymentReceipt(event) {
 }
 
 /**
+ * Build a STABLE dedup key for a parsed payment receipt.
+ *
+ * The receipt rides inside a NIP-17 gift wrap as an unsigned inner rumor, so the
+ * rumor has no `id` - keying dedup on `event.id` yields `undefined` for every
+ * receipt, collapsing them all to one key (so only the first ever fires a
+ * confirmation). `${orderId}:${preimage}` is the payment identity instead:
+ * genuinely distinct payments get distinct keys (never wrongly skipped) while the
+ * same payment re-fetched within the lookback window - or re-wrapped by a client
+ * retry - is correctly skipped.
+ *
+ * @param {{orderId: string, preimage: string}} receipt - parsePaymentReceipt result
+ * @returns {string}
+ */
+export function receiptDedupKey(receipt) {
+  return `${receipt.orderId}:${receipt.preimage}`;
+}
+
+/**
  * Create a Kind 16 Type 2 payment request event template
  * @param {string} orderId
  * @param {string} buyerPubkey

@@ -92,7 +92,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </button>
               <button
                 onClick={() => window.location.reload()}
-                className="flex-1 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors"
+                className="flex-1 px-4 py-2 bg-secondary text-foreground border border-border rounded-md hover:bg-secondary/80 transition-colors"
               >
                 Reload page
               </button>

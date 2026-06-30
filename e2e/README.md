@@ -1,7 +1,8 @@
 # End-to-end flows (Playwright)
 
-Manual Playwright scripts that drive the storefront against a running dev
-server. They are demo/smoke scripts, not part of the CI test run.
+Manual Playwright scripts that drive the storefront's NIP-17 messaging and
+commerce flows against a running dev server. They are demo/smoke scripts, not
+part of the CI test run.
 
 ## Prerequisites
 
@@ -22,6 +23,32 @@ Exercises the storefront product search/filter UI.
 
 ```bash
 node e2e/search-flow.mjs
+```
+
+### `purchase-flow.mjs`
+Logs in, opens a product, "Buy It Now", fills shipping, places the order,
+waits for the merchant's Lightning invoice (delivered over Nostr relays), pays,
+and asserts the Order Complete screen.
+
+```bash
+# Mocked WebLN wallet (no real payment)
+BUYER_NSEC=nsec1… node e2e/purchase-flow.mjs
+
+# Real payment via NWC (Nostr Wallet Connect)
+BUYER_NSEC=nsec1… PAY_METHOD=nwc \
+  NWC_URI="nostr+walletconnect://…?relay=wss://…&secret=…" \
+  node e2e/purchase-flow.mjs
+```
+
+> The merchant runs an async backend that polls relays for orders, so the
+> invoice is not instant — the script allows up to 2 minutes for it to arrive.
+
+### `messaging-flow.mjs`
+Opens the Messages drawer, signs in, sends a NIP-17 DM, and asserts the sent
+bubble renders.
+
+```bash
+NSEC=nsec1… node e2e/messaging-flow.mjs
 ```
 
 ### Store-owner product management
@@ -48,9 +75,10 @@ NSEC=nsec1…<merchant> node e2e/owner-categories.mjs     # create a collection 
 
 ## Common env vars
 
-| Var        | Default                 | Notes                                       |
-| ---------- | ----------------------- | ------------------------------------------- |
-| `BASE_URL` | `http://localhost:8080` | Storefront URL                              |
-| `NSEC`     | —                       | Store-owner / test-merchant key (owner flows) |
-| `HEADLESS` | `true`                  | Set `false` to watch the run                |
-| `SHOT`     | —                       | Path to write a screenshot of the end state |
+| Var          | Default                 | Notes                                          |
+| ------------ | ----------------------- | ---------------------------------------------- |
+| `BASE_URL`   | `http://localhost:8080` | Storefront URL                                 |
+| `NSEC`       | —                       | Throwaway key (messaging / store-owner flows)  |
+| `BUYER_NSEC` | —                       | Throwaway buyer key (purchase flow)            |
+| `HEADLESS`   | `true`                  | Set `false` to watch the run                   |
+| `SHOT`       | —                       | Path to write a screenshot of the end state    |

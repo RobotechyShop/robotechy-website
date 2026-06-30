@@ -6,6 +6,7 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { MESSAGE_PROTOCOL, PROTOCOL_MODE, type MessageProtocol } from '@/lib/dmConstants';
 import { formatConversationTime, formatFullDateTime } from '@/lib/dmUtils';
+import { parseCommerceAmount } from '@/lib/gammaOrderUtils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -22,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ArrowLeft, Send, Loader2, AlertTriangle, Key, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NoteContent } from '@/components/NoteContent';
+import { InvoicePayButton } from '@/components/dm/InvoicePayButton';
 import { useToast } from '@/hooks/useToast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -29,12 +31,84 @@ interface DMChatAreaProps {
   pubkey: string | null;
   onBack?: () => void;
   className?: string;
+  /**
+   * When set, the order/receipt card whose `order` tag matches this id is
+   * visually highlighted (e.g. when arriving from order confirmation).
+   */
+  highlightOrderId?: string | null;
 }
+
+// Gamma Markets commerce rumor kinds that render as cards instead of plain text.
+const COMMERCE_KINDS = new Set([16, 17]);
+
+/**
+ * Render a NIP-17 gift-wrapped commerce event (inner kind 16/17) as a compact
+ * card. Reads the structured Gamma Markets tags from the inner rumor.
+ */
+const CommerceCard = ({ event, isHighlighted }: { event: NostrEvent; isHighlighted?: boolean }) => {
+  const getTag = (name: string) => event.tags.find((t) => t[0] === name)?.[1];
+
+  const orderId = getTag('order');
+  const orderShort = orderId ? orderId.slice(0, 8) : undefined;
+  // `amount` is untrusted tag input: only render it when it parses to a finite,
+  // non-negative number, otherwise omit the line entirely (never show "NaN sats").
+  const amount = parseCommerceAmount(getTag('amount'));
+  const status = getTag('status');
+  const type = getTag('type');
+  const paymentTag = event.tags.find((t) => t[0] === 'payment');
+  const invoice = paymentTag?.[2];
+
+  let title = '🧾 Receipt';
+  if (event.kind === 16) {
+    switch (type) {
+      case '1':
+        title = '🛒 Order Placed';
+        break;
+      case '2':
+        title = '💳 Payment Request';
+        break;
+      case '3':
+        title = '📋 Status Update';
+        break;
+      case '4':
+        title = '🚚 Shipping';
+        break;
+      default:
+        title = '📦 Order Update';
+    }
+  }
+
+  return (
+    <div
+      className={cn(
+        'text-sm space-y-0.5',
+        isHighlighted && 'ring-2 ring-robotechy-green rounded-md -m-1 p-1'
+      )}
+    >
+      <p className="font-semibold">{title}</p>
+      {orderShort && <p className="opacity-80">Order #{orderShort}</p>}
+      {amount !== undefined && <p className="opacity-80">{amount.toLocaleString()} sats</p>}
+      {status && <p className="opacity-80">Status: {status}</p>}
+      {invoice &&
+        (event.kind === 16 && type === '2' ? (
+          // Payment Request: offer a real Pay affordance (wallet + QR), not just
+          // a truncated invoice string.
+          <InvoicePayButton invoice={invoice} amountSats={amount} />
+        ) : (
+          <p className="opacity-80 font-mono text-xs break-all">⚡ {invoice.slice(0, 28)}…</p>
+        ))}
+      {event.content && (
+        <p className="whitespace-pre-wrap break-words opacity-90 pt-1">{event.content}</p>
+      )}
+    </div>
+  );
+};
 
 const MessageBubble = memo(
   ({
     message,
     isFromCurrentUser,
+    highlightOrderId,
   }: {
     message: {
       id: string;
@@ -48,11 +122,20 @@ const MessageBubble = memo(
       isSending?: boolean;
     };
     isFromCurrentUser: boolean;
+    highlightOrderId?: string | null;
   }) => {
     // For NIP-17, use inner message kind (14/15); for NIP-04, use message kind (4)
     const actualKind = message.decryptedEvent?.kind || message.kind;
     const isNIP4Message = message.kind === 4;
     const isFileAttachment = actualKind === 15; // Kind 15 = files/attachments
+    const isCommerce = COMMERCE_KINDS.has(actualKind); // Kind 16/17 = order/receipt
+    const isHighlightedOrder = Boolean(
+      isCommerce &&
+      highlightOrderId &&
+      (message.decryptedEvent || message).tags.some(
+        (t) => t[0] === 'order' && t[1] === highlightOrderId
+      )
+    );
 
     // Create a NostrEvent object for NoteContent (only used for kind 15)
     // For NIP-17 file attachments, use the decryptedEvent which has the actual tags
@@ -70,7 +153,10 @@ const MessageBubble = memo(
       <div className={cn('flex mb-4', isFromCurrentUser ? 'justify-end' : 'justify-start')}>
         <div
           className={cn(
-            'max-w-[70%] rounded-lg px-4 py-2',
+            'rounded-lg px-4 py-2',
+            // Commerce cards use a consistent width so the order/payment/receipt
+            // cards line up; plain chat bubbles still hug their content.
+            isCommerce ? 'w-72 max-w-[85%]' : 'max-w-[70%]',
             isFromCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
           )}
         >
@@ -83,6 +169,10 @@ const MessageBubble = memo(
                 <p className="text-xs">{message.error}</p>
               </TooltipContent>
             </Tooltip>
+          ) : isCommerce ? (
+            // Kind 16/17: Render gift-wrapped commerce events (order, payment
+            // request, status, shipping, receipt) as a structured card.
+            <CommerceCard event={messageEvent} isHighlighted={isHighlightedOrder} />
           ) : isFileAttachment ? (
             // Kind 15: Use NoteContent to render files/media with imeta tags
             <div className="text-sm">
@@ -92,7 +182,7 @@ const MessageBubble = memo(
             // Kind 4 (NIP-04) and Kind 14 (NIP-17 text): Display plain text
             <p className="text-sm whitespace-pre-wrap break-words">{message.decryptedContent}</p>
           )}
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center justify-end gap-2 mt-1">
             <TooltipProvider>
               <Tooltip delayDuration={200}>
                 <TooltipTrigger asChild>
@@ -129,13 +219,12 @@ const MessageBubble = memo(
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="text-xs">
-                    {message.kind === 4 && 'NIP-04 Kind 4 (Legacy DM)'}
-                    {message.kind === 14 && 'NIP-17 Kind 14 (Private Message)'}
-                    {message.kind === 15 && 'NIP-17 Kind 15 (Media)'}
-                    {message.kind !== 4 &&
-                      message.kind !== 14 &&
-                      message.kind !== 15 &&
-                      `Kind ${message.kind}`}
+                    {actualKind === 4 && 'NIP-04 Kind 4 (Legacy DM)'}
+                    {actualKind === 14 && 'NIP-17 Kind 14 (Private Message)'}
+                    {actualKind === 15 && 'NIP-17 Kind 15 (Media)'}
+                    {actualKind === 16 && 'Gamma Kind 16 (Order / Commerce, via NIP-17)'}
+                    {actualKind === 17 && 'Gamma Kind 17 (Payment Receipt, via NIP-17)'}
+                    {![4, 14, 15, 16, 17].includes(actualKind) && `Kind ${actualKind}`}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -216,7 +305,7 @@ const EmptyState = ({ isLoading }: { isLoading: boolean }) => {
   );
 };
 
-export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
+export const DMChatArea = ({ pubkey, onBack, className, highlightOrderId }: DMChatAreaProps) => {
   const { user } = useCurrentUser();
   const { sendMessage, protocolMode, isLoading } = useDMContext();
   const { messages, hasMoreMessages, loadEarlierMessages } = useConversationMessages(pubkey || '');
@@ -371,6 +460,7 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
                 key={message.id}
                 message={message}
                 isFromCurrentUser={message.pubkey === user.pubkey}
+                highlightOrderId={highlightOrderId}
               />
             ))}
           </div>
