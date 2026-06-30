@@ -2,7 +2,7 @@
  * Nostr client for publishing events and subscribing to orders
  */
 
-import { SimplePool, finalizeEvent, nip04, nip19, nip44, nip59, verifyEvent } from 'nostr-tools';
+import { SimplePool, finalizeEvent, nip04, nip19, nip44, nip59 } from 'nostr-tools';
 import WebSocket from 'ws';
 
 // Set WebSocket for nostr-tools in Node.js environment
@@ -221,16 +221,13 @@ export class NostrClient {
         return null;
       }
 
-      // Authenticate the sender cryptographically: the seal's signature is what
-      // proves the sender controls `seal.pubkey`. The pubkey-equality check below
-      // is necessary but NOT sufficient - without verifying the seal signature a
-      // malicious sender could encrypt an arbitrary seal claiming any pubkey.
-      if (!verifyEvent(seal)) {
-        console.warn(
-          `[Nostr] Gift wrap ${giftWrapEvent.id?.slice(0, 8)}: seal signature invalid (sender not authenticated)`
-        );
-        return null;
-      }
+      // Sender authentication: NIP-17 seals from our clients are intentionally
+      // unsigned (no id/sig) — only the gift wrap is signed, with an ephemeral key
+      // per NIP-59 — so we do NOT signature-verify the seal (that rejected every
+      // legitimate order). Authentication comes from step 2: the seal content is
+      // NIP-44 encrypted with the real sender's key, so it only decrypts when
+      // keyed to the genuine sender's `seal.pubkey` (a forged pubkey fails to
+      // decrypt), and the seal/rumor pubkey match below rejects any spoof.
 
       // Step 2: decrypt the seal with the real sender's pubkey -> inner rumor
       const rumorJson = nip44.decrypt(

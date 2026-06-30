@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ArrowLeft, Send, Loader2, AlertTriangle, Key, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NoteContent } from '@/components/NoteContent';
+import { InvoicePayButton } from '@/components/dm/InvoicePayButton';
 import { useToast } from '@/hooks/useToast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -88,9 +89,14 @@ const CommerceCard = ({ event, isHighlighted }: { event: NostrEvent; isHighlight
       {orderShort && <p className="opacity-80">Order #{orderShort}</p>}
       {amount !== undefined && <p className="opacity-80">{amount.toLocaleString()} sats</p>}
       {status && <p className="opacity-80">Status: {status}</p>}
-      {invoice && (
-        <p className="opacity-80 font-mono text-xs break-all">⚡ {invoice.slice(0, 28)}…</p>
-      )}
+      {invoice &&
+        (event.kind === 16 && type === '2' ? (
+          // Payment Request: offer a real Pay affordance (wallet + QR), not just
+          // a truncated invoice string.
+          <InvoicePayButton invoice={invoice} amountSats={amount} />
+        ) : (
+          <p className="opacity-80 font-mono text-xs break-all">⚡ {invoice.slice(0, 28)}…</p>
+        ))}
       {event.content && (
         <p className="whitespace-pre-wrap break-words opacity-90 pt-1">{event.content}</p>
       )}
@@ -147,7 +153,10 @@ const MessageBubble = memo(
       <div className={cn('flex mb-4', isFromCurrentUser ? 'justify-end' : 'justify-start')}>
         <div
           className={cn(
-            'max-w-[70%] rounded-lg px-4 py-2',
+            'rounded-lg px-4 py-2',
+            // Commerce cards use a consistent width so the order/payment/receipt
+            // cards line up; plain chat bubbles still hug their content.
+            isCommerce ? 'w-72 max-w-[85%]' : 'max-w-[70%]',
             isFromCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
           )}
         >
@@ -173,7 +182,7 @@ const MessageBubble = memo(
             // Kind 4 (NIP-04) and Kind 14 (NIP-17 text): Display plain text
             <p className="text-sm whitespace-pre-wrap break-words">{message.decryptedContent}</p>
           )}
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center justify-end gap-2 mt-1">
             <TooltipProvider>
               <Tooltip delayDuration={200}>
                 <TooltipTrigger asChild>
