@@ -36,6 +36,15 @@ describe('isReplyToNote', () => {
     expect(isReplyToNote(makeEvent({ tags: [['e', noteId, '', 'root']] }), noteId)).toBe(true);
   });
 
+  it('is true for a marked reply e tag', () => {
+    expect(isReplyToNote(makeEvent({ tags: [['e', noteId, '', 'reply']] }), noteId)).toBe(true);
+  });
+
+  it('is false for a mention-marked e tag (NIP-10 non-threading reference)', () => {
+    // A quote/mention of the note is not a reply and must not appear in the thread.
+    expect(isReplyToNote(makeEvent({ tags: [['e', noteId, '', 'mention']] }), noteId)).toBe(false);
+  });
+
   it('is false when no e tag references the note', () => {
     expect(isReplyToNote(makeEvent({ tags: [['e', '0'.repeat(64)]] }), noteId)).toBe(false);
   });

@@ -16,11 +16,15 @@ export function buildReplyTags(parent: NostrEvent): string[][] {
 }
 
 /**
- * True when a kind-1 event references the given note id through an `e` tag,
- * i.e. it is a reply to (or in the thread of) that note.
+ * True when a kind-1 event references the given note id through a threading
+ * `e` tag, i.e. it is a reply to (or in the thread of) that note.
+ *
+ * Per NIP-10, an `e` tag whose marker is `mention` is a non-threading
+ * reference (a quote/mention of the note), so it is excluded — only `root`,
+ * `reply`, or unmarked `e` tags count as being in the thread.
  */
 export function isReplyToNote(event: NostrEvent, noteId: string): boolean {
-  return event.tags.some((tag) => tag[0] === 'e' && tag[1] === noteId);
+  return event.tags.some((tag) => tag[0] === 'e' && tag[1] === noteId && tag[3] !== 'mention');
 }
 
 /** Sort replies oldest-first, the natural reading order for a threaded display. */
