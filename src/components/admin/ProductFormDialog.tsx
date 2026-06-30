@@ -231,6 +231,9 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
                     className="peer sr-only"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
+                      // Clear the value so re-selecting the same file (e.g. after
+                      // a failed upload) still fires onChange.
+                      e.target.value = '';
                       if (file) handleUpload(index, file);
                     }}
                   />

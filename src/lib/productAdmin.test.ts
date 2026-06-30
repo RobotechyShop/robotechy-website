@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { NostrEvent } from '@nostrify/nostrify';
 import {
+  getDTag,
   buildProductEvent,
   buildProductDeleteEvent,
   buildShippingOptionEvent,
@@ -33,6 +34,13 @@ const baseProduct: ProductFormData = {
   location: 'UK',
   categories: ['seedsigner', 'cases', 'seedsigner'],
 };
+
+describe('getDTag', () => {
+  it('returns the d-tag value, or undefined when absent', () => {
+    expect(getDTag({ tags: [['d', 'abc']] } as unknown as NostrEvent)).toBe('abc');
+    expect(getDTag({ tags: [['title', 'x']] } as unknown as NostrEvent)).toBeUndefined();
+  });
+});
 
 describe('slugify / generateProductId', () => {
   it('produces url-safe slugs', () => {

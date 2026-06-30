@@ -42,13 +42,16 @@ export function OwnerProductActions({ event, onDeleted }: OwnerProductActionsPro
         Remove
       </Button>
 
-      <ProductFormDialog open={editOpen} onOpenChange={setEditOpen} event={event} />
-      <DeleteProductDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        event={event}
-        onDeleted={onDeleted}
-      />
+      {/* Lazy-mount so the form/dialog only initialise when opened. */}
+      {editOpen && <ProductFormDialog open={editOpen} onOpenChange={setEditOpen} event={event} />}
+      {deleteOpen && (
+        <DeleteProductDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          event={event}
+          onDeleted={onDeleted}
+        />
+      )}
     </div>
   );
 }

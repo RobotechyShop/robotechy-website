@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/useToast';
 import { useProductAdmin } from '@/hooks/useProductAdmin';
 import { useProducts, useCollections, MERCHANT_PUBKEY } from '@/hooks/useProducts';
 import { parseProductEvent, parseCollectionEvent } from '@/lib/productUtils';
-import { validateCollectionForm, type CollectionFormData } from '@/lib/productAdmin';
+import { validateCollectionForm, getDTag, type CollectionFormData } from '@/lib/productAdmin';
 
 interface CollectionsDialogProps {
   open: boolean;
@@ -108,7 +108,9 @@ export function CollectionsDialog({ open, onOpenChange }: CollectionsDialogProps
     try {
       await deleteCollection.mutateAsync(event);
       toast({ title: 'Collection removed' });
-      if (editing === event) resetForm();
+      // Compare by addressable `d` id, not object identity — refetch can return
+      // new event objects for the same collection.
+      if (editing && getDTag(editing) === getDTag(event)) resetForm();
     } catch (error) {
       console.error('Failed to delete collection:', error);
       toast({ title: 'Delete failed', description: 'Please try again.', variant: 'destructive' });

@@ -45,9 +45,14 @@ export function OwnerToolbar() {
         </div>
       </div>
 
-      <ProductFormDialog open={addOpen} onOpenChange={setAddOpen} />
-      <ShippingOptionsDialog open={shippingOpen} onOpenChange={setShippingOpen} />
-      <CollectionsDialog open={collectionsOpen} onOpenChange={setCollectionsOpen} />
+      {/* Lazy-mount: the dialogs run catalog queries (collections / products /
+          shipping) on mount, so only mount one once it is actually opened to
+          avoid fetching relay data the owner may never look at. */}
+      {addOpen && <ProductFormDialog open={addOpen} onOpenChange={setAddOpen} />}
+      {shippingOpen && <ShippingOptionsDialog open={shippingOpen} onOpenChange={setShippingOpen} />}
+      {collectionsOpen && (
+        <CollectionsDialog open={collectionsOpen} onOpenChange={setCollectionsOpen} />
+      )}
     </div>
   );
 }

@@ -71,6 +71,11 @@ export interface ProductFormData {
   categories: string[];
 }
 
+/** The addressable `d` identifier of an event, or undefined if absent. */
+export function getDTag(event: NostrEvent): string | undefined {
+  return event.tags.find(([name]) => name === 'd')?.[1];
+}
+
 /** Slugify a title into a stable, URL-safe d-tag identifier. */
 export function slugify(input: string): string {
   return (

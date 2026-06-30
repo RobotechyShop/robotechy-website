@@ -26,6 +26,7 @@ import { useMerchantShippingOptions } from '@/hooks/useMerchantShippingOptions';
 import { parseShippingOptionEvent } from '@/lib/productUtils';
 import {
   validateShippingForm,
+  getDTag,
   type ShippingFormData,
   type ShippingService,
 } from '@/lib/productAdmin';
@@ -118,7 +119,9 @@ export function ShippingOptionsDialog({ open, onOpenChange }: ShippingOptionsDia
     try {
       await deleteShippingOption.mutateAsync(event);
       toast({ title: 'Shipping option removed' });
-      if (editing === event) resetForm();
+      // Compare by addressable `d` id, not object identity — React Query refetch
+      // can hand back new event objects for the same option.
+      if (editing && getDTag(editing) === getDTag(event)) resetForm();
     } catch (error) {
       console.error('Failed to delete shipping option:', error);
       toast({ title: 'Delete failed', description: 'Please try again.', variant: 'destructive' });
