@@ -100,19 +100,21 @@ function formatThankYouNote(orderId) {
  * separate NIP-04 DM is used. The regression test in test/single-invoice.test.js
  * locks this in.
  *
- * `generateInvoice` is injected (defaulting to the real LNURL implementation) so
- * the order flow can be exercised hermetically in tests — no network, and the
- * test can assert it is called exactly once with the returned BOLT11 ending up
- * in the payment-request event.
+ * `generateInvoice` and `store` are injected (defaulting to the real LNURL
+ * implementation and the module-level persisted dedup store) so the order flow
+ * can be exercised hermetically in tests — no network and no disk writes — while
+ * production keeps using the on-disk store. The test can then assert
+ * `generateInvoice` is called exactly once with the returned BOLT11 ending up in
+ * the payment-request event.
  *
  * @param {Omit<import('nostr-tools').Event, 'id'|'sig'>} event - inner order rumor
  * @param {NostrClient} nostrClient
- * @param {{ generateInvoice?: typeof generateInvoice }} [deps]
+ * @param {{ generateInvoice?: typeof generateInvoice, store?: ProcessedStore }} [deps]
  */
 export async function handleOrder(
   event,
   nostrClient,
-  { generateInvoice: genInvoice = generateInvoice } = {}
+  { generateInvoice: genInvoice = generateInvoice, store = processedStore } = {}
 ) {
   const order = parseOrderEvent(event);
   if (!order) {
@@ -120,11 +122,11 @@ export async function handleOrder(
   }
 
   // Skip if already processed (persisted across restarts to avoid re-invoicing)
-  if (processedStore.hasOrder(order.orderId)) {
+  if (store.hasOrder(order.orderId)) {
     console.log(`[Order] Skipping duplicate order ${order.orderId.slice(0, 8)}`);
     return;
   }
-  processedStore.addOrder(order.orderId);
+  store.addOrder(order.orderId);
 
   console.log(`[Order] New order received!`);
   console.log(`  Order ID: ${order.orderId.slice(0, 8)}`);

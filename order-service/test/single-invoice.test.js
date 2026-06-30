@@ -17,8 +17,10 @@
  * enable double payment. No NIP-04 (kind 4) DM is used. This test locks that
  * invariant in so it cannot silently regress.
  *
- * Hermetic: the Lightning provider (`generateInvoice`) is injected as a spy and
- * the relay/publish layer is a fake `nostrClient`, so no network is touched.
+ * Hermetic: the Lightning provider (`generateInvoice`) is injected as a spy, the
+ * relay/publish layer is a fake `nostrClient`, and the dedup store is an in-memory
+ * stub — so no network is touched and the on-disk `.processed.json` is never read
+ * or written.
  *
  * Runs on Node's built-in test runner (no extra deps): `node --test`.
  */
@@ -48,8 +50,8 @@ function randomPubkey() {
 
 /**
  * Build a Kind 16 Type 1 order rumor — the unsigned inner event that
- * `unwrapGiftWrap` hands to `handleOrder`. A fresh `orderId` per call avoids the
- * persistent dedup store skipping the order as already-processed.
+ * `unwrapGiftWrap` hands to `handleOrder`. A fresh `orderId` per call keeps
+ * independent orders from colliding in the (injected) dedup store.
  */
 function buildOrderRumor({ buyerPubkey = randomPubkey(), amount = 5000 } = {}) {
   const orderId = randomBytes(16).toString('hex');
@@ -115,17 +117,35 @@ function giftWrapsOfKind(client, kind) {
   return client.giftWraps.filter((g) => g.rumor.kind === kind);
 }
 
+/**
+ * In-memory dedup store with the same shape as ProcessedStore (the bits
+ * handleOrder uses). Injected so the test never touches the on-disk
+ * `.processed.json`, keeping each run fully hermetic and isolated.
+ */
+function buildInMemoryStore() {
+  const orders = new Set();
+  const receipts = new Set();
+  return {
+    hasOrder: (id) => orders.has(id),
+    addOrder: (id) => orders.add(id),
+    hasReceipt: (id) => receipts.has(id),
+    addReceipt: (id) => receipts.add(id),
+  };
+}
+
 let nostrClient;
 let generateInvoiceSpy;
+let store;
 
 beforeEach(() => {
   nostrClient = buildFakeNostrClient();
   generateInvoiceSpy = buildGenerateInvoiceSpy();
+  store = buildInMemoryStore();
 });
 
 test('generateInvoice is called exactly once for a single order', async () => {
   const order = buildOrderRumor();
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy });
+  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
 
   assert.equal(
     generateInvoiceSpy.calls.length,
@@ -140,7 +160,7 @@ test('generateInvoice is called exactly once for a single order', async () => {
 
 test('the kind-16 card and the kind-14 note both carry the IDENTICAL invoice generateInvoice returned', async () => {
   const order = buildOrderRumor();
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy });
+  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
 
   // The kind-16 Type 2 payment-request card.
   const cards = giftWrapsOfKind(nostrClient, 16);
@@ -175,7 +195,7 @@ test('the kind-16 card and the kind-14 note both carry the IDENTICAL invoice gen
 
 test('the kind-14 note carries the SAME ["order", id] tag as the kind-16 card (correlatable/dedupable)', async () => {
   const order = buildOrderRumor();
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy });
+  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
 
   const card = giftWrapsOfKind(nostrClient, 16)[0].rumor;
   const note = giftWrapsOfKind(nostrClient, 14)[0].rumor;
@@ -194,7 +214,7 @@ test('the kind-14 note carries the SAME ["order", id] tag as the kind-16 card (c
 test('exactly two gift wraps (one kind-16, one kind-14) go to the buyer, and NO kind-4 NIP-04 DM is used', async () => {
   const buyerPubkey = randomPubkey();
   const order = buildOrderRumor({ buyerPubkey });
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy });
+  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
 
   assert.equal(
     nostrClient.giftWraps.length,
@@ -213,10 +233,10 @@ test('exactly two gift wraps (one kind-16, one kind-14) go to the buyer, and NO 
 
 test('a duplicate order is skipped — no second invoice and no further gift wraps', async () => {
   const order = buildOrderRumor();
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy });
+  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
   // Replay the exact same order (same order id) — the persistent dedup store
   // must short-circuit it, so no further invoice is generated and nothing resent.
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy });
+  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
 
   assert.equal(
     generateInvoiceSpy.calls.length,
