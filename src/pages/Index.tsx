@@ -16,6 +16,7 @@ import { Search, ShoppingCart } from 'lucide-react';
 import { parseProductEvent } from '@/lib/productUtils';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { OwnerToolbar } from '@/components/admin/OwnerToolbar';
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,6 +83,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
       <Header />
+
+      <OwnerToolbar />
 
       {/* Hero Banner */}
       <div
