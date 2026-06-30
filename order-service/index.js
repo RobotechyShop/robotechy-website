@@ -8,22 +8,11 @@
  * 4. Listens for Kind 17 payment receipts and sends thank you DM
  */
 
-// Handle unhandled rejections from nostr-tools (relay errors)
-process.on('unhandledRejection', (reason, promise) => {
-  const msg = reason?.message || String(reason) || '';
-  // Ignore relay-specific errors that don't affect overall operation
-  if (msg.includes('restricted') ||
-      msg.includes('Pay on') ||
-      msg.includes('blocked') ||
-      msg.includes('not allowed') ||
-      msg.includes('network error') ||
-      msg.includes('non-101') ||
-      msg.includes('WebSocket') ||
-      msg.includes('ECONNREFUSED') ||
-      msg.includes('ETIMEDOUT') ||
-      msg.includes('rate-limit') ||
-      msg.includes('noting too much')) {
-    console.warn('[Nostr] Ignoring relay rejection:', msg);
+// Handle unhandled rejections from nostr-tools (relay errors). A flaky relay must
+// never crash order processing — see lib/relayErrors.js for the classification.
+process.on('unhandledRejection', (reason) => {
+  if (isIgnorableRelayError(reason)) {
+    console.warn('[Nostr] Ignoring relay rejection:', reason?.message || reason);
     return;
   }
   console.error('[Fatal] Unhandled rejection:', reason);
@@ -31,6 +20,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 import { config } from './lib/config.js';
+import { isIgnorableRelayError } from './lib/relayErrors.js';
 import { NostrClient, decodeNsec } from './lib/nostr.js';
 import { generateInvoice, validateLightningAddress } from './lib/lightning.js';
 import {
@@ -101,11 +91,7 @@ async function handleOrder(event, nostrClient) {
   try {
     // Generate Lightning invoice
     console.log(`[Order] Generating invoice for ${order.amount} sats...`);
-    const invoice = await generateInvoice(
-      config.lightningAddress,
-      order.amount,
-      order.orderId
-    );
+    const invoice = await generateInvoice(config.lightningAddress, order.amount, order.orderId);
 
     // Create and publish Kind 16 Type 2 payment request
     const paymentRequestEvent = createPaymentRequestEvent(
@@ -123,7 +109,7 @@ async function handleOrder(event, nostrClient) {
 
     // Wait before sending DM to avoid rate limiting
     console.log(`[Order] Waiting 2s before sending DM...`);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Send NIP-04 DM with invoice to buyer (non-blocking, don't crash on failure)
     const invoiceDM = formatInvoiceDM(order.orderId, order.amount, invoice);
@@ -135,7 +121,6 @@ async function handleOrder(event, nostrClient) {
     }
 
     console.log(`[Order] ✓ Order ${order.orderId.slice(0, 8)} processed - invoice sent`);
-
   } catch (error) {
     console.error(`[Order] ✗ Failed to process order ${order.orderId.slice(0, 8)}:`, error.message);
   }
