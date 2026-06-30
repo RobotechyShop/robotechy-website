@@ -29,12 +29,19 @@ export function ProductFeedbackTabs({ event, coord, className }: ProductFeedback
   const reviewCount = reviewsData?.aggregate.count ?? 0;
   const commentCount = commentsData?.topLevelComments.length ?? 0;
 
+  // Classic underlined tabs: override the shadcn primitive's segmented/pill
+  // defaults (muted rounded list bg + filled active pill) at the usage site so
+  // the shared ui/tabs.tsx stays untouched for other screens. The tablist is a
+  // full-width row with a bottom rule; the active tab is shown by a brand-green
+  // underline that overlaps that rule (via -mb-px), not a filled background.
+  const listClass =
+    'h-auto w-full justify-start gap-6 rounded-none border-b border-slate-200 bg-transparent p-0 text-muted-foreground dark:border-slate-700';
   const triggerClass =
-    'data-[state=active]:bg-robotechy-green data-[state=active]:text-black data-[state=active]:shadow-sm font-semibold';
+    '-mb-px rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:border-robotechy-green data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-robotechy-green data-[state=active]:shadow-none';
 
   return (
     <Tabs defaultValue="reviews" className={cn('w-full', className)}>
-      <TabsList className="grid w-full max-w-md grid-cols-2">
+      <TabsList className={listClass}>
         <TabsTrigger value="reviews" className={triggerClass}>
           Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}
         </TabsTrigger>
