@@ -1,25 +1,31 @@
 import { useSeoMeta } from '@unhead/react';
-import { BookOpen, ExternalLink } from 'lucide-react';
+import { BookOpen, MessageCircle } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { StoryNote } from '@/components/StoryNote';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FollowUsButton } from '@/components/FollowUsButton';
 import { useStoryNotes } from '@/hooks/useStoryNotes';
 import { useAuthor } from '@/hooks/useAuthor';
-import { SHOP_OWNER_NPUB, shopOwnerPubkey } from '@/lib/shopOwner';
+import { MERCHANT_PUBKEY } from '@/hooks/useProducts';
+import { useMessagesDrawer } from '@/hooks/useMessagesDrawer';
 import { genUserName } from '@/lib/genUserName';
 
 const Story = () => {
-  const pubkey = shopOwnerPubkey();
-  const author = useAuthor(pubkey);
-  // Default to [] so a disabled query (empty pubkey from a malformed
-  // SHOP_OWNER_NPUB) renders the empty-state card rather than a blank section.
+  // The whole page is "the shop's story": both the timeline and the hero profile
+  // are sourced from MERCHANT_PUBKEY, the shop's canonical Nostr account (the one
+  // that publishes the catalog and that "Follow Us" follows).
+  const author = useAuthor(MERCHANT_PUBKEY);
+  // Default to [] so an empty result renders the empty-state card rather than a
+  // blank section.
   const { data: notes = [], isLoading, isError } = useStoryNotes();
+  const { openMessages } = useMessagesDrawer();
 
   const metadata = author.data?.metadata;
-  const name = metadata?.display_name || metadata?.name || genUserName(pubkey);
+  const name = metadata?.display_name || metadata?.name || genUserName(MERCHANT_PUBKEY);
   const bio =
     metadata?.about ||
     'The story of Robotechy — 3D printing for the Bitcoin community, one print at a time.';
@@ -27,52 +33,68 @@ const Story = () => {
   useSeoMeta({
     title: 'Story | Robotechy',
     description:
-      "Follow the Robotechy story — build logs, new prints and behind-the-scenes updates, straight from the shop owner's Nostr feed.",
+      "Follow the Robotechy story — build logs, new prints and behind-the-scenes updates, straight from the shop's Nostr feed.",
   });
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
       <Header />
 
-      {/* Hero */}
-      <div className="bg-gradient-to-b from-sage-100 to-white dark:from-neutral-900 dark:to-neutral-950 py-16">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-robotechy-green-dark/10 rounded-full mb-6">
-            <BookOpen className="w-8 h-8 text-robotechy-green-dark" />
-          </div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">Our Story</h1>
-          <p className="text-lg text-sage-600 dark:text-sage-400 max-w-2xl mx-auto mb-8">
-            Build logs, fresh prints and behind-the-scenes moments — told in real time through
-            Robotechy's Nostr feed.
-          </p>
-          <div className="flex flex-col items-center gap-4">
-            <Avatar className="h-20 w-20 border-2 border-robotechy-green">
+      {/* Profile hero — the shop's kind-0 banner / avatar / name / about. */}
+      <div>
+        {/* Banner: the shop's profile banner, or a brand-green gradient fallback
+            when the kind-0 metadata has no banner image. */}
+        <div
+          data-testid="story-banner"
+          className="relative h-40 w-full sm:h-56 bg-gradient-to-r from-robotechy-green/30 via-robotechy-green-dark/20 to-sage-200 dark:to-neutral-800"
+        >
+          {metadata?.banner && (
+            <img
+              src={metadata.banner}
+              alt={`${name} banner`}
+              decoding="async"
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
+        </div>
+
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Avatar overlaps the banner, profile-style. */}
+          <div className="-mt-12 flex items-end justify-between sm:-mt-14">
+            <Avatar className="h-24 w-24 border-4 border-white shadow-md dark:border-neutral-950 sm:h-28 sm:w-28">
               <AvatarImage src={metadata?.picture} alt={name} />
-              <AvatarFallback className="text-2xl">
+              <AvatarFallback className="text-3xl">
                 {(name.trim().charAt(0) || 'R').toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <p className="text-base font-semibold text-slate-900 dark:text-white">{name}</p>
-              <p className="text-sm text-sage-600 dark:text-sage-400 max-w-md mt-1 whitespace-pre-line line-clamp-3">
-                {bio}
-              </p>
-            </div>
-            {/* CTA targets the author whose notes power this feed (the shop
-                owner), keeping it aligned with the hero/timeline source rather
-                than the shop account. Only rendered when the npub decodes, so a
-                malformed SHOP_OWNER_NPUB never produces an invalid njump link. */}
-            {pubkey && (
-              <a
-                href={`https://njump.me/${SHOP_OWNER_NPUB}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md bg-robotechy-green px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110"
+            <div className="mb-2 flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => openMessages()}
+                className="gap-1.5"
               >
-                Follow {name} on Nostr
-                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-              </a>
-            )}
+                <MessageCircle className="h-4 w-4" />
+                Message
+              </Button>
+              <FollowUsButton size="sm" />
+            </div>
+          </div>
+
+          <div className="mt-3 pb-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
+              {name}
+            </h1>
+            <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-sage-600 dark:text-sage-400">
+              {bio}
+            </p>
+          </div>
+
+          <div className="mt-4 flex items-center gap-2 border-t border-sage-100 pt-4 text-sm font-medium text-robotechy-green-dark dark:border-sage-800">
+            <BookOpen className="h-4 w-4" />
+            <span>Our Story</span>
           </div>
         </div>
       </div>

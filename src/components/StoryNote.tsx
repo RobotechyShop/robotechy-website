@@ -1,8 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { formatDistanceToNow } from 'date-fns';
+import { Zap } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { NoteContent } from '@/components/NoteContent';
+import { ZapButton } from '@/components/ZapButton';
+import { StoryReplies } from '@/components/StoryReplies';
+import LoginDialog from '@/components/auth/LoginDialog';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { extractImageUrls, stripImageUrls } from '@/lib/storyNotes';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +23,8 @@ interface StoryNoteProps {
  * remainder linkified via {@link NoteContent}) and any attached images.
  */
 export function StoryNote({ event, isLast = false }: StoryNoteProps) {
+  const { user } = useCurrentUser();
+  const [showLogin, setShowLogin] = useState(false);
   const images = useMemo(() => extractImageUrls(event), [event]);
 
   // Render the note through NoteContent (links/mentions/hashtags) but with the
@@ -95,8 +102,37 @@ export function StoryNote({ event, isLast = false }: StoryNoteProps) {
               ))}
             </div>
           )}
+
+          {/* Action row: zap. Logged-in users with a zappable author see the
+              real ZapButton (NIP-57); signed-out users see a zap affordance that
+              prompts sign-in rather than failing silently. */}
+          <div className="flex items-center gap-4 pt-1">
+            {user ? (
+              <ZapButton
+                target={event}
+                className="text-xs text-sage-600 hover:text-robotechy-green-dark dark:text-sage-300"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowLogin(true)}
+                className="flex items-center gap-1 text-xs text-sage-600 transition-colors hover:text-robotechy-green-dark dark:text-sage-300"
+              >
+                <Zap className="h-4 w-4" />
+                <span>Zap</span>
+              </button>
+            )}
+          </div>
+
+          <StoryReplies note={event} />
         </CardContent>
       </Card>
+
+      <LoginDialog
+        isOpen={showLogin}
+        onClose={() => setShowLogin(false)}
+        onLogin={() => setShowLogin(false)}
+      />
     </li>
   );
 }

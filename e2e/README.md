@@ -88,6 +88,32 @@ node e2e/share-product.mjs
 NSEC=nsec1… node e2e/share-product.mjs
 ```
 
+### `story.mjs`
+
+Drives the `/story` shop story feed. Signed out, it asserts the shop profile
+hero renders (banner, avatar, name, about) and that the "Message" button (which
+opens the shop messages drawer) is present; then, if the shop's Nostr account has
+kind-1 posts, it asserts the first post's "Replies" thread, the signed-out "Zap"
+affordance and "Sign in to reply" composer (clicking it opens the LoginDialog) —
+or, if the account has no posts, it asserts the honest "No posts yet" empty
+state. Signed in (with `NSEC`, injected into `localStorage` in the `@nostrify`
+format) and when a post exists, it posts a kind-1 NIP-10 reply to the first post
+and asserts the composer clears on success.
+
+```bash
+# signed-out phase only
+node e2e/story.mjs
+
+# both phases (publishes a kind-1 reply from the throwaway key)
+NSEC=nsec1… node e2e/story.mjs
+
+# to exercise the posts/replies path, serve with an account that has kind-1
+# notes (test mode shows the TEST badge); the production shop's posts come from
+# the merchant npub by default
+VITE_MERCHANT_NPUB=npub1… npm run dev
+BASE_URL=http://localhost:8080 NSEC=nsec1… node e2e/story.mjs
+```
+
 ### Store-owner product management
 
 These drive the owner-only catalog tools. They require the storefront to be
