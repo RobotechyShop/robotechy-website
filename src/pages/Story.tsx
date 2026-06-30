@@ -60,16 +60,19 @@ const Story = () => {
             </div>
             {/* CTA targets the author whose notes power this feed (the shop
                 owner), keeping it aligned with the hero/timeline source rather
-                than the shop account. */}
-            <a
-              href={`https://njump.me/${SHOP_OWNER_NPUB}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-md bg-robotechy-green px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110"
-            >
-              Follow {name} on Nostr
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            </a>
+                than the shop account. Only rendered when the npub decodes, so a
+                malformed SHOP_OWNER_NPUB never produces an invalid njump link. */}
+            {pubkey && (
+              <a
+                href={`https://njump.me/${SHOP_OWNER_NPUB}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md bg-robotechy-green px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110"
+              >
+                Follow {name} on Nostr
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              </a>
+            )}
           </div>
         </div>
       </div>

@@ -71,6 +71,11 @@ describe('extractImageUrls', () => {
     expect(extractImageUrls(event)).toEqual(['https://img.example/d.png']);
   });
 
+  it('does not treat an image extension mid-path as an image (no declared mime)', () => {
+    const event = makeEvent({ tags: [['imeta', 'url https://example.com/a.png/extra']] });
+    expect(extractImageUrls(event)).toEqual([]);
+  });
+
   it('rejects non-http(s) imeta image URLs', () => {
     const event = makeEvent({
       tags: [['imeta', 'url data:image/png;base64,iVBORw0KGgo=', 'm image/png']],

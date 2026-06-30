@@ -10,9 +10,19 @@ function imageUrlRegex(): RegExp {
   return /https?:\/\/\S+?\.(?:png|jpe?g|gif|webp|avif)(?:\?\S*)?/gi;
 }
 
-/** True when a URL ends in a known image extension (ignoring any query string). */
+/**
+ * True when a URL's path actually ends in a known image extension. Parses the
+ * URL and inspects the pathname suffix rather than substring-matching, so paths
+ * like `…/a.png/extra` (where `.png` is not the real suffix) are not misread as
+ * images.
+ */
 function looksLikeImageUrl(url: string): boolean {
-  return imageUrlRegex().test(url);
+  try {
+    const { pathname } = new URL(url);
+    return /\.(?:png|jpe?g|gif|webp|avif)$/i.test(pathname);
+  } catch {
+    return false;
+  }
 }
 
 /**
