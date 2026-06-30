@@ -3,6 +3,24 @@ import { LoginArea } from '@/components/auth/LoginArea';
 import { useTheme } from '@/hooks/useTheme';
 import { useMessagesDrawer } from '@/hooks/useMessagesDrawer';
 import type { Theme } from '@/contexts/AppContext';
+import { nip19 } from 'nostr-tools';
+
+// True only when VITE_MERCHANT_NPUB actually decodes as an npub. An invalid value
+// falls back to the production merchant (see useProducts), so it must NOT light
+// the TEST badge — otherwise the badge would falsely signal a non-live shop.
+function isValidNpub(value: string | undefined): boolean {
+  if (!value) return false;
+  try {
+    return nip19.decode(value).type === 'npub';
+  } catch {
+    return false;
+  }
+}
+
+// Test-mode flag: explicit VITE_TEST_MODE, or a valid VITE_MERCHANT_NPUB override
+// (e.g. via .env.test). Drives the "TEST" badge so it's obvious you're not live.
+const TEST_MODE =
+  import.meta.env.VITE_TEST_MODE === 'true' || isValidNpub(import.meta.env.VITE_MERCHANT_NPUB);
 
 export function Header() {
   const { theme, setTheme } = useTheme();
@@ -29,6 +47,11 @@ export function Header() {
                 className="h-8 object-contain"
               />
             </a>
+            {TEST_MODE && (
+              <span className="rounded bg-fuchsia-600 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
+                TEST
+              </span>
+            )}
           </div>
           <nav className="flex items-center gap-2 text-sm font-medium">
             <a
