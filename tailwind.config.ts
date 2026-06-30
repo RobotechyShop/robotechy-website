@@ -19,6 +19,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				// Home hero banner welcome quote (see @font-face in src/index.css).
+				'banner-quote': ['"Banner Quote"', 'ui-sans-serif', 'sans-serif'],
+			},
 			colors: {
 				robotechy: {
 					orange: '#fa5200',

@@ -94,13 +94,16 @@ const Index = () => {
 
       <OwnerToolbar />
 
-      {/* Hero Banner — photo-removed plate + live shop-owner avatar dropped into
-          the original photo circle, so the portrait always matches Isaac's Nostr
-          profile (same source as the footer) instead of a baked-in photo. */}
+      {/* Hero Banner — text-free plate + live shop-owner avatar + real HTML text.
+          The quote and attribution used to be baked into the banner JPG; they are
+          now editable, selectable, accessible DOM text rendered over a clean,
+          text-free background plate (bitcoin-banner-plate-clean.jpg, exported from
+          the source PSD with the photo + text layers hidden). The portrait is the
+          live Nostr avatar (same source as the footer), not a baked-in photo. */}
       <div
         className="relative bg-slate-100 dark:bg-neutral-900 border-b overflow-hidden"
         style={{
-          backgroundImage: 'url(/images/bitcoin-banner-plate.jpg)',
+          backgroundImage: 'url(/images/bitcoin-banner-plate-clean.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
@@ -118,8 +121,23 @@ const Index = () => {
           </AvatarFallback>
         </Avatar>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 md:py-48">
-          {/* Padding sets the hero height; the plate shows behind it. */}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 md:py-16 lg:py-20">
+          {/* Editable hero text, right-aligned to match the original banner layout.
+              It sits to the right of the avatar (avatar centre ≈26% from the left)
+              and is pushed clear of it on small screens, so it reflows/scales on
+              mobile without overlapping the portrait. */}
+          <figure className="ml-auto max-w-md pl-[42%] text-right sm:max-w-lg sm:pl-0 md:max-w-xl lg:max-w-2xl">
+            <blockquote className="font-banner-quote text-base font-bold italic leading-snug text-white drop-shadow sm:text-lg md:text-xl lg:text-2xl">
+              <span
+                aria-hidden="true"
+                className="mr-0.5 align-text-top font-banner-quote text-3xl leading-none text-robotechy-green sm:text-4xl md:text-5xl"
+              >
+                &ldquo;
+              </span>
+              Welcome to my Bitcoin store, where I sell items printed on my 3D printer for … well,
+              Bitcoin of course!
+            </blockquote>
+          </figure>
         </div>
       </div>
 

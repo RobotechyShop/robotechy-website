@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Self-hosted font for the home hero banner welcome quote. This re-creates the
+   text that used to be baked into the banner JPG so it can live as real, editable
+   HTML. Ubuntu Bold Italic is the EXACT font of the original quote (Ubuntu Font
+   Licence — freely redistributable). */
+@font-face {
+  font-family: 'Banner Quote';
+  src: url('/fonts/ubuntu-bold-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
