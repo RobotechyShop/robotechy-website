@@ -1,0 +1,109 @@
+= Deployment Guide
+:toc: auto
+:toclevels: 2
+
+Production robotechy runs as a Docker container (`robotechy`) in the *apps-stack*
+on the self-hosted *black-panther* box. The container builds from this repo's
+`Dockerfile` and runs *both* the static frontend and the order-service backend
+(the order service can't run on a static/CDN host, which is why we don't deploy
+the build to a static target).
+
+[NOTE]
+There is also a `nostr-deploy-cli` (`npm run deploy`) path that publishes a
+static-only mirror to Nostr/Blossom. That is optional and *not* the production
+deployment — it has no order service.
+
+== Architecture
+
+[source]
+----
+ tag v1.2.3 on robotechy-website
+        │  (push)
+        ▼
+ .github/workflows/deploy-trigger.yml   ── repository_dispatch ──►  BenGWeeks/black-panther
+        │                                   (deploy-robotechy)              │
+                                                                            ▼
+                                              .github/workflows/deploy-robotechy.yml
+                                              runs-on: [self-hosted, black-panther]
+                                                            │
+                                                            ▼
+                                   cd apps-stack && docker compose up -d --build robotechy
+----
+
+The self-hosted runner lives *on* black-panther and connects outbound to GitHub,
+so nothing is exposed to the internet.
+
+== Releasing
+
+[source,bash]
+----
+# Tag the commit on main you want to ship, and push the tag.
+git tag v1.2.3
+git push origin v1.2.3
+----
+
+That fires `deploy-trigger.yml`, which dispatches `deploy-robotechy` to the
+black-panther repo; its runner rebuilds the container from the latest `main` and
+restarts it. (The Docker build context is the default branch, so tag the commit
+you want on `main` first.)
+
+You can also deploy manually: in the *black-panther* repo, Actions → *Deploy
+robotechy* → *Run workflow*.
+
+== One-time setup
+
+=== 1. Self-hosted runner (on black-panther)
+
+Registered to `BenGWeeks/black-panther` with the label `black-panther`. To run it
+as a proper service (survives reboots):
+
+[source,bash]
+----
+cd ~/actions-runner
+sudo ./svc.sh install benweeks
+sudo ./svc.sh start
+sudo ./svc.sh status
+----
+
+=== 2. Dispatch token (secret in robotechy-website)
+
+`deploy-trigger.yml` needs a token that can POST dispatches to the black-panther
+repo:
+
+* Create a token with access to `BenGWeeks/black-panther` (classic PAT with
+`repo` scope, or a fine-grained PAT scoped to that repo with *Contents: read &
+write*).
+* Add it as the `BLACK_PANTHER_DEPLOY_TOKEN` secret in robotechy-website
+(*Settings → Secrets and variables → Actions*).
+
+The trigger fails fast if the secret is missing.
+
+== Manual / fallback deploy (directly on the box)
+
+[source,bash]
+----
+ssh black-panther.local
+cd ~/GitHub/black-panther/apps-stack
+git -C ~/GitHub/black-panther pull --ff-only
+docker compose up -d --build robotechy
+docker compose ps robotechy
+----
+
+== Rollback
+
+Tag and ship a previous good commit, or on the box check out the prior commit and
+rebuild:
+
+[source,bash]
+----
+cd ~/GitHub/black-panther/apps-stack
+docker compose up -d --build robotechy   # after main points at the good commit
+----
+
+== Container reference
+
+* Service `robotechy` in `apps-stack/docker-compose.yml`, published on `8084:3000`.
+* Env: `MERCHANT_NSEC`, `LIGHTNING_ADDRESS`, `FALLBACK_RELAYS` (order service);
+  without the first two it runs frontend-only.
+* See link:INSTALLATION.adoc#_docker_deployment[Installation → Docker Deployment]
+  for the image details and link:TROUBLESHOOTING.adoc[Troubleshooting].
