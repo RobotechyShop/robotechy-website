@@ -5,10 +5,10 @@
  * "Follow Us" and asserts the LoginDialog opens, plus that a "View on Nostr"
  * fallback link points at the shop's njump profile.
  *
- * Phase 2 (signed in): injects a throwaway login (NIP-17 / @nostrify
- * localStorage format, same as the owner scripts), clicks "Follow Us" and
- * asserts the button transitions to its "Following" state (the kind-3 contact
- * list is published to the relays).
+ * Phase 2 (signed in): injects a throwaway login (the @nostrify localStorage
+ * format, storageKey `nostr:login`), clicks "Follow Us" and asserts the button
+ * transitions to its "Following" state (the kind-3 contact list is published to
+ * the relays).
  *
  * Prereqs: a running storefront dev server, Playwright + Chromium installed.
  *   npm i -D playwright && npx playwright install chromium
@@ -23,12 +23,33 @@
  *   NSEC=nsec1… node e2e/follow-us.mjs
  */
 import { chromium } from 'playwright';
-import { injectOwnerLogin } from './owner-login.mjs';
+import { nip19, getPublicKey } from 'nostr-tools';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8080';
 const NSEC = process.env.NSEC;
 const HEADLESS = process.env.HEADLESS !== 'false';
 const SHOT = process.env.SHOT;
+
+/**
+ * Inject a login into localStorage before app code runs, using the @nostrify
+ * format (storageKey `nostr:login`) — the same shape the storefront persists.
+ */
+async function injectLogin(page, nsec) {
+  const decoded = nip19.decode(nsec);
+  if (decoded.type !== 'nsec') throw new Error('NSEC must be a valid nsec');
+  const pubkey = getPublicKey(decoded.data);
+  const payload = JSON.stringify([
+    {
+      id: `nsec:${pubkey}`,
+      type: 'nsec',
+      pubkey,
+      createdAt: new Date().toISOString(),
+      data: { nsec },
+    },
+  ]);
+  await page.addInitScript((data) => localStorage.setItem('nostr:login', data), payload);
+  return pubkey;
+}
 
 const browser = await chromium.launch({ headless: HEADLESS, args: ['--no-sandbox'] });
 
@@ -49,7 +70,10 @@ const browser = await chromium.launch({ headless: HEADLESS, args: ['--no-sandbox
   }
   console.log('signed-out fallback link OK:', href);
 
-  await footer.getByRole('button', { name: /follow robotechy on nostr/i }).first().click();
+  await footer
+    .getByRole('button', { name: /follow robotechy on nostr/i })
+    .first()
+    .click();
   await page.waitForTimeout(1000);
 
   // The LoginDialog should now be open.
@@ -65,7 +89,7 @@ const browser = await chromium.launch({ headless: HEADLESS, args: ['--no-sandbox
 // ── Phase 2: signed-in user follows the shop ───────────────────────────────
 if (NSEC) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 950 } });
-  await injectOwnerLogin(page, NSEC);
+  await injectLogin(page, NSEC);
   await page.goto(BASE_URL + '/', { waitUntil: 'networkidle', timeout: 30000 });
   await page.waitForTimeout(1500);
 
