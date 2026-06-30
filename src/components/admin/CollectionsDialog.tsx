@@ -65,7 +65,8 @@ export function CollectionsDialog({ open, onOpenChange }: CollectionsDialogProps
       description: parsed.description || '',
       image: parsed.image || '',
       // Collection 'a' refs are "30402:<pubkey>:<d>" — keep the product d-tag.
-      productIds: parsed.products.map((ref) => ref.split(':')[2]).filter(Boolean),
+      // slice(2).join(':') preserves d-tags that themselves contain ':'.
+      productIds: parsed.products.map((ref) => ref.split(':').slice(2).join(':')).filter(Boolean),
     });
   };
 

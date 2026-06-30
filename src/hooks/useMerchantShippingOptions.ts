@@ -20,9 +20,19 @@ export function useMerchantShippingOptions() {
         [{ kinds: [SHIPPING_OPTION_KIND], authors: [MERCHANT_PUBKEY], limit: 100 }],
         { signal }
       );
-      return events
-        .filter((event) => event.tags.some(([name]) => name === 'd'))
-        .sort((a, b) => b.created_at - a.created_at);
+      // Kind 30406 is addressable: relays may return several versions sharing a
+      // `d` tag. Keep only the newest per `d` so the management UI shows one row
+      // per shipping option (and edits target the current version).
+      const newestByD = new Map<string, (typeof events)[number]>();
+      for (const event of events) {
+        const d = event.tags.find(([name]) => name === 'd')?.[1];
+        if (!d) continue;
+        const existing = newestByD.get(d);
+        if (!existing || event.created_at > existing.created_at) {
+          newestByD.set(d, event);
+        }
+      }
+      return Array.from(newestByD.values()).sort((a, b) => b.created_at - a.created_at);
     },
   });
 }

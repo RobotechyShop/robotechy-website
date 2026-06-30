@@ -81,10 +81,14 @@ export function slugify(input: string): string {
   );
 }
 
+/** A short, cryptographically-random hex suffix for uniquifying d-tags. */
+function randomSuffix(): string {
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 8);
+}
+
 /** Generate a fresh, collision-resistant d-tag for a new listing. */
 export function generateProductId(title: string): string {
-  const rand = Math.random().toString(36).slice(2, 8);
-  return `${slugify(title)}-${rand}`;
+  return `${slugify(title)}-${randomSuffix()}`;
 }
 
 /** Validate product form input; returns a list of human-readable errors. */
@@ -249,7 +253,7 @@ export function buildShippingOptionEvent(
   const dTag =
     data.id?.trim() ||
     existing?.tags.find(([name]) => name === 'd')?.[1] ||
-    `ship-${slugify(data.title)}-${Math.random().toString(36).slice(2, 8)}`;
+    `ship-${slugify(data.title)}-${randomSuffix()}`;
 
   const countries = Array.from(
     new Set(data.countries.map((c) => c.trim().toUpperCase()).filter(Boolean))

@@ -41,7 +41,7 @@ describe('slugify / generateProductId', () => {
   });
 
   it('generates ids that start with the slug', () => {
-    expect(generateProductId('Nostr Badge')).toMatch(/^nostr-badge-[a-z0-9]{6}$/);
+    expect(generateProductId('Nostr Badge')).toMatch(/^nostr-badge-[0-9a-f]{8}$/);
   });
 });
 
