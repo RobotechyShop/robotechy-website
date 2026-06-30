@@ -2,6 +2,7 @@ import { CheckCircle, Copy, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRef, useState } from 'react';
 import { useMessagesDrawer } from '@/hooks/useMessagesDrawer';
+import { FollowUsButton } from '@/components/FollowUsButton';
 
 interface OrderConfirmationProps {
   orderId: string;
@@ -89,6 +90,11 @@ export function OrderConfirmation({ orderId, onClose }: OrderConfirmationProps) 
           <Mail className="h-4 w-4 mr-2" />
           Message
         </Button>
+      </div>
+
+      <div className="w-full pt-2 border-t border-border flex flex-col items-center gap-3">
+        <p className="text-sm text-muted-foreground">Stay in the loop on Nostr</p>
+        <FollowUsButton />
       </div>
     </div>
   );

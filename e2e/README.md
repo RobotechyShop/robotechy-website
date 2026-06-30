@@ -43,6 +43,20 @@ bubble renders.
 NSEC=nsec1… node e2e/messaging-flow.mjs
 ```
 
+### `follow-us.mjs`
+Drives the footer "Follow Us" button. Signed out, it asserts the click opens the
+LoginDialog and that the "View on Nostr" fallback points at the shop's njump
+profile. Signed in (with `NSEC`), it clicks Follow and asserts the button flips
+to its "Following" state once the kind-3 contact list is published.
+
+```bash
+# signed-out phase only
+node e2e/follow-us.mjs
+
+# both phases (publishes a kind-3 follow from the throwaway key)
+NSEC=nsec1… node e2e/follow-us.mjs
+```
+
 ## Common env vars
 
 | Var        | Default                  | Notes                                  |
