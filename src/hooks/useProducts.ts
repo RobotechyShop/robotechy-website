@@ -7,6 +7,7 @@ import { nip19 } from 'nostr-tools';
 // the storefront at a throwaway test merchant for local testing; unset = identical
 // production behaviour to the previous hardcoded value.
 const PRODUCTION_MERCHANT_NPUB = 'npub1yy0nyk6nj6tg4sx8nd7q5qcdw6pqd5e2cc0e8u2rmcgjhpvm63hsk67xe5';
+const PRODUCTION_MERCHANT_PUBKEY = nip19.decode(PRODUCTION_MERCHANT_NPUB).data as string;
 const MERCHANT_NPUB: string = import.meta.env.VITE_MERCHANT_NPUB || PRODUCTION_MERCHANT_NPUB;
 
 // Decode to a hex pubkey, accepting ONLY an npub. An invalid/typo'd or non-npub
@@ -22,7 +23,7 @@ function toMerchantPubkey(npub: string): string {
   console.warn(
     `[Products] Invalid merchant npub "${npub}" — falling back to the production merchant.`
   );
-  return nip19.decode(PRODUCTION_MERCHANT_NPUB).data as string;
+  return PRODUCTION_MERCHANT_PUBKEY;
 }
 const MERCHANT_PUBKEY = toMerchantPubkey(MERCHANT_NPUB);
 
