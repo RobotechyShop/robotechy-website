@@ -40,3 +40,13 @@ test('handles null/undefined/empty reasons without throwing (not ignorable)', ()
   assert.equal(isIgnorableRelayError(''), false);
   assert.equal(isIgnorableRelayError({}), false);
 });
+
+test('coerces a non-string message without throwing', () => {
+  assert.doesNotThrow(() => isIgnorableRelayError({ message: 123 }));
+  assert.equal(isIgnorableRelayError({ message: 123 }), false);
+  assert.equal(isIgnorableRelayError({ message: 'ETIMEDOUT' }), true);
+});
+
+test('does not swallow an unrelated error merely containing the word "connection"', () => {
+  assert.equal(isIgnorableRelayError(new Error('Lightning node connection failed')), false);
+});

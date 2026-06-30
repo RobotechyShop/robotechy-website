@@ -20,7 +20,12 @@ const RELAY_NOISE = [
   'network error',
   'non-101',
   'websocket',
-  'connection', // "connection timed out" / "refused" / "reset"
+  // Specific connection phrases only — a bare 'connection' would swallow
+  // unrelated failures (e.g. Lightning/LNURL). 'timed out'/'timeout' below also
+  // catch "connection timed out".
+  'connection refused',
+  'connection reset',
+  'connection closed',
   'timed out',
   'timeout',
   'socket hang up',
@@ -39,8 +44,11 @@ const RELAY_NOISE = [
  * @returns {boolean} true when it's a transient relay/network error to ignore
  */
 export function isIgnorableRelayError(reason) {
-  const raw = reason && reason.message ? reason.message : String(reason ?? '');
-  const msg = raw.toLowerCase();
+  // Coerce to a string defensively — `message` may be non-string (e.g. a number),
+  // and this runs inside the global unhandledRejection handler where throwing
+  // would itself crash the service.
+  const raw = reason && reason.message != null ? reason.message : reason;
+  const msg = String(raw ?? '').toLowerCase();
   if (!msg) return false;
   return RELAY_NOISE.some((needle) => msg.includes(needle));
 }
