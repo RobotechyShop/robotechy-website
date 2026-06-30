@@ -11,10 +11,8 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { CheckoutDialog } from '@/components/checkout/CheckoutDialog';
-import { ReviewsSection } from '@/components/reviews/ReviewsSection';
+import { ProductFeedbackTabs } from '@/components/ProductFeedbackTabs';
 import { productReviewCoord } from '@/lib/productReviews';
-import { CommentsSection } from '@/components/comments/CommentsSection';
-import { commentRootRef } from '@/lib/productComments';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -340,23 +338,13 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
           </div>
         </div>
 
-        {/* Product Reviews */}
+        {/* Product Reviews + Comments as tabs (Reviews default; Comments are
+            NIP-22 kind 1111 rooted on the kind-30402 product). */}
         {event && (
           <div className="mt-12">
-            <ReviewsSection coord={productReviewCoord(event.pubkey, product.id)} />
-          </div>
-        )}
-
-        {/* Product Comments (NIP-22 kind 1111, rooted on the kind-30402 product) */}
-        {event && (
-          <div className="mt-8">
-            {/* key remounts the section per product so prior input never leaks.
-                Keyed by the stable product coordinate (not event.id, which
-                changes on listing edits) so harmless refetches don't remount. */}
-            <CommentsSection
-              key={commentRootRef(event)}
-              root={event}
-              emptyStateSubtitle="Be the first to start the discussion!"
+            <ProductFeedbackTabs
+              event={event}
+              coord={productReviewCoord(event.pubkey, product.id)}
             />
           </div>
         )}

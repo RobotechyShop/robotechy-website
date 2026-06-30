@@ -2,9 +2,9 @@
  * E2E: Product comments (NIP-22 kind 1111).
  *
  * Phase 1 (signed out): opens the storefront, navigates to the first product,
- * scrolls to the Comments section and asserts it renders read-only — the
- * "Sign in to comment" action opens the LoginDialog rather than silently
- * no-opping.
+ * switches to the Comments tab (Reviews is the default tab) and asserts it
+ * renders read-only — the "Sign in to comment" action opens the LoginDialog
+ * rather than silently no-opping.
  *
  * Phase 2 (signed in): injects a throwaway login (the @nostrify localStorage
  * format, storageKey `nostr:login`), types a comment and posts it. Asserts a
@@ -63,11 +63,21 @@ async function gotoFirstProduct(page) {
   const href = await firstProduct.getAttribute('href');
   await page.goto(BASE_URL + href, { waitUntil: 'networkidle', timeout: 30000 });
   await page.waitForTimeout(1500);
-  // The comments section heading confirms the comments feature is mounted.
+  // Reviews + Comments are tabs (Reviews is the default). The Comments tab
+  // confirms we're on a product page with the feedback tabs mounted.
   await page
-    .getByRole('heading', { name: /comments/i })
+    .getByRole('tab', { name: /comments/i })
     .first()
     .waitFor({ timeout: 15000 });
+}
+
+/** Switch to the Comments tab (not visible by default — Reviews is default). */
+async function openCommentsTab(page) {
+  const commentsTab = page.getByRole('tab', { name: /comments/i }).first();
+  await commentsTab.scrollIntoViewIfNeeded();
+  await commentsTab.click();
+  // The compose box / sign-in prompt only renders once the tab is active.
+  await page.waitForTimeout(500);
 }
 
 const browser = await chromium.launch({ headless: HEADLESS, args: ['--no-sandbox'] });
@@ -76,10 +86,7 @@ const browser = await chromium.launch({ headless: HEADLESS, args: ['--no-sandbox
 {
   const page = await browser.newPage({ viewport: { width: 1280, height: 1100 } });
   await gotoFirstProduct(page);
-
-  const commentsHeading = page.getByRole('heading', { name: /comments/i }).first();
-  await commentsHeading.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(500);
+  await openCommentsTab(page);
 
   // The "Sign in to comment" button must open the LoginDialog (not no-op).
   const signInBtn = page.getByRole('button', { name: /sign in to comment/i }).first();
@@ -100,10 +107,7 @@ if (NSEC) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 1100 } });
   await injectLogin(page, NSEC);
   await gotoFirstProduct(page);
-
-  const commentsHeading = page.getByRole('heading', { name: /comments/i }).first();
-  await commentsHeading.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(500);
+  await openCommentsTab(page);
 
   const text = `Great product! Automated e2e comment ${Date.now()}`;
   await page.getByPlaceholder(/write a comment/i).fill(text);
@@ -114,7 +118,10 @@ if (NSEC) {
   await page.getByText(text).first().waitFor({ timeout: 20000 });
   console.log('signed-in: kind-1111 comment published and rendered OK');
 
-  await commentsHeading.scrollIntoViewIfNeeded();
+  await page
+    .getByRole('tab', { name: /comments/i })
+    .first()
+    .scrollIntoViewIfNeeded();
   await page.waitForTimeout(1000);
   if (SHOT_DIR) await page.screenshot({ path: `${SHOT_DIR}/03-just-posted.png` });
   await page.close();

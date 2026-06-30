@@ -131,11 +131,12 @@ NSEC=nsec1… SHOT_DIR=docs/screenshots/NN node e2e/product-reviews.mjs
 
 ### `product-comments.mjs`
 
-Drives the NIP-22 kind-1111 product comments. Signed out, it opens the first
-product, scrolls to the Comments section and asserts it's read-only — the "Sign
-in to comment" action opens the LoginDialog. Signed in (with `NSEC`, injected
-straight into `localStorage` in the `@nostrify` format), it types a comment,
-posts it, and asserts the published kind-1111 comment renders in the list.
+Drives the NIP-22 kind-1111 product comments. Reviews and Comments are shown as
+tabs (Reviews is the default), so the script switches to the Comments tab first.
+Signed out, it asserts the section is read-only — the "Sign in to comment"
+action opens the LoginDialog. Signed in (with `NSEC`, injected straight into
+`localStorage` in the `@nostrify` format), it types a comment, posts it, and
+asserts the published kind-1111 comment renders in the list.
 
 ```bash
 # signed-out phase only
