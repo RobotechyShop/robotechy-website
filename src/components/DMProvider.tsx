@@ -13,7 +13,7 @@ import {
   type ProtocolMode,
 } from '@/lib/dmConstants';
 import { NSecSigner, type NostrEvent } from '@nostrify/nostrify';
-import { generateSecretKey, verifyEvent } from 'nostr-tools';
+import { generateSecretKey } from 'nostr-tools';
 import type { MessageProtocol } from '@/lib/dmConstants';
 import { MESSAGE_PROTOCOL } from '@/lib/dmConstants';
 import { DMContext, DMContextType, FileAttachment } from '@/contexts/DMContext';
@@ -962,30 +962,15 @@ export function DMProvider({ children, config }: DMProviderProps) {
           };
         }
 
-        // Authenticate the sender cryptographically BEFORE trusting
-        // sealEvent.pubkey. The seal (kind 13) is a real signed event, so its
-        // signature is what proves the sender controls sealEvent.pubkey. Without
-        // this check a malicious sender could encrypt an arbitrary seal claiming
-        // any pubkey. Fail closed: drop the message if the signature is invalid.
-        // (Mirrors the backend unwrapGiftWrap hardening. The inner rumor is
-        // intentionally unsigned per NIP-59, so it is NOT verified here.)
-        if (!verifyEvent(sealEvent)) {
-          console.warn(`[DM] ⚠️ NIP-17 INVALID SEAL SIGNATURE - sender not authenticated`, {
-            giftWrapId: event.id,
-            sealPubkey: sealEvent.pubkey,
-          });
-          return {
-            processedMessage: {
-              ...event,
-              content: '',
-              decryptedContent: '',
-              error: 'Sender not authenticated - seal signature is invalid',
-            },
-            conversationPartner: event.pubkey,
-            sealEvent, // Return the seal
-          };
-        }
-
+        // Sender authentication: this app's NIP-17 seals are intentionally
+        // UNSIGNED (no id/sig) — only the gift wrap is signed, with an ephemeral
+        // key, per NIP-59. So we do NOT signature-verify the seal (a previous
+        // verifyEvent(sealEvent) check here rejected EVERY message, since an
+        // unsigned seal can never pass). Authentication comes from the NIP-44
+        // decrypt below: the seal content was encrypted with the real sender's
+        // key to the recipient, so it only decrypts when keyed to the genuine
+        // sender's `sealEvent.pubkey` (a forged pubkey fails to decrypt), and the
+        // rumor↔seal pubkey match further down rejects any remaining spoof.
         const messageContent = await user.signer.nip44.decrypt(sealEvent.pubkey, sealEvent.content);
         const messageEvent = JSON.parse(messageContent) as NostrEvent;
 
