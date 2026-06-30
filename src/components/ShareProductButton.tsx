@@ -73,7 +73,10 @@ export function ShareProductButton({
   const [noteText, setNoteText] = useState('');
   const [justShared, setJustShared] = useState(false);
 
-  const pubkey = product.event.pubkey;
+  // The product event's author (the merchant) — distinct from the signed-in
+  // shopper (`user` from useCurrentUser). Named explicitly so a future edit
+  // near publishing can't accidentally swap the two.
+  const merchantPubkey = product.event.pubkey;
   const imageUrl = product.images[0]?.url;
 
   // Up to two read relays as naddr hints so clients (njump, etc.) can resolve
@@ -92,7 +95,7 @@ export function ShareProductButton({
   // The product's portable pointer and the human-facing njump link. Memoised so
   // every menu action (copy / native share / Nostr note) uses the same URL.
   const { naddr, njumpUrl, defaultNote } = useMemo(() => {
-    const naddr = buildProductNaddr(pubkey, product.id, relayHints);
+    const naddr = buildProductNaddr(merchantPubkey, product.id, relayHints);
     const njumpUrl = buildNjumpUrl(naddr);
     const defaultNote = buildShareNoteContent({
       title: product.title,
@@ -100,7 +103,7 @@ export function ShareProductButton({
       njumpUrl,
     });
     return { naddr, njumpUrl, defaultNote };
-  }, [pubkey, product.id, product.title, product.price, relayHints]);
+  }, [merchantPubkey, product.id, product.title, product.price, relayHints]);
 
   const copyLink = async () => {
     try {
@@ -152,7 +155,7 @@ export function ShareProductButton({
   const publishNote = async () => {
     try {
       const event = buildShareNoteEvent({
-        pubkey,
+        pubkey: merchantPubkey,
         identifier: product.id,
         title: product.title,
         price: product.price,
@@ -161,12 +164,13 @@ export function ShareProductButton({
         content: noteText.trim() || defaultNote,
       });
       await publishEvent(event);
+      // Keep the dialog open and flip to the "Shared" state so success is
+      // visible; the user closes the dialog themselves (and the toast confirms).
       setJustShared(true);
       toast({
         title: 'Shared to Nostr ✓',
         description: `${product.title} was posted to your Nostr feed.`,
       });
-      setShowCompose(false);
     } catch (error) {
       toast({
         title: 'Could not share',
@@ -286,9 +290,11 @@ export function ShareProductButton({
         }}
       />
 
-      {/* naddr kept in the DOM (visually hidden) so e2e / tooling can assert the
-          product's addressable pointer without opening the menu. */}
-      <span className="sr-only" data-product-naddr={naddr} />
+      {/* naddr kept in the DOM purely as an e2e/tooling hook so tests can assert
+          the product's addressable pointer without opening the menu. `hidden`
+          (not sr-only) keeps it out of the a11y tree — it carries no
+          user-facing text — while `getAttribute` still works for tests. */}
+      <span hidden data-product-naddr={naddr} />
     </>
   );
 }
