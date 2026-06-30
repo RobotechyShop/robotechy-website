@@ -61,11 +61,16 @@ The **order-service** subscribes to kind 1059 gift wraps addressed to the mercha
 The payment request is generated as a **single** Lightning invoice (one `generateInvoice` call) and delivered two ways, both gift-wrapped to the buyer:
 
 - a **kind 16 type 2** payment request — the rich, structured "order card" that Gamma-aware clients (and the website) render; and
-- a **kind 14** chat note carrying the **same BOLT11** — a fallback so generic NIP-17 DM clients (0xchat, Amethyst's DM view) that can't draw a kind 16 card still show the invoice.
+- a **kind 14** chat note whose `content` carries a short human-readable line **followed by the raw `lnbc…` BOLT11 string** (verbatim, so LN-aware clients make it tappable) — a fallback so generic NIP-17 DM clients (0xchat, Amethyst's DM view) that can't draw a kind 16 card still show the invoice.
 
-Both events carry the **identical `["order", "<orderId>"]` tag**, which is the dedup contract for client authors:
+**Two correlation keys — use whichever you can access.** The two events are linked by _both_ of the following, and a client only needs one of them to dedupe:
 
-- **If a client renders the rich kind 16 order card** for an order id, it should **suppress** any kind 14 chat note carrying the same `["order", "<orderId>"]` tag. Correlate by order id, and dedupe **at render time over the full message set** — arrival order is not guaranteed (NIP-59 randomizes gift-wrap timestamps), so do not decide at ingest.
+1. **By order id** — both events carry the identical `["order", "<orderId>"]` tag. Clients that retain event tags dedupe on that.
+2. **By invoice** — both carry the identical BOLT11: the kind 16's `["payment","lightning","<bolt11>"]` value and the kind 14's `content` text contain the exact same `lnbc…` string. Clients whose message store does **not** persist tags (e.g. Lightning Piggy) dedupe on the exact invoice string extracted from the note text.
+
+Either key works precisely because it is **one** invoice. The dedup contract for client authors:
+
+- **If a client renders the rich kind 16 order card** for an order, it should **suppress** the matching kind 14 chat note — matched by the shared order id _or_ the shared BOLT11. Dedupe **at render time over the full message set**, not at ingest: arrival order is not guaranteed (NIP-59 randomizes gift-wrap timestamps), so the note may arrive before the card.
 - **If no kind 16 card is present** (the client can't render it, or it was lost), **show the kind 14 note** — it is the only copy of the invoice the buyer has.
 
 This is safe with respect to issue #7 (DM invoice diverging from the website invoice, enabling double payment): it is the **same BOLT11** on both surfaces, so a single Lightning invoice settles **once** — even if a buyer tries to pay from both, the second settle simply fails at the Lightning layer. No second invoice is ever generated, and no NIP-04 DM is used.
