@@ -6,7 +6,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/useToast';
 import { usePostComment } from '@/hooks/usePostComment';
 import LoginDialog from '@/components/auth/LoginDialog';
-import { NostrEvent } from '@nostrify/nostrify';
+import type { NostrEvent } from '@nostrify/nostrify';
 import { MessageSquare, Send } from 'lucide-react';
 
 interface CommentFormProps {
