@@ -34,10 +34,14 @@ jobs:
             echo "::error::BLACK_PANTHER_DEPLOY_TOKEN is not set — cannot trigger the deploy."
             exit 1
           fi
+          # Build the dispatch payload with jq so REF is JSON-escaped, not
+          # string-interpolated into the body (avoids breaking/injecting JSON).
+          PAYLOAD=$(jq -nc --arg ref "$REF" \
+            '{event_type:"deploy-robotechy",client_payload:{ref:$ref}}')
           curl -fsS -X POST \
             -H "Authorization: Bearer ${TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/BenGWeeks/black-panther/dispatches \
-            -d "{\"event_type\":\"deploy-robotechy\",\"client_payload\":{\"ref\":\"${REF}\"}}"
+            -d "$PAYLOAD"
           echo "Dispatched deploy-robotechy for ${REF}."
