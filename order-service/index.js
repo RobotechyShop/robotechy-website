@@ -23,6 +23,7 @@ process.on('unhandledRejection', (reason) => {
   process.exit(1);
 });
 
+import { pathToFileURL } from 'url';
 import { config } from './lib/config.js';
 import { isIgnorableRelayError } from './lib/relayErrors.js';
 import { NostrClient, decodeNsec } from './lib/nostr.js';
@@ -72,8 +73,28 @@ function formatThankYouNote(orderId) {
 
 /**
  * Handle incoming order (Kind 16 Type 1)
+ *
+ * Generates exactly ONE Lightning invoice for the order and threads that single
+ * invoice into ONE gift-wrapped Kind 16 Type 2 payment request. This is the
+ * invariant that fixes #7 (DM invoice diverging from the website invoice): there
+ * is no second invoice and no separate NIP-04 DM — see the comment at the
+ * gift-wrap call below. The regression test in test/single-invoice.test.js locks
+ * this in.
+ *
+ * `generateInvoice` is injected (defaulting to the real LNURL implementation) so
+ * the order flow can be exercised hermetically in tests — no network, and the
+ * test can assert it is called exactly once with the returned BOLT11 ending up
+ * in the payment-request event.
+ *
+ * @param {Omit<import('nostr-tools').Event, 'id'|'sig'>} event - inner order rumor
+ * @param {NostrClient} nostrClient
+ * @param {{ generateInvoice?: typeof generateInvoice }} [deps]
  */
-async function handleOrder(event, nostrClient) {
+export async function handleOrder(
+  event,
+  nostrClient,
+  { generateInvoice: genInvoice = generateInvoice } = {}
+) {
   const order = parseOrderEvent(event);
   if (!order) {
     return;
@@ -98,7 +119,7 @@ async function handleOrder(event, nostrClient) {
   try {
     // Generate Lightning invoice
     console.log(`[Order] Generating invoice for ${order.amount} sats...`);
-    const invoice = await generateInvoice(config.lightningAddress, order.amount, order.orderId);
+    const invoice = await genInvoice(config.lightningAddress, order.amount, order.orderId);
 
     // Build the Kind 16 Type 2 payment request rumor and gift-wrap it to the buyer.
     // The structured invoice data lives in the rumor tags; we fold a human-readable
@@ -272,8 +293,15 @@ async function main() {
   console.log('[Service] Waiting for orders... (Ctrl+C to stop)\n');
 }
 
-// Run
-main().catch((error) => {
-  console.error('[Fatal]', error);
-  process.exit(1);
-});
+// Run — but only when executed directly (`node index.js`), not when this module
+// is imported (e.g. by the regression test, which imports `handleOrder`). Guard
+// with an entry-point check so importing the module has no network/relay side
+// effects.
+const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isEntryPoint) {
+  main().catch((error) => {
+    console.error('[Fatal]', error);
+    process.exit(1);
+  });
+}
