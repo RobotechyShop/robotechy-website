@@ -4,6 +4,12 @@ import { useTheme } from '@/hooks/useTheme';
 import { useMessagesDrawer } from '@/hooks/useMessagesDrawer';
 import type { Theme } from '@/contexts/AppContext';
 
+// Test-mode flag: true when the storefront is pointed at a throwaway test merchant
+// (VITE_TEST_MODE=true or VITE_MERCHANT_NPUB set, e.g. via .env.test). Drives the
+// "TEST" badge so it's obvious you're not on the live shop.
+const TEST_MODE =
+  import.meta.env.VITE_TEST_MODE === 'true' || Boolean(import.meta.env.VITE_MERCHANT_NPUB);
+
 export function Header() {
   const { theme, setTheme } = useTheme();
   const { openMessages } = useMessagesDrawer();
@@ -29,6 +35,11 @@ export function Header() {
                 className="h-8 object-contain"
               />
             </a>
+            {TEST_MODE && (
+              <span className="rounded bg-fuchsia-600 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
+                TEST
+              </span>
+            )}
           </div>
           <nav className="flex items-center gap-2 text-sm font-medium">
             <a

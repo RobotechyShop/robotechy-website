@@ -3,9 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
 
-// Decode the merchant npub
-const MERCHANT_NPUB = 'npub1yy0nyk6nj6tg4sx8nd7q5qcdw6pqd5e2cc0e8u2rmcgjhpvm63hsk67xe5';
-const MERCHANT_PUBKEY = nip19.decode(MERCHANT_NPUB).data as string;
+// Production merchant npub (default). Overridable via VITE_MERCHANT_NPUB to point
+// the storefront at a throwaway test merchant for local testing; unset = identical
+// production behaviour to the previous hardcoded value.
+const PRODUCTION_MERCHANT_NPUB = 'npub1yy0nyk6nj6tg4sx8nd7q5qcdw6pqd5e2cc0e8u2rmcgjhpvm63hsk67xe5';
+const MERCHANT_NPUB: string = import.meta.env.VITE_MERCHANT_NPUB || PRODUCTION_MERCHANT_NPUB;
+const MERCHANT_PUBKEY = nip19.decode(MERCHANT_NPUB).data as unknown as string;
 
 interface ProductFilter {
   collectionId?: string;
