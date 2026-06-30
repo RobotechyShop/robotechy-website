@@ -8,7 +8,23 @@ import { nip19 } from 'nostr-tools';
 // production behaviour to the previous hardcoded value.
 const PRODUCTION_MERCHANT_NPUB = 'npub1yy0nyk6nj6tg4sx8nd7q5qcdw6pqd5e2cc0e8u2rmcgjhpvm63hsk67xe5';
 const MERCHANT_NPUB: string = import.meta.env.VITE_MERCHANT_NPUB || PRODUCTION_MERCHANT_NPUB;
-const MERCHANT_PUBKEY = nip19.decode(MERCHANT_NPUB).data as unknown as string;
+
+// Decode to a hex pubkey, accepting ONLY an npub. An invalid/typo'd or non-npub
+// VITE_MERCHANT_NPUB (e.g. a hex key or nprofile) falls back to the production
+// merchant with a warning, instead of throwing at module init and crashing the app.
+function toMerchantPubkey(npub: string): string {
+  try {
+    const decoded = nip19.decode(npub);
+    if (decoded.type === 'npub') return decoded.data;
+  } catch {
+    // fall through to the fallback below
+  }
+  console.warn(
+    `[Products] Invalid merchant npub "${npub}" — falling back to the production merchant.`
+  );
+  return nip19.decode(PRODUCTION_MERCHANT_NPUB).data as string;
+}
+const MERCHANT_PUBKEY = toMerchantPubkey(MERCHANT_NPUB);
 
 interface ProductFilter {
   collectionId?: string;
