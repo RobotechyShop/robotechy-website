@@ -10,12 +10,13 @@ export const SITE_NAME = 'Robotechy';
 // ~160 character budget so previews don't get clipped mid-word.
 export const MAX_DESCRIPTION_LENGTH = 160;
 
-/** A single `<meta>` tag, keyed by either `property` (Open Graph) or `name` (Twitter / standard). */
-export interface MetaTag {
-  property?: string;
-  name?: string;
-  content: string;
-}
+/**
+ * A single `<meta>` tag, keyed by EXACTLY one of `property` (Open Graph) or
+ * `name` (Twitter / standard) — never both, never neither.
+ */
+export type MetaTag =
+  | { property: string; name?: never; content: string }
+  | { name: string; property?: never; content: string };
 
 /** Head input accepted by `useHead` — a document title plus a flat list of meta tags. */
 export interface ProductHead {
