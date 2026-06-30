@@ -1,17 +1,15 @@
-import path from "node:path";
+import path from 'node:path';
 
-import react from "@vitejs/plugin-react-swc";
-import { defineConfig } from "vitest/config";
+import react from '@vitejs/plugin-react-swc';
+import { defineConfig } from 'vitest/config';
 
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
   server: {
-    host: "::",
+    host: '::',
     port: 8080,
   },
-  plugins: [
-    react(),
-  ],
+  plugins: [react()],
   optimizeDeps: {
     include: ['style-to-js'],
   },
@@ -23,7 +21,7 @@ export default defineConfig(() => ({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     setupFiles: './src/test/setup.ts',
     onConsoleLog(log) {
-      return !log.includes("React Router Future Flag Warning");
+      return !log.includes('React Router Future Flag Warning');
     },
     env: {
       DEBUG_PRINT_LIMIT: '0', // Suppress DOM output that exceeds AI context windows
@@ -46,7 +44,7 @@ export default defineConfig(() => ({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
 }));
