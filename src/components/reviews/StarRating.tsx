@@ -101,9 +101,11 @@ export function StarRatingInput({
     if (disabled) return;
     const clamped = Math.max(0, Math.min(maxStars, next));
     onChange(clamped);
-    // Roving tabindex: move focus to the newly-selected star so screen readers
-    // announce it and keyboard navigation stays predictable (min 1 star).
-    if (clamped >= 1) buttonsRef.current[clamped - 1]?.focus();
+    // Roving tabindex: move focus to the active star so screen readers announce
+    // it and keyboard navigation stays predictable. When the selection is
+    // cleared to 0 the first star holds the group's tab stop, so focus that.
+    const focusIndex = clamped >= 1 ? clamped - 1 : 0;
+    buttonsRef.current[focusIndex]?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -113,7 +115,9 @@ export function StarRatingInput({
       setStars(Math.min(maxStars, (value || 0) + 1));
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
       e.preventDefault();
-      setStars(Math.max(1, (value || 1) - 1));
+      // Allow stepping all the way down to 0 so keyboard users can clear the
+      // selection (value 0 = none), matching the documented prop contract.
+      setStars(Math.max(0, (value || 0) - 1));
     }
   };
 

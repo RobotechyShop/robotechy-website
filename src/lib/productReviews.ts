@@ -196,7 +196,9 @@ export function dedupeNewestPerAuthor(events: NostrEvent[]): NostrEvent[] {
   const byAuthor = new Map<string, NostrEvent>();
   for (const e of events) {
     const existing = byAuthor.get(e.pubkey);
-    if (!existing || e.created_at > existing.created_at) {
+    // Treat a missing `created_at` as 0 so malformed events without a timestamp
+    // never win over (or unpredictably tie with) a well-formed newer event.
+    if (!existing || (e.created_at ?? 0) > (existing.created_at ?? 0)) {
       byAuthor.set(e.pubkey, e);
     }
   }

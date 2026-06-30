@@ -190,6 +190,16 @@ describe('dedupeNewestPerAuthor', () => {
     expect(deduped).toHaveLength(2);
     expect(deduped.find((e) => e.pubkey === 'x'.repeat(64))!.id).toBe('fresh');
   });
+
+  it('treats a missing created_at as 0 so a timestamped event still wins', () => {
+    const noTs = makeReview({ id: 'no-ts', pubkey: 'z'.repeat(64) });
+    delete (noTs as { created_at?: number }).created_at;
+    const dated = makeReview({ id: 'dated', pubkey: 'z'.repeat(64), created_at: 50 });
+    // Order the missing-timestamp event last to prove it doesn't overwrite the dated one.
+    const deduped = dedupeNewestPerAuthor([dated, noTs]);
+    expect(deduped).toHaveLength(1);
+    expect(deduped[0].id).toBe('dated');
+  });
 });
 
 describe('parseReviews', () => {
