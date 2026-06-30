@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { useSeoMeta } from '@unhead/react';
+import { useHead } from '@unhead/react';
 import { useNavigate } from 'react-router-dom';
+import { nip19 } from 'nostr-tools';
 import { useProduct } from '@/hooks/useProducts';
 import { useToast } from '@/hooks/useToast';
 import { useCart } from '@/hooks/useCart';
 import { formatPriceFromTag, parseProductEvent } from '@/lib/productUtils';
+import { buildProductMeta, SITE_NAME, SITE_URL } from '@/lib/productMeta';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/cart/CartDrawer';
@@ -34,10 +36,28 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
-  useSeoMeta({
-    title: product ? `${product.title} - Robotechy` : 'Loading...',
-    description: product?.summary?.slice(0, 160),
-  });
+  // Open Graph / Twitter Card meta for social sharing. These are injected at
+  // runtime (client-rendered SPA), so they drive in-app titles, native share
+  // sheets and any future SSR/pre-render — but social crawlers read the static
+  // index.html shell, which carries store-level previews. See PR limitations.
+  //
+  // Build the canonical product URL from the naddr route (kind:pubkey:d-tag),
+  // matching how ProductCard links here. `identifier` is the NIP-99 `d` tag, so
+  // it must NOT be used as a path segment directly. Fall back to the storefront
+  // origin in non-browser contexts (SSR / tests) when the event isn't loaded.
+  const origin = typeof window !== 'undefined' ? window.location.origin : SITE_URL;
+  const productUrl =
+    event && product
+      ? `${origin}/${nip19.naddrEncode({ kind: 30402, pubkey: event.pubkey, identifier: product.id })}`
+      : origin;
+  useHead(
+    product
+      ? buildProductMeta(product, productUrl)
+      : {
+          title: isLoading ? `Loading… | ${SITE_NAME}` : `Product not found | ${SITE_NAME}`,
+          meta: [],
+        }
+  );
 
   const handleImageError = (index: number) => {
     setImageErrors((prev) => new Set(prev).add(index));
