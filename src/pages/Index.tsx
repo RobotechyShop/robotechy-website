@@ -102,11 +102,12 @@ const Index = () => {
           backgroundPosition: 'center',
         }}
       >
-        {/* Avatar positioned over the plate's circle: center x≈26.2%, vertically
-            centered; diameter ≈ the circle's 20.5% of the banner width. */}
+        {/* Avatar over the plate's circle: center x≈26.2%, vertically centered.
+            Sized to ~75% of the original photo circle so it doesn't touch the
+            banner's top/bottom edges. */}
         <Avatar
           className="absolute aspect-square h-auto -translate-x-1/2 -translate-y-1/2 border-4 border-white shadow-lg"
-          style={{ left: '26.2%', top: '50%', width: '20.5%' }}
+          style={{ left: '26.2%', top: '50%', width: '15.4%' }}
         >
           <AvatarImage src={ownerMeta?.picture} alt={ownerName} className="object-cover" />
           <AvatarFallback className="bg-neutral-800 text-2xl text-white">
