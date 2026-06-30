@@ -3,6 +3,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ShareProductButton } from '@/components/ShareProductButton';
 import { formatPriceFromTag, parseProductEvent } from '@/lib/productUtils';
+import { productReviewCoord } from '@/lib/productReviews';
+import { useProductReviews } from '@/hooks/useProductReviews';
+import { StarRating } from '@/components/reviews/StarRating';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -14,8 +17,13 @@ interface ProductCardProps {
 export function ProductCard({ event }: ProductCardProps) {
   const product = parseProductEvent(event);
   const [imageError, setImageError] = useState(false);
+  const { data: reviewsData } = useProductReviews(
+    product ? productReviewCoord(event.pubkey, product.id) : undefined
+  );
 
   if (!product) return null;
+
+  const aggregate = reviewsData?.aggregate;
 
   const naddr = nip19.naddrEncode({
     kind: 30402,
@@ -78,6 +86,15 @@ export function ProductCard({ event }: ProductCardProps) {
           <h3 className="font-semibold text-base line-clamp-2 mb-2 group-hover:text-robotechy-green-dark transition-colors">
             {product.title}
           </h3>
+
+          {aggregate && aggregate.count > 0 && (
+            <div className="flex items-center gap-1.5 mb-2">
+              <StarRating stars={aggregate.average} size="sm" />
+              <span className="text-xs text-sage-600 dark:text-sage-400">
+                {aggregate.average.toFixed(1)} ({aggregate.count})
+              </span>
+            </div>
+          )}
 
           {product.summary && (
             <p className="text-sm text-sage-600 dark:text-sage-400 line-clamp-2 mb-3 flex-1">
