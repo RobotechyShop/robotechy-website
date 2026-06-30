@@ -84,4 +84,8 @@ export interface CheckoutState {
   status: 'idle' | 'submitting' | 'awaiting_payment' | 'paid' | 'shipped' | 'error';
   error?: string;
   paymentRequest?: GammaPaymentRequest;
+  // Order total in satoshis, captured at order-creation time. The payment
+  // receipt reads this instead of recomputing from the cart, which is cleared
+  // once the order is placed (recomputing would yield 0 sats).
+  totalSats?: number;
 }

@@ -134,6 +134,9 @@ export function PaymentDisplay({
 
     setIsPaying(true);
     try {
+      // WebLN requires the provider to be enabled before any sendPayment call,
+      // otherwise it throws "Provider must be enabled before calling sendPayment".
+      await webln.enable();
       const result = await webln.sendPayment(invoice);
       if (result.preimage) {
         toast({

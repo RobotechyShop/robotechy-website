@@ -20,7 +20,10 @@ LIMIT=1000
 # Echo the max allowed lines for a baselined path, or nothing if not baselined.
 baseline_for() {
   case "$1" in
-    "src/components/DMProvider.tsx") echo 1652 ;;
+    # 1652 was main's size; the nip17-commerce-migration branch grew this file
+    # before the gate existed. Bumped to the branch's current size to freeze it
+    # here — DMProvider should be split into modules in a follow-up (don't grow).
+    "src/components/DMProvider.tsx") echo 1760 ;;
     *) echo "" ;;
   esac
 }

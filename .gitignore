@@ -11,7 +11,12 @@ coverage/
 .env
 .env.local
 .env.*.local
+.env.test
 order-service/.env
+order-service/.env.test
+
+# Order-service persisted dedup store (processed order/receipt IDs)
+order-service/.processed.json
 
 # IDE
 .idea/

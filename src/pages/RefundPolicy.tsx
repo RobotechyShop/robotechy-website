@@ -1,7 +1,7 @@
 import { useSeoMeta } from '@unhead/react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { ContactDialog } from '@/components/ContactDialog';
+import { MessageShopLink } from '@/components/messages/MessageShopLink';
 
 const RefundPolicy = () => {
   useSeoMeta({
@@ -31,17 +31,10 @@ const RefundPolicy = () => {
           </p>
 
           <p>
-            To start a return, you can{' '}
-            <ContactDialog
-              trigger={
-                <button className="text-robotechy-green-dark hover:underline inline">
-                  contact us
-                </button>
-              }
-            />
-            . If your return is accepted, we'll send you a return shipping label, as well as
-            instructions on how and where to send your package. Items sent back to us without first
-            requesting a return will not be accepted.
+            To start a return, you can <MessageShopLink>contact us</MessageShopLink>. If your return
+            is accepted, we'll send you a return shipping label, as well as instructions on how and
+            where to send your package. Items sent back to us without first requesting a return will
+            not be accepted.
           </p>
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Damages and Issues</h2>
@@ -79,15 +72,7 @@ const RefundPolicy = () => {
 
           <h2 className="text-2xl font-semibold mt-8 mb-4">Contact</h2>
           <p>
-            You can always{' '}
-            <ContactDialog
-              trigger={
-                <button className="text-robotechy-green-dark hover:underline inline">
-                  contact us
-                </button>
-              }
-            />{' '}
-            for any return questions.
+            You can always <MessageShopLink>contact us</MessageShopLink> for any return questions.
           </p>
         </div>
       </main>

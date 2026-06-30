@@ -13,6 +13,7 @@ import { NostrLoginProvider } from '@nostrify/react/login';
 import { AppProvider } from '@/components/AppProvider';
 import { NWCProvider } from '@/contexts/NWCContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { MessagesDrawerProvider } from '@/contexts/MessagesDrawerContext';
 import { DMProvider } from '@/components/DMProvider';
 import { AppConfig } from '@/contexts/AppContext';
 import AppRouter from './AppRouter';
@@ -56,10 +57,12 @@ export function App() {
                 <DMProvider config={{ enabled: true }}>
                   <CartProvider>
                     <TooltipProvider>
-                      <Toaster />
-                      <Suspense>
-                        <AppRouter />
-                      </Suspense>
+                      <MessagesDrawerProvider>
+                        <Toaster />
+                        <Suspense>
+                          <AppRouter />
+                        </Suspense>
+                      </MessagesDrawerProvider>
                     </TooltipProvider>
                   </CartProvider>
                 </DMProvider>

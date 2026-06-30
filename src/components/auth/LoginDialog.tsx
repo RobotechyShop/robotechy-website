@@ -5,7 +5,13 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Shield, Upload, AlertTriangle, UserPlus, KeyRound, Sparkles, Cloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useLoginActions } from '@/hooks/useLoginActions';
@@ -193,6 +199,9 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
         )}
       >
         <DialogHeader className={cn('px-6 pt-6 pb-1 relative')}>
+          {/* Visually hidden title satisfies the Radix Dialog a11y requirement
+              (screen readers) without changing the existing visual layout. */}
+          <DialogTitle className="sr-only">Sign up or log in</DialogTitle>
           <DialogDescription className="text-center">
             Sign up or log in to continue
           </DialogDescription>
