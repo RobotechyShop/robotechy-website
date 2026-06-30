@@ -271,7 +271,22 @@ export function buildShippingOptionEvent(
   ];
   if (data.carrier?.trim()) tags.push(['carrier', data.carrier.trim()]);
 
-  return { kind: SHIPPING_OPTION_KIND, content: '', tags, created_at: now };
+  // Preserve Gamma tags the form does not manage (region, duration, location,
+  // g, weight-*/dim-*/price-* …) so editing an option keeps its other zones and
+  // semantics instead of silently dropping them.
+  if (existing) {
+    const managed = new Set(['d', 'title', 'price', 'country', 'service', 'carrier', 'client']);
+    for (const tag of existing.tags) {
+      if (!managed.has(tag[0])) tags.push(tag);
+    }
+  }
+
+  return {
+    kind: SHIPPING_OPTION_KIND,
+    content: existing?.content ?? '',
+    tags,
+    created_at: now,
+  };
 }
 
 // ---------------------------------------------------------------------------

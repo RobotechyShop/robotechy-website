@@ -198,6 +198,40 @@ describe('shipping options', () => {
     expect(tagVal(event.tags, 'carrier')).toBe('Royal Mail');
   });
 
+  it('preserves unmanaged tags (region, duration) when editing', () => {
+    const existing = {
+      pubkey: 'PK',
+      content: '',
+      tags: [
+        ['d', 'ship-uk'],
+        ['title', 'old'],
+        ['price', '1', 'SATS'],
+        ['country', 'GB'],
+        ['service', 'standard'],
+        ['region', 'GB-ENG', 'GB-SCT'],
+        ['duration', '2', '3', 'D'],
+        ['client', 'example.com'],
+      ],
+    } as unknown as NostrEvent;
+    const edited = buildShippingOptionEvent(
+      {
+        id: 'ship-uk',
+        title: 'UK Standard',
+        priceAmount: '500',
+        priceCurrency: 'SATS',
+        countries: ['GB'],
+        service: 'standard',
+      },
+      existing
+    );
+    expect(edited.tags.find(([n]) => n === 'region')).toEqual(['region', 'GB-ENG', 'GB-SCT']);
+    expect(edited.tags.find(([n]) => n === 'duration')).toEqual(['duration', '2', '3', 'D']);
+    expect(tagsNamed(edited.tags, 'client')).toHaveLength(0);
+    // Managed tags are still rebuilt, not duplicated.
+    expect(tagsNamed(edited.tags, 'title')).toHaveLength(1);
+    expect(tagVal(edited.tags, 'title')).toBe('UK Standard');
+  });
+
   it('builds a kind 5 deletion for shipping options', () => {
     const del = buildShippingOptionDeleteEvent({
       pubkey: 'PK',
