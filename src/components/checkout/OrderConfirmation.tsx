@@ -1,6 +1,6 @@
 import { CheckCircle, Copy, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMessagesDrawer } from '@/hooks/useMessagesDrawer';
 
 interface OrderConfirmationProps {
@@ -13,14 +13,11 @@ export function OrderConfirmation({ orderId, onClose }: OrderConfirmationProps) 
   const { openMessages } = useMessagesDrawer();
   const messageTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Clear any pending "open drawer" timeout if this component unmounts.
-  useEffect(() => {
-    return () => {
-      if (messageTimeoutRef.current) {
-        clearTimeout(messageTimeoutRef.current);
-      }
-    };
-  }, []);
+  // NOTE: intentionally no unmount cleanup for messageTimeoutRef. handleMessage
+  // calls onClose() (which unmounts this dialog) and then schedules the drawer
+  // open — clearing the timeout on unmount would cancel that intended open. The
+  // callback targets the App-level Messages drawer context, so it is safe to
+  // fire after this component has unmounted.
 
   const handleCopyOrderId = async () => {
     await navigator.clipboard.writeText(orderId);
