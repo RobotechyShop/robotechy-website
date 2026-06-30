@@ -187,6 +187,24 @@ describe('productEventToFormData round-trips through buildProductEvent', () => {
     const rebuilt = buildProductEvent(form, asEvent);
     expect(tagVal(rebuilt.tags, 'd')).toBe('stable-id');
   });
+
+  it('orders images by sort-order, not raw tag order', () => {
+    const event = {
+      pubkey: 'PK',
+      content: '',
+      tags: [
+        ['d', 'p'],
+        ['title', 't'],
+        ['price', '1', 'SATS'],
+        ['image', 'https://img/second.png', '', '1'],
+        ['image', 'https://img/first.png', '', '0'],
+      ],
+    } as unknown as NostrEvent;
+    expect(productEventToFormData(event).images).toEqual([
+      'https://img/first.png',
+      'https://img/second.png',
+    ]);
+  });
 });
 
 describe('shipping options', () => {

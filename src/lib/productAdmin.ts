@@ -417,7 +417,13 @@ export function productEventToFormData(event: NostrEvent): ProductFormData {
     priceAmount: priceTag?.[1] || '',
     priceCurrency: priceTag?.[2] || 'USD',
     priceFrequency: priceTag?.[3] || '',
-    images: event.tags.filter(([n]) => n === 'image').map(([, url]) => url),
+    // Order images by the NIP-99/Gamma sort-order field (4th element), matching
+    // parseProductEvent, so opening a product for edit preserves image order.
+    images: event.tags
+      .filter(([n]) => n === 'image')
+      .map(([, url, , sortOrder]) => ({ url, sortOrder: sortOrder ? parseInt(sortOrder, 10) : 0 }))
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map(({ url }) => url),
     visibility: (get('visibility') as ProductVisibility) || 'on-sale',
     stock: get('stock') || '',
     productType: (typeTag?.[1] as ProductFormatType) || 'simple',
