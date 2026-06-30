@@ -5,6 +5,7 @@ import { useProductReviews } from '@/hooks/useProductReviews';
 import { useComments } from '@/hooks/useComments';
 import { commentRootRef } from '@/lib/productComments';
 import { cn } from '@/lib/utils';
+import { Star, MessageSquare } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface ProductFeedbackTabsProps {
@@ -33,34 +34,42 @@ export function ProductFeedbackTabs({ event, coord, className }: ProductFeedback
   // defaults (muted rounded list bg + filled active pill) at the usage site so
   // the shared ui/tabs.tsx stays untouched for other screens. The tablist is a
   // full-width row with a bottom rule; the active tab is shown by a brand-green
-  // underline that overlaps that rule (via -mb-px), not a filled background.
+  // underline that overlaps that rule (via -mb-px). The active *label* stays
+  // dark (text-foreground) for legibility — luminous green text reads poorly on
+  // white, so the green is used only as the underline indicator.
   const listClass =
     'h-auto w-full justify-start gap-6 rounded-none border-b border-slate-200 bg-transparent p-0 text-muted-foreground dark:border-slate-700';
   const triggerClass =
-    '-mb-px rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:border-robotechy-green data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-robotechy-green data-[state=active]:shadow-none';
+    '-mb-px inline-flex items-center gap-2 rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:border-robotechy-green data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none';
 
   return (
     <Tabs defaultValue="reviews" className={cn('w-full', className)}>
       <TabsList className={listClass}>
         <TabsTrigger value="reviews" className={triggerClass}>
+          <Star className="h-4 w-4" />
           Reviews{reviewCount > 0 ? ` (${reviewCount})` : ''}
         </TabsTrigger>
         <TabsTrigger value="comments" className={triggerClass}>
+          <MessageSquare className="h-4 w-4" />
           Comments{commentCount > 0 ? ` (${commentCount})` : ''}
         </TabsTrigger>
       </TabsList>
 
       <TabsContent value="reviews" className="mt-4">
-        <ReviewsSection coord={coord} />
+        {/* hideHeading: the tab already labels this "Reviews" — the section
+            drops its redundant title but keeps the star-rating aggregate. */}
+        <ReviewsSection coord={coord} hideHeading />
       </TabsContent>
 
       <TabsContent value="comments" className="mt-4">
         {/* key remounts the section per product so prior input never leaks.
             Keyed by the stable product coordinate (not event.id, which changes
-            on listing edits) so harmless refetches don't remount. */}
+            on listing edits) so harmless refetches don't remount.
+            hideHeading: the tab already labels this "Comments". */}
         <CommentsSection
           key={commentRootRef(event)}
           root={event}
+          hideHeading
           emptyStateSubtitle="Be the first to start the discussion!"
         />
       </TabsContent>

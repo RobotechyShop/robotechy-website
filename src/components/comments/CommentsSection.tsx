@@ -10,6 +10,8 @@ import { Comment } from './Comment';
 interface CommentsSectionProps {
   root: NostrEvent | URL;
   title?: string;
+  /** Hide the section's "Comments" heading (e.g. when a tab already labels it). */
+  hideHeading?: boolean;
   emptyStateMessage?: string;
   emptyStateSubtitle?: string;
   className?: string;
@@ -19,6 +21,7 @@ interface CommentsSectionProps {
 export function CommentsSection({
   root,
   title = 'Comments',
+  hideHeading = false,
   emptyStateMessage = 'No comments yet',
   emptyStateSubtitle = 'Be the first to share your thoughts!',
   className,
@@ -42,16 +45,20 @@ export function CommentsSection({
 
   return (
     <Card className={cn('rounded-none sm:rounded-lg mx-0 sm:mx-0', className)}>
-      <CardHeader className="px-2 pt-6 pb-4 sm:p-6">
-        <CardTitle className="flex items-center space-x-2">
-          <MessageSquare className="h-5 w-5" />
-          <span>{title}</span>
-          {!isLoading && (
-            <span className="text-sm font-normal text-muted-foreground">({comments.length})</span>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-2 pb-6 pt-4 sm:p-6 sm:pt-0 space-y-6">
+      {!hideHeading && (
+        <CardHeader className="px-2 pt-6 pb-4 sm:p-6">
+          <CardTitle className="flex items-center space-x-2">
+            <MessageSquare className="h-5 w-5" />
+            <span>{title}</span>
+            {!isLoading && (
+              <span className="text-sm font-normal text-muted-foreground">({comments.length})</span>
+            )}
+          </CardTitle>
+        </CardHeader>
+      )}
+      <CardContent
+        className={cn('px-2 pb-6 sm:p-6 space-y-6', hideHeading ? 'pt-6 sm:pt-6' : 'pt-4 sm:pt-0')}
+      >
         {/* Comment Form */}
         <CommentForm root={root} />
 

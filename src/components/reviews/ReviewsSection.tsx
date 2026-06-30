@@ -16,6 +16,9 @@ const EMPTY_REVIEWS: ParsedReview[] = [];
 interface ReviewsSectionProps {
   /** Product coordinate: `a:30402:<merchantPubkey>:<productDTag>`. */
   coord: string;
+  /** Hide the "Reviews" title (e.g. when a tab already labels it). The
+   *  star-rating aggregate is still shown. */
+  hideHeading?: boolean;
   className?: string;
 }
 
@@ -24,7 +27,7 @@ interface ReviewsSectionProps {
  * write-a-review form (sign-in prompt when signed out), and the list of
  * reviews. Mounted on the product detail page.
  */
-export function ReviewsSection({ coord, className }: ReviewsSectionProps) {
+export function ReviewsSection({ coord, hideHeading = false, className }: ReviewsSectionProps) {
   const { user } = useCurrentUser();
   const { data, isLoading, error } = useProductReviews(coord);
 
@@ -36,27 +39,39 @@ export function ReviewsSection({ coord, className }: ReviewsSectionProps) {
     [reviews, user]
   );
 
+  // With hideHeading, drop the redundant "Reviews" label but still surface the
+  // rating aggregate when there is one; if there's nothing to show, omit the
+  // header entirely so the content sits flush.
+  const showAggregate = !isLoading && aggregate.count > 0;
+  const showHeader = !hideHeading || showAggregate;
+
   return (
     <Card className={cn('rounded-none sm:rounded-lg', className)}>
-      <CardHeader className="px-2 pt-6 pb-4 sm:p-6">
-        <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="flex items-center gap-2">
-            <Star className="h-5 w-5" />
-            <span>Reviews</span>
-          </span>
-          {!isLoading && aggregate.count > 0 && (
-            <span className="flex items-center gap-2 text-sm font-normal">
-              <StarRating stars={aggregate.average} size="sm" />
-              <span className="font-semibold">{aggregate.average.toFixed(1)}</span>
-              <span className="text-muted-foreground">
-                ({aggregate.count} {aggregate.count === 1 ? 'review' : 'reviews'})
+      {showHeader && (
+        <CardHeader className="px-2 pt-6 pb-4 sm:p-6">
+          <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {!hideHeading && (
+              <span className="flex items-center gap-2">
+                <Star className="h-5 w-5" />
+                <span>Reviews</span>
               </span>
-            </span>
-          )}
-        </CardTitle>
-      </CardHeader>
+            )}
+            {showAggregate && (
+              <span className="flex items-center gap-2 text-sm font-normal">
+                <StarRating stars={aggregate.average} size="sm" />
+                <span className="font-semibold">{aggregate.average.toFixed(1)}</span>
+                <span className="text-muted-foreground">
+                  ({aggregate.count} {aggregate.count === 1 ? 'review' : 'reviews'})
+                </span>
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+      )}
 
-      <CardContent className="px-2 pb-6 pt-2 sm:p-6 sm:pt-0 space-y-6">
+      <CardContent
+        className={cn('px-2 pb-6 sm:p-6 space-y-6', showHeader ? 'pt-2 sm:pt-0' : 'pt-6 sm:pt-6')}
+      >
         {/* Write / edit a review (or sign-in prompt). key={coord} remounts the
             form on product change so prior input never leaks across products. */}
         <ReviewForm key={coord} coord={coord} existing={ownReview} />
