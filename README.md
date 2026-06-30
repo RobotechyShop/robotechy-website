@@ -55,21 +55,22 @@ The **order-service** subscribes to kind 1059 gift wraps addressed to the mercha
 
 ### Event Types
 
-All commerce events below are carried **inside** a NIP-17 gift wrap (kind 1059) as the inner rumor — never published as plaintext.
+The commerce rumors below (kinds 14/16/17) are carried **inside** a NIP-17 gift wrap (kind 1059) — never published as plaintext. Kind 1059 is the gift-wrap transport itself (NIP-17/NIP-59), listed at the bottom for reference.
 
-| Inner kind | Type | Description |
-|------|------|-------------|
-| 16 | 1 | Order creation (buyer → merchant) |
-| 16 | 2 | Payment request with invoice (merchant → buyer) |
-| 16 | 3 | Order status update |
-| 16 | 4 | Shipping update |
-| 17 | - | Payment receipt with preimage |
-| 14 | - | Readable plain-text summary (renders in any NIP-17 client) |
-| 1059 | - | Gift wrap transport (NIP-17/NIP-59) for all of the above |
+| Kind | Type | Description                                                |
+| ---- | ---- | ---------------------------------------------------------- |
+| 16   | 1    | Order creation (buyer → merchant)                          |
+| 16   | 2    | Payment request with invoice (merchant → buyer)            |
+| 16   | 3    | Order status update                                        |
+| 16   | 4    | Shipping update                                            |
+| 17   | -    | Payment receipt with preimage                              |
+| 14   | -    | Readable plain-text summary (renders in any NIP-17 client) |
+| 1059 | -    | Gift wrap transport (NIP-17/NIP-59) for all of the above   |
 
 ### Payment Options
 
 The checkout UI supports multiple payment methods:
+
 - **QR Code** - Scan with any Lightning wallet
 - **Copy Invoice** - Paste into wallet apps
 - **WebLN** - Browser extensions (Alby, etc.)
@@ -132,11 +133,11 @@ The frontend is served on port 3000. The order service connects outbound to Nost
 
 ### Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `MERCHANT_NSEC` | For orders | Merchant's Nostr secret key (nsec format) |
-| `LIGHTNING_ADDRESS` | For orders | Lightning Address for invoice generation |
-| `FALLBACK_RELAYS` | No | Comma-separated relay URLs (has defaults) |
+| Variable            | Required   | Description                               |
+| ------------------- | ---------- | ----------------------------------------- |
+| `MERCHANT_NSEC`     | For orders | Merchant's Nostr secret key (nsec format) |
+| `LIGHTNING_ADDRESS` | For orders | Lightning Address for invoice generation  |
+| `FALLBACK_RELAYS`   | No         | Comma-separated relay URLs (has defaults) |
 
 If `MERCHANT_NSEC` or `LIGHTNING_ADDRESS` are not set, the container runs frontend-only mode.
 

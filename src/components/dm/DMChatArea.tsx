@@ -222,8 +222,8 @@ const MessageBubble = memo(
                     {actualKind === 4 && 'NIP-04 Kind 4 (Legacy DM)'}
                     {actualKind === 14 && 'NIP-17 Kind 14 (Private Message)'}
                     {actualKind === 15 && 'NIP-17 Kind 15 (Media)'}
-                    {actualKind === 16 && 'NIP-17 Kind 16 (Order / Commerce)'}
-                    {actualKind === 17 && 'NIP-17 Kind 17 (Payment Receipt)'}
+                    {actualKind === 16 && 'Gamma Kind 16 (Order / Commerce, via NIP-17)'}
+                    {actualKind === 17 && 'Gamma Kind 17 (Payment Receipt, via NIP-17)'}
                     {![4, 14, 15, 16, 17].includes(actualKind) && `Kind ${actualKind}`}
                   </p>
                 </TooltipContent>
