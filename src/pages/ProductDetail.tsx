@@ -15,7 +15,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Share2, Package, ImageIcon } from 'lucide-react';
+import { ShareProductButton } from '@/components/ShareProductButton';
+import { ArrowLeft, Package, ImageIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { OwnerProductActions } from '@/components/admin/OwnerProductActions';
 
@@ -41,23 +42,6 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
 
   const handleImageError = (index: number) => {
     setImageErrors((prev) => new Set(prev).add(index));
-  };
-
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      await navigator.share({
-        title: product?.title,
-        text: product?.summary,
-        url,
-      });
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast({
-        title: 'Link copied',
-        description: 'Product link copied to clipboard.',
-      });
-    }
   };
 
   const handleAddToCart = () => {
@@ -268,10 +252,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                 </Button>
               )}
 
-              <Button variant="outline" size="lg" className="w-full" onClick={handleShare}>
-                <Share2 className="h-5 w-5 mr-2" />
-                Share
-              </Button>
+              <ShareProductButton product={product} variant="button" size="lg" />
             </div>
 
             <Separator />

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ShareProductButton } from '@/components/ShareProductButton';
 import { formatPriceFromTag, parseProductEvent } from '@/lib/productUtils';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
@@ -27,7 +28,19 @@ export function ProductCard({ event }: ProductCardProps) {
 
   return (
     <Link to={`/${naddr}`}>
-      <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col border-slate-200 dark:border-slate-800">
+      <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col border-slate-200 dark:border-slate-800">
+        {/* Share lives over the card; stop the click so it never navigates the
+            surrounding product Link (the menu itself is portaled, so its own
+            clicks don't bubble here). */}
+        <div
+          className="absolute top-2 right-2 z-10"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          <ShareProductButton product={product} variant="icon" size="icon" />
+        </div>
         {firstImage && !imageError ? (
           <div className="relative overflow-hidden aspect-square bg-slate-50 dark:bg-neutral-900">
             <img
