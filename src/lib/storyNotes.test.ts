@@ -1,0 +1,80 @@
+import { describe, it, expect } from 'vitest';
+import type { NostrEvent } from '@nostrify/nostrify';
+import { extractImageUrls, isReply, stripImageUrls } from './storyNotes';
+
+function makeEvent(partial: Partial<NostrEvent>): NostrEvent {
+  return {
+    id: 'a'.repeat(64),
+    pubkey: 'b'.repeat(64),
+    created_at: 0,
+    kind: 1,
+    tags: [],
+    content: '',
+    sig: 'c'.repeat(128),
+    ...partial,
+  };
+}
+
+describe('extractImageUrls', () => {
+  it('extracts URLs from imeta tags', () => {
+    const event = makeEvent({
+      tags: [['imeta', 'url https://img.example/a.png', 'm image/png']],
+    });
+    expect(extractImageUrls(event)).toEqual(['https://img.example/a.png']);
+  });
+
+  it('extracts bare image URLs from content', () => {
+    const event = makeEvent({
+      content: 'Check this out https://img.example/b.jpg and more text',
+    });
+    expect(extractImageUrls(event)).toEqual(['https://img.example/b.jpg']);
+  });
+
+  it('honours a query string on a content image URL', () => {
+    const event = makeEvent({ content: 'https://img.example/c.webp?width=800 nice' });
+    expect(extractImageUrls(event)).toEqual(['https://img.example/c.webp?width=800']);
+  });
+
+  it('dedupes a URL declared in both an imeta tag and the content', () => {
+    const event = makeEvent({
+      tags: [['imeta', 'url https://img.example/a.png']],
+      content: 'See https://img.example/a.png',
+    });
+    expect(extractImageUrls(event)).toEqual(['https://img.example/a.png']);
+  });
+
+  it('returns an empty array when there are no images', () => {
+    expect(extractImageUrls(makeEvent({ content: 'just words, no pics' }))).toEqual([]);
+  });
+
+  it('ignores non-image links', () => {
+    const event = makeEvent({ content: 'visit https://example.com/page for info' });
+    expect(extractImageUrls(event)).toEqual([]);
+  });
+});
+
+describe('isReply', () => {
+  it('is true when the note has an e tag', () => {
+    expect(isReply(makeEvent({ tags: [['e', 'd'.repeat(64)]] }))).toBe(true);
+  });
+
+  it('is false for a top-level note', () => {
+    expect(isReply(makeEvent({ tags: [['t', 'robotechy']] }))).toBe(false);
+  });
+});
+
+describe('stripImageUrls', () => {
+  it('removes image URLs and trims surrounding whitespace', () => {
+    const event = 'New print!\n\nhttps://img.example/a.png';
+    expect(stripImageUrls(event)).toBe('New print!');
+  });
+
+  it('collapses blank lines left behind by removed images', () => {
+    const text = 'First line\nhttps://img.example/a.png\n\n\nSecond line';
+    expect(stripImageUrls(text)).toBe('First line\n\nSecond line');
+  });
+
+  it('leaves text without images unchanged', () => {
+    expect(stripImageUrls('plain note')).toBe('plain note');
+  });
+});

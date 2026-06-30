@@ -5,6 +5,7 @@ import Index from './pages/Index';
 import { NIP19Page } from './pages/NIP19Page';
 import NotFound from './pages/NotFound';
 import Custom3DPrints from './pages/Custom3DPrints';
+import Story from './pages/Story';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import RefundPolicy from './pages/RefundPolicy';
 import ShippingPolicy from './pages/ShippingPolicy';
@@ -16,6 +17,7 @@ export function AppRouter() {
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/story" element={<Story />} />
         <Route path="/custom-3d-prints" element={<Custom3DPrints />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/refund-policy" element={<RefundPolicy />} />
