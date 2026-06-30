@@ -32,6 +32,15 @@ export function StoryNote({ event, isLast = false }: StoryNoteProps) {
   const fullDate = timestamp.toLocaleString();
   const hasText = textEvent.content.length > 0;
 
+  // Derive a short, content-aware alt from the post text so screen readers get
+  // something meaningful rather than the same generic label repeated; fall back
+  // to a numbered generic label when the post has no text.
+  const altBase = textEvent.content.trim().slice(0, 80);
+  const imageAlt = (index: number) => {
+    if (!altBase) return `Robotechy story post image ${index + 1}`;
+    return images.length > 1 ? `${altBase} (image ${index + 1})` : altBase;
+  };
+
   return (
     <li className="relative flex gap-4 sm:gap-6">
       {/* Timeline spine + node */}
@@ -73,11 +82,11 @@ export function StoryNote({ event, isLast = false }: StoryNoteProps) {
                 images.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
               )}
             >
-              {images.map((src) => (
+              {images.map((src, index) => (
                 <img
                   key={src}
                   src={src}
-                  alt="Robotechy story post"
+                  alt={imageAlt(index)}
                   loading="lazy"
                   className="w-full rounded-lg border border-sage-200 object-cover dark:border-sage-800"
                 />
