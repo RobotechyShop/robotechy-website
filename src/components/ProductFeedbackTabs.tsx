@@ -1,6 +1,6 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ReviewsSection } from '@/components/reviews/ReviewsSection';
-import { CommentsSection, COMMENTS_DEFAULT_LIMIT } from '@/components/comments/CommentsSection';
+import { CommentsSection } from '@/components/comments/CommentsSection';
 import { useProductReviews } from '@/hooks/useProductReviews';
 import { useComments } from '@/hooks/useComments';
 import { commentRootRef } from '@/lib/productComments';
@@ -18,14 +18,14 @@ interface ProductFeedbackTabsProps {
 
 /**
  * Reviews + Comments shown as two tabs on the product detail page (defaults to
- * Reviews). Tab labels carry a live count sourced from the same hooks the
- * sections use — both calls use the SAME limit (COMMENTS_DEFAULT_LIMIT) so they
- * share the React Query cache entry and mounting them here costs no extra
- * network. Each section keeps all its own behaviour (signed-out prompts, etc.).
+ * Reviews). Tab labels carry a live count from the same hooks the sections use;
+ * `useComments` normalises its default limit internally, so this count query
+ * shares one React Query cache entry with CommentsSection — no extra network.
+ * Each section keeps all its own behaviour (signed-out prompts, etc.).
  */
 export function ProductFeedbackTabs({ event, coord, className }: ProductFeedbackTabsProps) {
   const { data: reviewsData } = useProductReviews(coord);
-  const { data: commentsData } = useComments(event, COMMENTS_DEFAULT_LIMIT);
+  const { data: commentsData } = useComments(event);
 
   const reviewCount = reviewsData?.aggregate.count ?? 0;
   const commentCount = commentsData?.topLevelComments.length ?? 0;

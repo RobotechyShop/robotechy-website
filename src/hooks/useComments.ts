@@ -8,9 +8,17 @@ import {
   isTopLevelComment,
 } from '@/lib/productComments';
 
-export function useComments(root: NostrEvent | URL, limit?: number) {
+/** Default comment-query limit. Exported as the single source of truth so every
+ *  caller — CommentsSection, the tab count, nested Comment reply threads — keys
+ *  the same query. */
+export const DEFAULT_COMMENTS_LIMIT = 500;
+
+export function useComments(root: NostrEvent | URL, limit: number = DEFAULT_COMMENTS_LIMIT) {
   const { nostr } = useNostr();
 
+  // Normalise the limit here (rather than letting callers pass `undefined`) so a
+  // bare `useComments(root)` and an explicit `useComments(root, 500)` share one
+  // React Query cache entry instead of issuing a second, unbounded query.
   return useQuery({
     queryKey: ['nostr', 'comments', commentRootRef(root), limit],
     queryFn: async (c) => {
