@@ -76,12 +76,14 @@ export function ShareProductButton({
   const pubkey = product.event.pubkey;
   const imageUrl = product.images[0]?.url;
 
-  // Up to two write relays as naddr hints so clients (njump, etc.) can resolve
-  // the shared product even if they don't already index this merchant.
+  // Up to two read relays as naddr hints so clients (njump, etc.) can resolve
+  // the shared product. Read relays are where the storefront fetched the
+  // catalog from, so they're where the merchant's product event is actually
+  // readable — unlike the shopper's personal write/publish relays.
   const relayHints = useMemo(
     () =>
       config.relayMetadata.relays
-        .filter((r) => r.write)
+        .filter((r) => r.read)
         .map((r) => r.url)
         .slice(0, 2),
     [config.relayMetadata.relays]
