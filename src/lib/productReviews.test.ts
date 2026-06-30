@@ -133,6 +133,23 @@ describe('parseReviewEvent', () => {
     expect(parseReviewEvent(makeReview({ kind: 1 }))).toBeNull();
   });
 
+  it('drops a kind-31555 event with no d tag', () => {
+    const evt = makeReview({
+      tags: [['rating', '0.8', 'thumb']], // a thumb rating but no product coordinate
+    });
+    expect(parseReviewEvent(evt)).toBeNull();
+  });
+
+  it('drops a d tag that is not a 30402 product coordinate', () => {
+    const evt = makeReview({
+      tags: [
+        ['d', 'just-an-identifier'],
+        ['rating', '0.8', 'thumb'],
+      ],
+    });
+    expect(parseReviewEvent(evt)).toBeNull();
+  });
+
   it('returns null when the thumb rating is missing', () => {
     const evt = makeReview({
       tags: [

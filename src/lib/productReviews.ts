@@ -63,6 +63,22 @@ export function productReviewCoord(merchantPubkey: string, productDTag: string):
   return `a:${PRODUCT_KIND}:${merchantPubkey}:${productDTag}`;
 }
 
+/**
+ * True when `value` is a well-formed product-review coordinate:
+ * `a:30402:<64-hex pubkey>:<non-empty dTag>`. The dTag itself may contain
+ * colons, so everything after the pubkey is treated as the identifier.
+ */
+export function isProductReviewCoord(value: string): boolean {
+  const parts = value.split(':');
+  return (
+    parts.length >= 4 &&
+    parts[0] === 'a' &&
+    parts[1] === String(PRODUCT_KIND) &&
+    /^[0-9a-f]{64}$/i.test(parts[2]) &&
+    parts.slice(3).join(':').length > 0
+  );
+}
+
 /** Convert a 1..5 star value to the stored 0..1 rating (clamped). */
 export function starsToRating(stars: number): number {
   if (!Number.isFinite(stars)) return 0;
@@ -125,11 +141,19 @@ export function buildReviewEvent(input: BuildReviewInput): ReviewEventTemplate {
 
 /**
  * Parse a kind-31555 event into a display-ready review. Tolerant of malformed
- * tags: a missing/invalid `thumb` rating yields `null` (skipped); non-numeric
- * category ratings are dropped.
+ * tags: an event without a well-formed `d` product coordinate yields `null`; a
+ * missing/invalid `thumb` rating yields `null` (skipped); non-numeric category
+ * ratings are dropped.
  */
 export function parseReviewEvent(event: NostrEvent): ParsedReview | null {
   if (!event || event.kind !== REVIEW_KIND) return null;
+
+  // The `d` tag is the product coordinate and is REQUIRED (see module docstring).
+  // Without a well-formed `a:30402:<pubkey>:<dTag>` coordinate the event can't be
+  // attributed to a product, so drop it rather than treating a stray kind-31555
+  // event that merely carries a `thumb` rating as a valid review.
+  const dTag = event.tags.find((t) => t[0] === 'd');
+  if (!dTag || typeof dTag[1] !== 'string' || !isProductReviewCoord(dTag[1])) return null;
 
   const ratingTags = event.tags.filter((t) => t[0] === 'rating' && typeof t[1] === 'string');
 
