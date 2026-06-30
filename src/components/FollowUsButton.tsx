@@ -78,15 +78,29 @@ export function FollowUsButton({ className, size = 'default' }: FollowUsButtonPr
 
   const follow = async () => {
     // Read the freshest kind-3 at click time so we never clobber follows added
-    // since mount. Fall back to the cached one, then to an empty list.
-    let baseEvent = contactList;
+    // since mount. `contactList === undefined` means the mount query has not
+    // resolved yet (unknown list); `null` means it resolved to "no kind-3".
+    let baseEvent = contactList ?? null;
+    // Whether we have a trustworthy view of the user's current follows. We only
+    // publish once we do, otherwise an empty fallback could wipe real follows.
+    let haveReliableBase = contactList !== undefined;
     try {
       const [latest] = await nostr.query([{ kinds: [3], authors: [user!.pubkey], limit: 1 }], {
         signal: AbortSignal.timeout(3000),
       });
-      if (latest) baseEvent = latest;
+      baseEvent = latest ?? baseEvent;
+      haveReliableBase = true;
     } catch {
-      // Network hiccup — proceed with the cached contact list.
+      // Network hiccup — fall back to the cached contact list if we have one.
+    }
+
+    if (!haveReliableBase) {
+      toast({
+        title: 'Could not follow',
+        description: "Couldn't load your follow list — please try again.",
+        variant: 'destructive',
+      });
+      return;
     }
 
     const baseTags = baseEvent?.tags ?? [];
@@ -115,6 +129,12 @@ export function FollowUsButton({ className, size = 'default' }: FollowUsButtonPr
       });
     }
   };
+
+  // Reset the optimistic "Following" flag whenever the active account changes
+  // (account switch or logout), so it never leaks into another user's view.
+  useEffect(() => {
+    setJustFollowed(false);
+  }, [user?.pubkey]);
 
   // Auto-follow once a signed-out user has signed in via the dialog.
   useEffect(() => {
