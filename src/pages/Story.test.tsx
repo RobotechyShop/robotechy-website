@@ -74,6 +74,14 @@ describe('Story page', () => {
     expect(screen.getByRole('button', { name: /^message$/i })).toBeInTheDocument();
   });
 
+  it('renders a "Zap the shop" affordance in the hero action row (signed out)', () => {
+    mockedUseStoryNotes.mockReturnValue(storyResult({ isLoading: true }));
+    renderStory();
+    // Signed-out visitors (TestApp default) get a Zap affordance that prompts
+    // sign-in; labelled "Zap the shop" to distinguish it from per-post zaps.
+    expect(screen.getByRole('button', { name: /zap the shop/i })).toBeInTheDocument();
+  });
+
   it('shows the loading skeleton while notes are being fetched', () => {
     mockedUseStoryNotes.mockReturnValue(storyResult({ isLoading: true }));
     renderStory();

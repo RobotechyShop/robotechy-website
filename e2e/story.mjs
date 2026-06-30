@@ -3,8 +3,9 @@
  *
  * Phase 1 (signed out): loads /story and asserts the shop profile hero renders
  * (banner, avatar, name heading, about), and that the "Message" button (which
- * opens the shop messages drawer) is present. Then, depending on whether the
- * shop's Nostr account has any kind-1 posts:
+ * opens the shop messages drawer) and the "Zap the shop" affordance (which
+ * prompts sign-in for signed-out visitors) are present. Then, depending on
+ * whether the shop's Nostr account has any kind-1 posts:
  *   - With posts: asserts the first post shows a "Replies" thread (other users'
  *     kind-1 NIP-10 replies + count), a signed-out "Zap" affordance, and a
  *     "Sign in to reply" composer button; clicking it opens the LoginDialog.
@@ -47,7 +48,13 @@ async function injectLogin(page, nsec) {
   if (decoded.type !== 'nsec') throw new Error('NSEC must be a valid nsec');
   const pubkey = getPublicKey(decoded.data);
   const payload = JSON.stringify([
-    { id: `nsec:${pubkey}`, type: 'nsec', pubkey, createdAt: new Date().toISOString(), data: { nsec } },
+    {
+      id: `nsec:${pubkey}`,
+      type: 'nsec',
+      pubkey,
+      createdAt: new Date().toISOString(),
+      data: { nsec },
+    },
   ]);
   await page.addInitScript((data) => localStorage.setItem('nostr:login', data), payload);
   return pubkey;
@@ -63,7 +70,18 @@ async function assertHero(page) {
   // The avatar uses alt={name}; an <img> or its fallback initial is present.
   await page.locator('[data-testid="story-banner"]').first().waitFor();
   await page.getByRole('button', { name: /^message$/i }).waitFor({ timeout: 5000 });
-  console.log(`hero OK — shop: "${name}", banner + Message button present`);
+  // The hero's "Zap the shop" action — signed out it's a sign-in-gated button
+  // (aria-label "Zap the shop"); clicking it opens the LoginDialog.
+  const heroZap = page.getByRole('button', { name: /zap the shop/i });
+  await heroZap.waitFor({ timeout: 5000 });
+  await heroZap.click();
+  await page
+    .getByRole('dialog')
+    .getByText(/log in|sign up|nostr/i)
+    .first()
+    .waitFor({ timeout: 5000 });
+  await page.keyboard.press('Escape');
+  console.log(`hero OK — shop: "${name}", banner + Message + Zap the shop present`);
   return name;
 }
 
@@ -84,7 +102,10 @@ let hasPosts = false;
 
   // Wait for either the timeline or the empty state to resolve.
   await Promise.race([
-    posts.first().waitFor({ timeout: 15000 }).catch(() => {}),
+    posts
+      .first()
+      .waitFor({ timeout: 15000 })
+      .catch(() => {}),
     emptyState.waitFor({ timeout: 15000 }).catch(() => {}),
   ]);
 
@@ -96,8 +117,15 @@ let hasPosts = false;
     const first = posts.first();
 
     // Replies thread under the post (other users' kind-1 replies + count).
-    await first.getByText(/replies/i).first().waitFor({ timeout: 10000 });
-    const repliesLabel = (await first.getByText(/replies\s*\(\d+\)/i).first().textContent()) || '';
+    await first
+      .getByText(/replies/i)
+      .first()
+      .waitFor({ timeout: 10000 });
+    const repliesLabel =
+      (await first
+        .getByText(/replies\s*\(\d+\)/i)
+        .first()
+        .textContent()) || '';
     console.log(`replies section OK on first post — ${repliesLabel.trim()}`);
 
     // Signed-out zap affordance + sign-in-gated reply composer.
@@ -107,7 +135,11 @@ let hasPosts = false;
     console.log('signed-out: Zap + "Sign in to reply" affordances present OK');
 
     await replyBtn.click();
-    await page.getByRole('dialog').getByText(/log in|sign up|nostr/i).first().waitFor({ timeout: 5000 });
+    await page
+      .getByRole('dialog')
+      .getByText(/log in|sign up|nostr/i)
+      .first()
+      .waitFor({ timeout: 5000 });
     console.log('signed-out: reply composer opened the login dialog OK');
   } else {
     await emptyState.waitFor({ timeout: 5000 });

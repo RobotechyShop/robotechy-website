@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
-import { BookOpen, MessageCircle } from 'lucide-react';
+import { BookOpen, MessageCircle, Zap } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { StoryNote } from '@/components/StoryNote';
+import { ZapButton } from '@/components/ZapButton';
+import LoginDialog from '@/components/auth/LoginDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { FollowUsButton } from '@/components/FollowUsButton';
 import { useStoryNotes } from '@/hooks/useStoryNotes';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { MERCHANT_PUBKEY } from '@/hooks/useProducts';
 import { useMessagesDrawer } from '@/hooks/useMessagesDrawer';
 import { genUserName } from '@/lib/genUserName';
@@ -23,6 +27,13 @@ const Story = () => {
   // blank section.
   const { data: notes = [], isLoading, isError } = useStoryNotes();
   const { openMessages } = useMessagesDrawer();
+  const { user } = useCurrentUser();
+  // Drives the sign-in prompt shown when a signed-out visitor taps "Zap".
+  const [showZapLogin, setShowZapLogin] = useState(false);
+
+  // The shop's own kind-0 profile event — the zap target, so "Zap the shop"
+  // pays the merchant's lightning address (lud16/lud06 in this metadata).
+  const shopEvent = author.data?.event;
 
   const metadata = author.data?.metadata;
   const name = metadata?.display_name || metadata?.name || genUserName(MERCHANT_PUBKEY);
@@ -93,6 +104,30 @@ const Story = () => {
               Message
             </Button>
             <FollowUsButton size="sm" showViewOnNostr={false} />
+            {/* Zap the shop directly (NIP-57). Signed-in visitors with a
+                zappable shop see the real ZapButton (which self-hides on a
+                self-zap or a shop with no lightning address); signed-out
+                visitors get a Zap affordance that opens the sign-in dialog —
+                the same login-gated pattern as the per-post zap in StoryNote. */}
+            {!user ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowZapLogin(true)}
+                aria-label="Zap the shop"
+                className="gap-1.5"
+              >
+                <Zap className="h-4 w-4" />
+                Zap
+              </Button>
+            ) : shopEvent ? (
+              <ZapButton
+                target={shopEvent}
+                showCount={false}
+                className="h-8 rounded-md border border-input bg-background px-3 text-sm font-medium text-sage-700 transition-colors hover:bg-accent hover:text-robotechy-green-dark dark:text-sage-200"
+              />
+            ) : null}
           </div>
 
           <div className="mt-4 flex items-center gap-2 border-t border-sage-100 pt-4 text-sm font-medium text-robotechy-green-dark dark:border-sage-800">
@@ -100,6 +135,12 @@ const Story = () => {
             <span>Our Story</span>
           </div>
         </div>
+
+        <LoginDialog
+          isOpen={showZapLogin}
+          onClose={() => setShowZapLogin(false)}
+          onLogin={() => setShowZapLogin(false)}
+        />
       </div>
 
       {/* Timeline */}
