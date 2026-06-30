@@ -1,7 +1,7 @@
 import { useSeoMeta } from '@unhead/react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { ContactDialog } from '@/components/ContactDialog';
+import { MessageShopLink } from '@/components/messages/MessageShopLink';
 
 const PrivacyPolicy = () => {
   useSeoMeta({
@@ -289,15 +289,7 @@ const PrivacyPolicy = () => {
           <h2 className="text-2xl font-semibold mt-8 mb-4">Contact</h2>
           <p>
             For more information about our privacy practices, if you have questions, or if you would
-            like to make a complaint, please{' '}
-            <ContactDialog
-              trigger={
-                <button className="text-robotechy-green-dark hover:underline inline">
-                  contact us
-                </button>
-              }
-            />
-            .
+            like to make a complaint, please <MessageShopLink>contact us</MessageShopLink>.
           </p>
           <p className="text-sm text-sage-500 dark:text-sage-400 mt-4">
             Last updated: 1st January 2022

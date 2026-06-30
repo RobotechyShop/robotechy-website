@@ -129,6 +129,18 @@ export interface DMContextType {
     content: string;
     protocol?: MessageProtocol;
     attachments?: FileAttachment[];
+    /**
+     * NIP-17 only: override the inner rumor kind (default 14 for text, 15 for
+     * files). Used to gift-wrap commerce events such as kind 16 orders/payment
+     * requests/status updates and kind 17 payment receipts.
+     */
+    rumorKind?: number;
+    /**
+     * NIP-17 only: extra tags to merge into the inner rumor (e.g. Gamma Markets
+     * order/type/amount/item/address tags). Merged after the base `['p', recipient]`
+     * and imeta tags.
+     */
+    rumorTags?: string[][];
   }) => Promise<void>;
   protocolMode: ProtocolMode;
   scanProgress: ScanProgressState;

@@ -1,11 +1,15 @@
 /**
  * Robotechy Order Processing Service
  *
- * Listens for Gamma Markets Kind 16 orders and:
- * 1. Generates Lightning invoices via LNURL-pay
- * 2. Sends Kind 16 Type 2 payment requests back to buyer
- * 3. Sends NIP-04 DM with invoice link to buyer
- * 4. Listens for Kind 17 payment receipts and sends thank you DM
+ * Listens for NIP-17 gift-wrapped (kind 1059) commerce messages and:
+ * 1. Unwraps each gift wrap to its inner Gamma Markets rumor (kind 16/17)
+ * 2. Generates Lightning invoices via LNURL-pay for incoming orders
+ * 3. Sends gift-wrapped Kind 16 Type 2 payment requests back to the buyer
+ * 4. On gift-wrapped Kind 17 payment receipts, sends a gift-wrapped thank-you
+ *    status update (Kind 16 Type 3)
+ *
+ * All commerce traffic is NIP-17 end-to-end: customer PII rides inside the
+ * encrypted wrap, never in plaintext public events.
  */
 
 // Handle unhandled rejections from nostr-tools (relay errors). A flaky relay must
@@ -22,45 +26,48 @@ process.on('unhandledRejection', (reason) => {
 import { config } from './lib/config.js';
 import { isIgnorableRelayError } from './lib/relayErrors.js';
 import { NostrClient, decodeNsec } from './lib/nostr.js';
+import { ProcessedStore } from './lib/processedStore.js';
 import { generateInvoice, validateLightningAddress } from './lib/lightning.js';
 import {
   parseOrderEvent,
   parsePaymentReceipt,
+  receiptDedupKey,
   createPaymentRequestEvent,
+  createStatusUpdateEvent,
   ORDER_PROCESS_KIND,
   PAYMENT_RECEIPT_KIND,
   ORDER_MESSAGE_TYPE,
 } from './lib/orderParser.js';
 
-// Track processed orders to avoid duplicates
-const processedOrders = new Set();
-const processedReceipts = new Set();
+// NIP-59 gift wrap kind (transport for all NIP-17 commerce messages)
+const GIFT_WRAP_KIND = 1059;
+
+// Gift wraps use randomized past timestamps per NIP-59, so the subscription
+// looks back 2 days to avoid missing any. The dedup store is pruned to the same
+// window (anything older can no longer be re-fetched by the `since` filter).
+const TWO_DAYS_IN_SECONDS = 2 * 24 * 60 * 60;
+
+// Track processed orders/receipts to avoid duplicates. Persisted to disk so a
+// restart doesn't re-process (and re-invoice) up to 2 days of historical gift
+// wraps re-fetched by the lookback `since` filter.
+const processedStore = new ProcessedStore(undefined, TWO_DAYS_IN_SECONDS);
 
 /**
- * Format invoice notification DM
+ * Format a human-readable note to ride inside the gift-wrapped payment request
+ * rumor's `content` field (structured invoice data lives in the rumor tags).
  */
-function formatInvoiceDM(orderId, amountSats, invoice) {
+function formatInvoiceNote(orderId, amountSats) {
   const orderIdShort = orderId.slice(0, 8);
-  return `⚡ Invoice for Order #${orderIdShort}
-
-Amount: ${amountSats.toLocaleString()} sats
-
-Pay with Lightning:
-lightning:${invoice}
-
-Or copy the invoice and paste it in your wallet.`;
+  return `⚡ Invoice for Order #${orderIdShort} - ${amountSats.toLocaleString()} sats. Pay the Lightning invoice to complete your order.`;
 }
 
 /**
- * Format thank you DM
+ * Format a human-readable thank-you note to ride inside the gift-wrapped status
+ * update rumor's `content` field.
  */
-function formatThankYouDM(orderId) {
+function formatThankYouNote(orderId) {
   const orderIdShort = orderId.slice(0, 8);
-  return `✅ Thank you for your order!
-
-Order #${orderIdShort} has been paid.
-
-We'll process your order shortly and send shipping updates via Nostr DM.`;
+  return `✅ Thank you for your order! Order #${orderIdShort} has been paid. We'll process it shortly and send shipping updates via Nostr.`;
 }
 
 /**
@@ -72,12 +79,12 @@ async function handleOrder(event, nostrClient) {
     return;
   }
 
-  // Skip if already processed
-  if (processedOrders.has(order.orderId)) {
+  // Skip if already processed (persisted across restarts to avoid re-invoicing)
+  if (processedStore.hasOrder(order.orderId)) {
     console.log(`[Order] Skipping duplicate order ${order.orderId.slice(0, 8)}`);
     return;
   }
-  processedOrders.add(order.orderId);
+  processedStore.addOrder(order.orderId);
 
   console.log(`[Order] New order received!`);
   console.log(`  Order ID: ${order.orderId.slice(0, 8)}`);
@@ -93,34 +100,22 @@ async function handleOrder(event, nostrClient) {
     console.log(`[Order] Generating invoice for ${order.amount} sats...`);
     const invoice = await generateInvoice(config.lightningAddress, order.amount, order.orderId);
 
-    // Create and publish Kind 16 Type 2 payment request
-    const paymentRequestEvent = createPaymentRequestEvent(
+    // Build the Kind 16 Type 2 payment request rumor and gift-wrap it to the buyer.
+    // The structured invoice data lives in the rumor tags; we fold a human-readable
+    // note into the content. No plaintext event and no NIP-04 DM are published -
+    // the whole payment request rides inside the encrypted NIP-17 gift wrap.
+    const paymentRequestRumor = createPaymentRequestEvent(
       order.orderId,
       order.buyerPubkey,
       order.amount,
       invoice
     );
+    paymentRequestRumor.content = formatInvoiceNote(order.orderId, order.amount);
 
-    // Get combined relays (merchant + buyer)
-    const publishRelays = await nostrClient.getPublishRelays(order.buyerPubkey);
+    console.log(`[Order] Sending gift-wrapped payment request to buyer...`);
+    await nostrClient.sendGiftWrap(order.buyerPubkey, paymentRequestRumor);
 
-    console.log(`[Order] Publishing payment request to ${publishRelays.length} relays...`);
-    await nostrClient.publishEvent(paymentRequestEvent, publishRelays);
-
-    // Wait before sending DM to avoid rate limiting
-    console.log(`[Order] Waiting 2s before sending DM...`);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Send NIP-04 DM with invoice to buyer (non-blocking, don't crash on failure)
-    const invoiceDM = formatInvoiceDM(order.orderId, order.amount, invoice);
-    try {
-      await nostrClient.sendDM(order.buyerPubkey, invoiceDM);
-      console.log(`[Order] ✓ Invoice DM sent to buyer`);
-    } catch (dmError) {
-      console.warn(`[Order] Failed to send invoice DM (non-fatal):`, dmError.message);
-    }
-
-    console.log(`[Order] ✓ Order ${order.orderId.slice(0, 8)} processed - invoice sent`);
+    console.log(`[Order] ✓ Order ${order.orderId.slice(0, 8)} processed - payment request sent`);
   } catch (error) {
     console.error(`[Order] ✗ Failed to process order ${order.orderId.slice(0, 8)}:`, error.message);
   }
@@ -135,25 +130,61 @@ async function handlePaymentReceipt(event, nostrClient) {
     return;
   }
 
-  // Skip if already processed
-  if (processedReceipts.has(event.id)) {
+  // Dedup on a STABLE key. `event` here is the inner NIP-17 rumor, which is
+  // intentionally unsigned (no `id`) - keying on `event.id` would be `undefined`
+  // for every receipt, collapsing all of them to one key so only the first ever
+  // fires a confirmation. Use `${orderId}:${preimage}` instead: it is the payment
+  // identity, so genuinely distinct receipts get distinct keys (never wrongly
+  // skipped) while the same receipt re-fetched within the lookback window - or a
+  // client retry that re-wraps the same payment - is correctly skipped.
+  const receiptKey = receiptDedupKey(receipt);
+  if (processedStore.hasReceipt(receiptKey)) {
     console.log(`[Payment] Skipping duplicate receipt for order ${receipt.orderId.slice(0, 8)}`);
     return;
   }
-  processedReceipts.add(event.id);
+  processedStore.addReceipt(receiptKey);
 
   console.log(`[Payment] Payment received!`);
   console.log(`  Order ID: ${receipt.orderId.slice(0, 8)}`);
   console.log(`  Buyer: ${receipt.buyerPubkey.slice(0, 8)}...`);
   console.log(`  Amount: ${receipt.amount} sats`);
 
-  // Send thank you DM (non-blocking, don't crash on failure)
-  const thankYouDM = formatThankYouDM(receipt.orderId);
+  const thankYouText = formatThankYouNote(receipt.orderId);
+
+  // Send a gift-wrapped thank-you as a Kind 16 Type 3 status update (structured,
+  // authoritative - parsed for rich cards). Non-blocking.
+  const statusRumor = createStatusUpdateEvent(
+    receipt.orderId,
+    receipt.buyerPubkey,
+    'confirmed',
+    thankYouText
+  );
   try {
-    await nostrClient.sendDM(receipt.buyerPubkey, thankYouDM);
-    console.log(`[Payment] ✓ Thank you message sent for order ${receipt.orderId.slice(0, 8)}`);
+    await nostrClient.sendGiftWrap(receipt.buyerPubkey, statusRumor);
+    console.log(
+      `[Payment] ✓ Gift-wrapped status update sent for order ${receipt.orderId.slice(0, 8)}`
+    );
   } catch (error) {
-    console.warn(`[Payment] Failed to send thank you DM (non-fatal):`, error.message);
+    console.warn(`[Payment] Failed to send status gift wrap (non-fatal):`, error.message);
+  }
+
+  // Also send a gift-wrapped readable kind 14 line so the confirmation renders in
+  // generic NIP-17 clients (Damus/Primal). Encrypted; non-blocking copy.
+  const readableRumor = {
+    kind: 14,
+    content: thankYouText,
+    tags: [['p', receipt.buyerPubkey]],
+  };
+  try {
+    await nostrClient.sendGiftWrap(receipt.buyerPubkey, readableRumor);
+    console.log(
+      `[Payment] ✓ Gift-wrapped readable thank-you sent for order ${receipt.orderId.slice(0, 8)}`
+    );
+  } catch (error) {
+    console.warn(
+      `[Payment] Failed to send readable thank-you gift wrap (non-fatal):`,
+      error.message
+    );
   }
 }
 
@@ -186,35 +217,45 @@ async function main() {
   console.log('\n[Startup] ✓ Service ready - listening for orders\n');
   console.log('-'.repeat(50));
 
-  // Subscribe to Kind 16 orders addressed to merchant
-  // Note: Filter by type in handler since many relays don't support #type filtering
-  const orderFilter = {
-    kinds: [ORDER_PROCESS_KIND],
+  // Subscribe to NIP-17 gift wraps (kind 1059) addressed to the merchant.
+  // A single subscription carries every commerce message; we unwrap each gift
+  // wrap and dispatch by the inner rumor's kind/type. (Gift wraps use randomized
+  // past timestamps per NIP-59, so look back 2 days to avoid missing any.)
+  const giftWrapFilter = {
+    kinds: [GIFT_WRAP_KIND],
     '#p': [nostrClient.pubkey],
-    since: Math.floor(Date.now() / 1000),
+    since: Math.floor(Date.now() / 1000) - TWO_DAYS_IN_SECONDS,
   };
 
-  // Subscribe to Kind 17 payment receipts addressed to merchant
-  const receiptFilter = {
-    kinds: [PAYMENT_RECEIPT_KIND],
-    '#p': [nostrClient.pubkey],
-    since: Math.floor(Date.now() / 1000),
-  };
+  // Start polling for gift wraps, unwrap, and dispatch by inner rumor kind/type.
+  const unsubGiftWraps = nostrClient.subscribe(
+    giftWrapFilter,
+    (giftWrap) => {
+      const rumor = nostrClient.unwrapGiftWrap(giftWrap);
+      if (!rumor) {
+        return; // Not decryptable / not authenticated / not for us
+      }
 
-  // Start polling for orders and receipts
-  const unsubOrders = nostrClient.subscribe(orderFilter, (event) => {
-    handleOrder(event, nostrClient);
-  });
+      const typeTag = rumor.tags?.find((t) => t[0] === 'type');
 
-  const unsubReceipts = nostrClient.subscribe(receiptFilter, (event) => {
-    handlePaymentReceipt(event, nostrClient);
-  });
+      if (rumor.kind === ORDER_PROCESS_KIND && typeTag?.[1] === ORDER_MESSAGE_TYPE.ORDER_CREATION) {
+        handleOrder(rumor, nostrClient);
+      } else if (rumor.kind === PAYMENT_RECEIPT_KIND) {
+        handlePaymentReceipt(rumor, nostrClient);
+      } else {
+        console.log(
+          `[Nostr] Ignoring gift wrap with inner kind ${rumor.kind}${typeTag ? ` type ${typeTag[1]}` : ''}`
+        );
+      }
+    },
+    5000,
+    TWO_DAYS_IN_SECONDS
+  );
 
   // Handle graceful shutdown
   process.on('SIGINT', () => {
     console.log('\n\n[Shutdown] Received SIGINT, closing connections...');
-    unsubOrders();
-    unsubReceipts();
+    unsubGiftWraps();
     nostrClient.close();
     console.log('[Shutdown] Goodbye!');
     process.exit(0);
@@ -222,8 +263,7 @@ async function main() {
 
   process.on('SIGTERM', () => {
     console.log('\n\n[Shutdown] Received SIGTERM, closing connections...');
-    unsubOrders();
-    unsubReceipts();
+    unsubGiftWraps();
     nostrClient.close();
     process.exit(0);
   });
