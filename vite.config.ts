@@ -26,6 +26,21 @@ export default defineConfig(() => ({
     env: {
       DEBUG_PRINT_LIMIT: '0', // Suppress DOM output that exceeds AI context windows
     },
+    coverage: {
+      provider: 'v8',
+      // json-summary feeds the CI coverage gate (total.lines.pct); text prints a
+      // human-readable table to the log. See .github/workflows/coverage.yml.
+      reporter: ['text', 'json-summary'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.d.ts',
+        'src/test/**',
+        'src/main.tsx',
+        'src/vite-env.d.ts',
+      ],
+    },
   },
   resolve: {
     alias: {

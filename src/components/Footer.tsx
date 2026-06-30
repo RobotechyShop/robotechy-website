@@ -1,12 +1,41 @@
+import { nip19 } from 'nostr-tools';
 import { useCollections } from '@/hooks/useProducts';
+import { useAuthor } from '@/hooks/useAuthor';
+import { genUserName } from '@/lib/genUserName';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface FooterProps {
   selectedCollection?: string | null;
   onCollectionClick?: (collectionId: string | null) => void;
 }
 
+// Isaac's personal Nostr identity. The About Me section pulls his avatar and bio
+// live from this profile (kind 0 metadata) so it always matches his Nostr profile.
+const ISAAC_NPUB = 'npub17dfg3tynlv39m0e9z8a0t558e7plet96xg9g4uu6q84caykq8jtqwdy09f';
+
+// Decode the npub to a hex pubkey, guarding against an invalid/non-npub value so
+// the footer degrades gracefully (empty pubkey -> useAuthor no-ops) instead of
+// crashing at module init.
+function decodeNpub(npub: string): string {
+  try {
+    const decoded = nip19.decode(npub);
+    return decoded.type === 'npub' ? decoded.data : '';
+  } catch {
+    return '';
+  }
+}
+
+const ISAAC_PUBKEY = decodeNpub(ISAAC_NPUB);
+
 export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
   const { data: collections } = useCollections();
+
+  const isaac = useAuthor(ISAAC_PUBKEY);
+  const isaacMetadata = isaac.data?.metadata;
+  const isaacName = isaacMetadata?.display_name || isaacMetadata?.name || genUserName(ISAAC_PUBKEY);
+  const isaacBio =
+    isaacMetadata?.about ||
+    "Hi, I'm Isaac! I run Robotechy, a 3D printing shop building things for the Bitcoin community.";
 
   const handleCollectionClick = (collectionId: string | null) => {
     if (onCollectionClick) {
@@ -23,28 +52,20 @@ export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-2">
             <h4 className="font-semibold mb-3 text-slate-900 dark:text-white">About Me</h4>
-            <p className="text-sm text-sage-600 dark:text-sage-400 max-w-md mb-4">
-              Hi, I'm Isaac! I'm 17 and I run Robotechy with a little help from my{' '}
-              <a
-                href="https://njump.me/npub1jutptdc2m8kgjmudtws095qk2tcale0eemvp4j2xnjnl4nh6669slrf04x"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-robotechy-green-dark hover:underline"
-              >
-                dad
-              </a>{' '}
-              and my{' '}
-              <a
-                href="https://njump.me/npub1sfpeyr9k5jms37q4900mw9q4vze4xwhdxd4avdxjml8rqgjkre8s4lcq9l"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-robotechy-green-dark hover:underline"
-              >
-                sister
-              </a>
-              . I'm currently studying at college, where I'm pursuing my interest in engineering and
-              CAD design. I love 3D printing and building things for the Bitcoin community!
-            </p>
+            <div className="flex items-start gap-4 max-w-md mb-4">
+              <Avatar className="h-16 w-16 shrink-0">
+                <AvatarImage src={isaacMetadata?.picture} alt={isaacName} />
+                <AvatarFallback className="text-lg">
+                  {(isaacName.trim().charAt(0) || 'I').toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">{isaacName}</p>
+                <p className="text-sm text-sage-600 dark:text-sage-400 mt-1 whitespace-pre-line line-clamp-3">
+                  {isaacBio}
+                </p>
+              </div>
+            </div>
           </div>
           <div>
             <h4 className="font-semibold mb-3 text-slate-900 dark:text-white">Shop</h4>
@@ -123,7 +144,7 @@ export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
         {/* Social Links */}
         <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-wrap justify-center gap-6">
           <a
-            href="https://njump.me/npub1yvhvefvam4sdz7pftrjtzj7uqantzpugmqkk7emf3v95rknxm45qhq7l3u"
+            href="https://njump.me/npub1yy0nyk6nj6tg4sx8nd7q5qcdw6pqd5e2cc0e8u2rmcgjhpvm63hsk67xe5"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-sage-600 dark:text-sage-400 hover:text-robotechy-green-dark transition-colors"
