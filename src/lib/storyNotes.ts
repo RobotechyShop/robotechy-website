@@ -43,7 +43,9 @@ export function extractImageUrls(event: NostrEvent): string[] {
       else if (part.startsWith('m ')) mime = part.slice(2).trim();
     }
 
-    if (!url) continue;
+    // Only accept network images. Restricting to http(s) keeps `data:` and other
+    // non-network schemes out of the `<img src>` for safety/predictability.
+    if (!/^https?:\/\//i.test(url)) continue;
     const isImage = mime ? mime.startsWith('image/') : looksLikeImageUrl(url);
     if (isImage) urls.push(url);
   }

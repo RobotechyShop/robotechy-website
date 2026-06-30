@@ -1,15 +1,14 @@
 import { useSeoMeta } from '@unhead/react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, ExternalLink } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { StoryNote } from '@/components/StoryNote';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
-import { FollowUsButton } from '@/components/FollowUsButton';
 import { useStoryNotes } from '@/hooks/useStoryNotes';
 import { useAuthor } from '@/hooks/useAuthor';
-import { shopOwnerPubkey } from '@/lib/shopOwner';
+import { SHOP_OWNER_NPUB, shopOwnerPubkey } from '@/lib/shopOwner';
 import { genUserName } from '@/lib/genUserName';
 
 const Story = () => {
@@ -59,7 +58,18 @@ const Story = () => {
                 {bio}
               </p>
             </div>
-            <FollowUsButton size="sm" />
+            {/* CTA targets the author whose notes power this feed (the shop
+                owner), keeping it aligned with the hero/timeline source rather
+                than the shop account. */}
+            <a
+              href={`https://njump.me/${SHOP_OWNER_NPUB}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md bg-robotechy-green px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110"
+            >
+              Follow {name} on Nostr
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
           </div>
         </div>
       </div>

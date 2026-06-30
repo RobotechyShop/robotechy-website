@@ -88,6 +88,8 @@ export function StoryNote({ event, isLast = false }: StoryNoteProps) {
                   src={src}
                   alt={imageAlt(index)}
                   loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
                   className="w-full rounded-lg border border-sage-200 object-cover dark:border-sage-800"
                 />
               ))}

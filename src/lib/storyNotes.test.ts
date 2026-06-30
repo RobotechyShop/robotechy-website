@@ -70,6 +70,13 @@ describe('extractImageUrls', () => {
     const event = makeEvent({ tags: [['imeta', 'url https://img.example/d.png']] });
     expect(extractImageUrls(event)).toEqual(['https://img.example/d.png']);
   });
+
+  it('rejects non-http(s) imeta image URLs', () => {
+    const event = makeEvent({
+      tags: [['imeta', 'url data:image/png;base64,iVBORw0KGgo=', 'm image/png']],
+    });
+    expect(extractImageUrls(event)).toEqual([]);
+  });
 });
 
 describe('isReply', () => {
