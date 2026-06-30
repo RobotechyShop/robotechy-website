@@ -39,8 +39,9 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
 
   // Open Graph / Twitter Card meta for social sharing. These are injected at
   // runtime (client-rendered SPA), so they drive in-app titles, native share
-  // sheets and any future SSR/pre-render — but social crawlers read the static
-  // index.html shell, which carries store-level previews. See PR limitations.
+  // sheets and any future SSR/pre-render — but social crawlers don't run JS, so
+  // they only ever see the static store-level tags in index.html, not these
+  // per-product tags (see src/lib/productMeta.ts for the full rationale).
   //
   // Build the canonical product URL from the naddr route (kind:pubkey:d-tag),
   // matching how ProductCard links here. `identifier` is the NIP-99 `d` tag, so
