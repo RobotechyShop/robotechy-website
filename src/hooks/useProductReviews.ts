@@ -35,6 +35,9 @@ export function useProductReviews(coord: string | undefined) {
       const filter: NostrFilter = {
         kinds: [REVIEW_KIND],
         '#d': [coord!],
+        // Cap the result set so a heavily-reviewed product can't return an
+        // unbounded number of events (we de-dupe to newest-per-author anyway).
+        limit: 500,
       };
 
       const events = await nostr.query([filter], { signal });

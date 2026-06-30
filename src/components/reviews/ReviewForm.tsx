@@ -33,13 +33,14 @@ export function ReviewForm({ coord, existing, onSuccess }: ReviewFormProps) {
   const [content, setContent] = useState(existing?.text ?? '');
   const [showLogin, setShowLogin] = useState(false);
 
-  // Keep the form in sync when the user's existing review loads/changes.
+  // Keep the form in sync with the user's existing review: prefill when it
+  // loads/changes, and reset to empty when switching products (new `coord`) or
+  // when the existing review goes away — so prior input never leaks across
+  // products.
   useEffect(() => {
-    if (existing) {
-      setStars(Math.round(existing.stars));
-      setContent(existing.text);
-    }
-  }, [existing?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    setStars(existing ? Math.round(existing.stars) : 0);
+    setContent(existing?.text ?? '');
+  }, [existing?.id, coord]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isEditing = !!existing;
 
@@ -103,8 +104,18 @@ export function ReviewForm({ coord, existing, onSuccess }: ReviewFormProps) {
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="review-rating">Your rating</Label>
-            <StarRatingInput value={stars} onChange={setStars} disabled={isPending} />
+            <span
+              id="review-rating-label"
+              className="text-sm font-medium leading-none peer-disabled:opacity-70"
+            >
+              Your rating
+            </span>
+            <StarRatingInput
+              value={stars}
+              onChange={setStars}
+              disabled={isPending}
+              labelledBy="review-rating-label"
+            />
           </div>
 
           <div className="space-y-2">

@@ -136,8 +136,11 @@ export function parseReviewEvent(event: NostrEvent): ParsedReview | null {
   const thumbTag = ratingTags.find((t) => t[2] === 'thumb');
   if (!thumbTag) return null; // a review without an overall rating is unusable
 
+  // A non-numeric overall rating makes the review unusable — skip it rather
+  // than counting it as 0 stars (which would unfairly drag aggregates down).
   const parsedThumb = parseFloat(thumbTag[1]);
-  const rating = Number.isFinite(parsedThumb) ? Math.max(0, Math.min(1, parsedThumb)) : 0;
+  if (!Number.isFinite(parsedThumb)) return null;
+  const rating = Math.max(0, Math.min(1, parsedThumb));
 
   const categories: CategoryStars[] = ratingTags
     .filter((t) => t[2] && t[2] !== 'thumb')

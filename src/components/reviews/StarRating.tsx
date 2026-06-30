@@ -75,6 +75,8 @@ interface StarRatingInputProps {
   disabled?: boolean;
   /** Accessible group label, e.g. "Your rating". */
   label?: string;
+  /** id of an external element labelling the group (takes precedence over `label`). */
+  labelledBy?: string;
 }
 
 /**
@@ -89,6 +91,7 @@ export function StarRatingInput({
   className,
   disabled = false,
   label = 'Your rating',
+  labelledBy,
 }: StarRatingInputProps) {
   const [hover, setHover] = useState<number | null>(null);
   const shown = hover ?? value;
@@ -113,7 +116,8 @@ export function StarRatingInput({
     <div
       className={cn('flex items-center gap-1', className)}
       role="radiogroup"
-      aria-label={label}
+      aria-label={labelledBy ? undefined : label}
+      aria-labelledby={labelledBy}
       onKeyDown={handleKeyDown}
       onMouseLeave={() => setHover(null)}
     >

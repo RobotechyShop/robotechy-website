@@ -131,17 +131,14 @@ describe('parseReviewEvent', () => {
     expect(parseReviewEvent(evt)).toBeNull();
   });
 
-  it('tolerates a malformed (non-numeric) thumb rating as 0', () => {
+  it('returns null for a malformed (non-numeric) thumb rating', () => {
     const evt = makeReview({
       tags: [
         ['d', COORD],
         ['rating', 'not-a-number', 'thumb'],
       ],
     });
-    const parsed = parseReviewEvent(evt);
-    expect(parsed).not.toBeNull();
-    expect(parsed!.rating).toBe(0);
-    expect(parsed!.stars).toBe(0);
+    expect(parseReviewEvent(evt)).toBeNull();
   });
 
   it('clamps an out-of-range rating into 0..1', () => {
