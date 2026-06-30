@@ -23,6 +23,7 @@ process.on('unhandledRejection', (reason) => {
   process.exit(1);
 });
 
+import { resolve } from 'path';
 import { pathToFileURL } from 'url';
 import { config } from './lib/config.js';
 import { isIgnorableRelayError } from './lib/relayErrors.js';
@@ -333,8 +334,11 @@ async function main() {
 // Run — but only when executed directly (`node index.js`), not when this module
 // is imported (e.g. by the regression test, which imports `handleOrder`). Guard
 // with an entry-point check so importing the module has no network/relay side
-// effects.
-const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+// effects. `resolve()` makes the script path absolute first (Node already gives
+// an absolute argv[1] for the main module, but resolving is a defensive no-op
+// that keeps pathToFileURL correct even if argv[1] were ever relative).
+const isEntryPoint =
+  process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 
 if (isEntryPoint) {
   main().catch((error) => {
