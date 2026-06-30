@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { TestApp } from '@/test/TestApp';
 import { StoryReply } from './StoryReply';
@@ -20,7 +20,7 @@ describe('StoryReply (signed out)', () => {
   it('renders the reply text and a sign-in-gated Zap affordance', () => {
     render(
       <TestApp>
-        <StoryReply event={makeReply()} />
+        <StoryReply event={makeReply()} onRequireLogin={() => {}} />
       </TestApp>
     );
     expect(screen.getByText(/looks great — nice print/i)).toBeInTheDocument();
@@ -29,18 +29,17 @@ describe('StoryReply (signed out)', () => {
     expect(screen.getByRole('button', { name: /zap/i })).toBeInTheDocument();
   });
 
-  it('opens the sign-in dialog when a signed-out visitor clicks Zap', async () => {
+  it('calls onRequireLogin when a signed-out visitor clicks Zap', () => {
+    const onRequireLogin = vi.fn();
     render(
       <TestApp>
-        <StoryReply event={makeReply()} />
+        <StoryReply event={makeReply()} onRequireLogin={onRequireLogin} />
       </TestApp>
     );
-    // Clicking the signed-out Zap affordance must open LoginDialog (not zap) —
-    // proving the gating, since a signed-in render would show the real ZapButton.
+    // Clicking the signed-out Zap affordance asks the parent (which owns the one
+    // shared LoginDialog) to prompt sign-in — proving the gating, since a
+    // signed-in render would show the real ZapButton instead.
     fireEvent.click(screen.getByRole('button', { name: /zap/i }));
-    const dialog = await screen.findByRole('dialog');
-    expect(dialog).toBeInTheDocument();
-    // Confirm it's the login dialog specifically (offers a sign-up path).
-    expect(within(dialog).getByRole('button', { name: /sign up/i })).toBeInTheDocument();
+    expect(onRequireLogin).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
@@ -7,20 +6,25 @@ import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NoteContent } from '@/components/NoteContent';
 import { ZapButton } from '@/components/ZapButton';
-import LoginDialog from '@/components/auth/LoginDialog';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { genUserName } from '@/lib/genUserName';
+
+interface StoryReplyProps {
+  event: NostrEvent;
+  /** Called when a signed-out visitor taps the Zap affordance. The parent owns
+   *  a single shared LoginDialog rather than one dialog per reply. */
+  onRequireLogin: () => void;
+}
 
 /**
  * A single reply (kind-1) shown under a story post: the commenter's avatar and
  * name (from their kind-0 metadata), a relative timestamp, the linkified reply
  * text, and a zap affordance for the reply itself.
  */
-export function StoryReply({ event }: { event: NostrEvent }) {
+export function StoryReply({ event, onRequireLogin }: StoryReplyProps) {
   const author = useAuthor(event.pubkey);
   const { user } = useCurrentUser();
-  const [showLogin, setShowLogin] = useState(false);
   const metadata = author.data?.metadata;
   const name = metadata?.display_name || metadata?.name || genUserName(event.pubkey);
   const npub = nip19.npubEncode(event.pubkey);
@@ -61,7 +65,7 @@ export function StoryReply({ event }: { event: NostrEvent }) {
           ) : (
             <button
               type="button"
-              onClick={() => setShowLogin(true)}
+              onClick={onRequireLogin}
               className="flex items-center gap-1 text-xs text-sage-500 transition-colors hover:text-robotechy-green-dark dark:text-sage-300"
             >
               <Zap className="h-4 w-4" />
@@ -70,12 +74,6 @@ export function StoryReply({ event }: { event: NostrEvent }) {
           )}
         </div>
       </div>
-
-      <LoginDialog
-        isOpen={showLogin}
-        onClose={() => setShowLogin(false)}
-        onLogin={() => setShowLogin(false)}
-      />
     </div>
   );
 }
