@@ -2,15 +2,20 @@
  * Regression test for issue #7:
  *   "DM invoice may be different from website invoice (double payment possible)."
  *
- * The OLD architecture sent TWO invoices for a single order — a Kind 16 Type 2
- * payment request (shown on the website) AND a separate NIP-04 (kind 4) DM
- * invoice (`formatInvoiceDM`). Those two BOLT11 strings could diverge, letting a
- * buyer pay both and lose funds (double payment).
+ * The OLD architecture sent TWO independently-generated invoices for one order —
+ * a Kind 16 Type 2 payment request (shown on the website) AND a separate NIP-04
+ * (kind 4) DM invoice (`formatInvoiceDM`). Those two BOLT11 strings could diverge,
+ * letting a buyer pay both and lose funds (double payment).
  *
  * The current `handleOrder` fixes this by generating exactly ONE invoice and
- * threading that single BOLT11 into ONE gift-wrapped Kind 16 Type 2 payment
- * request — with no separate NIP-04 DM. This test locks that invariant in so it
- * cannot silently regress.
+ * delivering that single BOLT11 two ways, both gift-wrapped to the buyer:
+ *   - a Kind 16 Type 2 payment-request card (rich marketplace clients / website)
+ *   - a NIP-17 kind-14 chat note carrying the SAME BOLT11 (a fallback so generic
+ *     DM clients that can't render the kind-16 card still show the invoice)
+ * Both copies embed the IDENTICAL invoice and the same ['order', id] tag, so they
+ * can never diverge — and one BOLT11 settles only once, so the second copy cannot
+ * enable double payment. No NIP-04 (kind 4) DM is used. This test locks that
+ * invariant in so it cannot silently regress.
  *
  * Hermetic: the Lightning provider (`generateInvoice`) is injected as a spy and
  * the relay/publish layer is a fake `nostrClient`, so no network is touched.
@@ -105,6 +110,11 @@ function tagValue(rumor, name) {
   return rumor.tags.find((t) => t[0] === name)?.[1];
 }
 
+/** The gift-wrapped rumors of a given kind that were sent. */
+function giftWrapsOfKind(client, kind) {
+  return client.giftWraps.filter((g) => g.rumor.kind === kind);
+}
+
 let nostrClient;
 let generateInvoiceSpy;
 
@@ -128,59 +138,84 @@ test('generateInvoice is called exactly once for a single order', async () => {
   assert.equal(orderIdArg, tagValue(order, 'order'), 'invoice generated for this order id');
 });
 
-test('the website Kind 16 Type 2 payment request embeds the SAME invoice generateInvoice returned', async () => {
+test('the kind-16 card and the kind-14 note both carry the IDENTICAL invoice generateInvoice returned', async () => {
   const order = buildOrderRumor();
   await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy });
 
-  assert.equal(nostrClient.giftWraps.length, 1, 'exactly one gift wrap sent');
-  const { rumor } = nostrClient.giftWraps[0];
-
-  assert.equal(rumor.kind, 16, 'payment request is a Kind 16 event');
-  assert.equal(tagValue(rumor, 'type'), '2', 'Kind 16 Type 2 = payment request');
-
-  const paymentTag = paymentTagOf(rumor);
-  assert.ok(paymentTag, 'payment request event has a payment tag');
+  // The kind-16 Type 2 payment-request card.
+  const cards = giftWrapsOfKind(nostrClient, 16);
+  assert.equal(cards.length, 1, 'exactly one kind-16 payment-request card sent');
+  const card = cards[0].rumor;
+  assert.equal(tagValue(card, 'type'), '2', 'Kind 16 Type 2 = payment request');
+  const paymentTag = paymentTagOf(card);
+  assert.ok(paymentTag, 'payment-request card has a payment tag');
   assert.equal(paymentTag[1], 'lightning', 'payment method is lightning');
-  // The crux of #7: the invoice in the event is the EXACT one generateInvoice
-  // returned — the single source of truth, not a divergent second invoice.
   assert.equal(
     paymentTag[2],
     FAKE_BOLT11,
-    'the event invoice is the one and only invoice generateInvoice returned'
+    'the card invoice is the one and only invoice generateInvoice returned'
+  );
+
+  // The kind-14 chat-note fallback.
+  const notes = giftWrapsOfKind(nostrClient, 14);
+  assert.equal(notes.length, 1, 'exactly one kind-14 invoice note sent');
+  const note = notes[0].rumor;
+  // The crux of #7: the kind-14 note embeds the EXACT same BOLT11 as the card —
+  // one invoice, two surfaces, so they can never diverge.
+  assert.ok(
+    note.content.includes(FAKE_BOLT11),
+    'the kind-14 note content carries the same BOLT11 as the card'
+  );
+  assert.equal(
+    paymentTag[2],
+    FAKE_BOLT11,
+    'card and note reference one and the same invoice (no second generateInvoice call)'
   );
 });
 
-test('NO separate NIP-04 (kind 4) invoice DM is sent during the order flow', async () => {
+test('the kind-14 note carries the SAME ["order", id] tag as the kind-16 card (correlatable/dedupable)', async () => {
   const order = buildOrderRumor();
   await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy });
 
+  const card = giftWrapsOfKind(nostrClient, 16)[0].rumor;
+  const note = giftWrapsOfKind(nostrClient, 14)[0].rumor;
+
+  const orderId = tagValue(order, 'order');
+  assert.equal(tagValue(card, 'order'), orderId, 'card carries the order id');
+  assert.equal(tagValue(note, 'order'), orderId, 'note carries the SAME order id');
+  // A client renders the card and suppresses the note by matching this tag.
   assert.equal(
-    nostrClient.dms.length,
-    0,
-    'the old separate NIP-04 invoice DM (formatInvoiceDM) must not be sent'
+    tagValue(note, 'order'),
+    tagValue(card, 'order'),
+    'card and note share an identical order tag so clients can dedupe at render time'
   );
-  // Defensive: even if a DM were sent, it must never carry the invoice.
-  for (const dm of nostrClient.dms) {
-    assert.ok(!String(dm.content).includes(FAKE_BOLT11), 'no DM may contain the BOLT11 invoice');
-  }
 });
 
-test('exactly one gift-wrapped payment request is sent to the buyer', async () => {
+test('exactly two gift wraps (one kind-16, one kind-14) go to the buyer, and NO kind-4 NIP-04 DM is used', async () => {
   const buyerPubkey = randomPubkey();
   const order = buildOrderRumor({ buyerPubkey });
   await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy });
 
-  assert.equal(nostrClient.giftWraps.length, 1, 'exactly one gift-wrapped message sent');
-  const { recipientPubkey, rumor } = nostrClient.giftWraps[0];
-  assert.equal(recipientPubkey, buyerPubkey, 'the payment request goes to the buyer');
-  assert.equal(tagValue(rumor, 'type'), '2', 'and it is the Type 2 payment request');
+  assert.equal(
+    nostrClient.giftWraps.length,
+    2,
+    'exactly two gift wraps sent for the initial request'
+  );
+  assert.equal(giftWrapsOfKind(nostrClient, 16).length, 1, 'one kind-16 card');
+  assert.equal(giftWrapsOfKind(nostrClient, 14).length, 1, 'one kind-14 note');
+  for (const { recipientPubkey } of nostrClient.giftWraps) {
+    assert.equal(recipientPubkey, buyerPubkey, 'both gift wraps go to the buyer');
+  }
+
+  // The old failure mode — a separate NIP-04 (kind 4) invoice DM — must be gone.
+  assert.equal(nostrClient.dms.length, 0, 'no NIP-04 (kind 4) DM is sent');
 });
 
-test('a duplicate order is skipped — no second invoice for the same order id', async () => {
+test('a duplicate order is skipped — no second invoice and no further gift wraps', async () => {
   const order = buildOrderRumor();
   await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy });
   // Replay the exact same order (same order id) — the persistent dedup store
-  // must short-circuit it, so no further invoice is generated.
+  // must short-circuit it, so no further invoice is generated and nothing resent.
   await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy });
 
   assert.equal(
@@ -188,5 +223,9 @@ test('a duplicate order is skipped — no second invoice for the same order id',
     1,
     'a replayed order must not generate a second invoice'
   );
-  assert.equal(nostrClient.giftWraps.length, 1, 'and must not send a second payment request');
+  assert.equal(
+    nostrClient.giftWraps.length,
+    2,
+    'a replayed order must not send any further gift wraps (still just the original card + note)'
+  );
 });

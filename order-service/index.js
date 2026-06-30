@@ -63,6 +63,21 @@ function formatInvoiceNote(orderId, amountSats) {
 }
 
 /**
+ * Format the human-readable kind-14 chat note that carries the SAME BOLT11 as
+ * the kind-16 payment-request card. Generic NIP-17 DM clients (0xchat, Amethyst's
+ * DM view, etc.) only render kind-14 chat rumors — they can't draw a kind-16
+ * marketplace order card — so without this the buyer never sees the invoice in
+ * those clients. The raw BOLT11 is included on its own line so LN-aware clients
+ * make it tappable. This is NOT a second invoice: it embeds the one invoice
+ * `generateInvoice` returned, so it cannot diverge from the website invoice
+ * (#7) — a single BOLT11 settles once, any second pay attempt simply fails.
+ */
+function formatInvoiceChatNote(orderId, amountSats, invoice) {
+  const orderIdShort = orderId.slice(0, 8);
+  return `⚡ Invoice for order #${orderIdShort} — ${amountSats.toLocaleString()} sats:\n${invoice}`;
+}
+
+/**
  * Format a human-readable thank-you note to ride inside the gift-wrapped status
  * update rumor's `content` field.
  */
@@ -74,12 +89,15 @@ function formatThankYouNote(orderId) {
 /**
  * Handle incoming order (Kind 16 Type 1)
  *
- * Generates exactly ONE Lightning invoice for the order and threads that single
- * invoice into ONE gift-wrapped Kind 16 Type 2 payment request. This is the
- * invariant that fixes #7 (DM invoice diverging from the website invoice): there
- * is no second invoice and no separate NIP-04 DM — see the comment at the
- * gift-wrap call below. The regression test in test/single-invoice.test.js locks
- * this in.
+ * Generates exactly ONE Lightning invoice for the order and delivers that single
+ * BOLT11 two ways, both gift-wrapped to the buyer: a Kind 16 Type 2 payment
+ * request (the marketplace order card) AND a NIP-17 kind-14 chat note (a fallback
+ * for generic DM clients that can't render the kind-16 card). Both carry the
+ * IDENTICAL invoice and the same ['order', id] tag, so they can never diverge —
+ * the invariant that fixes #7 (DM invoice diverging from the website invoice).
+ * One BOLT11 settles once, so the kind-14 copy cannot enable double payment. No
+ * separate NIP-04 DM is used. The regression test in test/single-invoice.test.js
+ * locks this in.
  *
  * `generateInvoice` is injected (defaulting to the real LNURL implementation) so
  * the order flow can be exercised hermetically in tests — no network, and the
@@ -135,6 +153,25 @@ export async function handleOrder(
 
     console.log(`[Order] Sending gift-wrapped payment request to buyer...`);
     await nostrClient.sendGiftWrap(order.buyerPubkey, paymentRequestRumor);
+
+    // ALSO deliver the SAME invoice as a gift-wrapped NIP-17 kind-14 chat note.
+    // Generic NIP-17 clients (0xchat, Amethyst DM view) can't render the kind-16
+    // order card, so they'd never show the invoice; the kind-14 fallback makes the
+    // raw BOLT11 visible (and tappable) there. Crucially it reuses `invoice` — the
+    // one and only invoice generated above — and carries the SAME ['order', id]
+    // tag as the kind-16 event so rich clients can correlate/dedupe the two. This
+    // is safe re #7: one BOLT11 settles once; a second pay attempt simply fails.
+    const invoiceChatRumor = {
+      kind: 14,
+      content: formatInvoiceChatNote(order.orderId, order.amount, invoice),
+      tags: [
+        ['p', order.buyerPubkey],
+        ['order', order.orderId],
+      ],
+    };
+
+    console.log(`[Order] Sending gift-wrapped kind-14 invoice note to buyer...`);
+    await nostrClient.sendGiftWrap(order.buyerPubkey, invoiceChatRumor);
 
     console.log(`[Order] ✓ Order ${order.orderId.slice(0, 8)} processed - payment request sent`);
   } catch (error) {
