@@ -94,61 +94,93 @@ const Index = () => {
 
       <OwnerToolbar />
 
-      {/* Hero Banner — text-free plate + live shop-owner avatar + real HTML text.
-          The quote and by-line used to be baked into the banner JPG; they are now
-          editable, selectable, accessible DOM text rendered over a clean, text-free
-          background plate (bitcoin-banner-plate-clean.jpg, exported from the source
-          PSD with the photo + text layers hidden). The composition mirrors the
-          original PSD: avatar left, white Ubuntu-Bold-Italic quote with a green
-          opening quote mark, and a right-aligned green "Isaac Weeks" by-line in the
-          Avengeance display font. The portrait is the live Nostr avatar (same source
-          as the footer), not a baked-in photo. */}
+      {/* Hero Banner — a faithful re-creation of the source PSD
+          (RobotechyBitcoinBannerImage.psd, 2048×1252) as real, editable,
+          selectable HTML over a clean, text-free background plate
+          (bitcoin-banner-plate-clean.jpg, exported from the PSD with the photo +
+          text layers hidden). The quote and by-line used to be baked into the
+          banner JPG.
+
+          Composition (matching the PSD): a TALL banner at the original ~1.64:1
+          proportions; a large circular avatar (~75% of the banner height) with a
+          white border, vertically centred and positioned centre-left; a narrow
+          white Ubuntu-Bold-Italic quote with a large green opening quote mark to
+          its right; and a right-aligned green "ISAAC WEEKS" by-line in Japanese
+          Robot Italic (the PSD's actual display font — see README-fonts.md).
+          The portrait is the live Nostr avatar (same source as the footer).
+
+          The banner establishes a container-query context (container-type:
+          inline-size) so the avatar and text are sized in `cqw` units and the
+          whole composition scales proportionally at any width. */}
       <div
-        className="relative bg-slate-100 dark:bg-neutral-900 border-b overflow-hidden"
+        className="relative w-full overflow-hidden border-b bg-neutral-900"
         style={{
+          containerType: 'inline-size',
+          aspectRatio: '2048 / 1252',
+          maxHeight: '820px',
           backgroundImage: 'url(/images/bitcoin-banner-plate-clean.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
-        {/* Avatar over the plate's circle: center x≈26.2%, vertically centered.
-            Sized to ~75% of the original photo circle so it doesn't touch the
-            banner's top/bottom edges. */}
+        {/* Large circular avatar: centre x≈26% (as in the PSD), vertically
+            centred, height ≈75% of the banner (aspect-square → width follows). */}
         <Avatar
-          className="absolute aspect-square h-auto -translate-x-1/2 -translate-y-1/2 border-4 border-white shadow-lg"
-          style={{ left: '26.2%', top: '50%', width: '15.4%' }}
+          className="absolute aspect-square -translate-x-1/2 -translate-y-1/2 border-4 border-white shadow-2xl"
+          style={{ left: '26%', top: '50%', height: '75%', width: 'auto' }}
         >
           <AvatarImage src={ownerMeta?.picture} alt={ownerName} className="object-cover" />
-          <AvatarFallback className="bg-neutral-800 text-2xl text-white">
+          <AvatarFallback className="bg-neutral-800 text-4xl text-white">
             {ownerName.slice(0, 1)}
           </AvatarFallback>
         </Avatar>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 md:py-14 lg:py-16">
-          {/* Editable hero text. The block sits to the right of the avatar (avatar
-              centre ≈26% from the left) and is pushed clear of it on small screens,
-              so it reflows/scales on mobile without overlapping the portrait. The
-              quote is left-aligned (matching the PSD); the by-line is right-aligned
-              under it. */}
-          <figure className="ml-auto max-w-md pl-[38%] text-left sm:max-w-lg sm:pl-[34%] md:ml-[34%] md:max-w-2xl md:pl-0 lg:ml-[33%] lg:max-w-3xl">
-            <blockquote className="font-banner-quote text-base font-bold italic leading-snug text-white drop-shadow sm:text-lg md:text-xl lg:text-2xl">
-              <span
-                aria-hidden="true"
-                className="mr-0.5 align-text-top font-banner-quote text-3xl leading-none text-robotechy-green sm:text-4xl md:text-5xl"
-              >
-                &ldquo;
-              </span>
-              Welcome to my Bitcoin store, where I sell items printed on my 3D printer for … well,
-              Bitcoin of course!
-            </blockquote>
-            {/* By-line in the subset Avengeance Italic display font. DOM text is
-                mixed-case for accessibility/selection; CSS uppercases it to hit the
-                subset glyphs (I S A C W E K). Name only — no age. */}
-            <figcaption className="mt-4 text-right font-banner-name text-2xl italic uppercase tracking-wide text-robotechy-green drop-shadow sm:mt-5 sm:text-3xl md:text-4xl lg:text-5xl">
-              Isaac Weeks
-            </figcaption>
-          </figure>
-        </div>
+        {/* Editable hero text, vertically centred to the right of the avatar. The
+            quote is left-aligned with a large green opening quote mark (matching
+            the PSD); the by-line is right-aligned beneath it. Font sizes use `cqw`
+            so they track the banner width like the original bitmap did. */}
+        <figure
+          className="absolute -translate-y-1/2 text-left"
+          style={{ top: '50%', left: '49%', right: '3.5%' }}
+        >
+          <blockquote
+            className="relative font-banner-quote font-bold italic text-white drop-shadow-lg"
+            style={{
+              fontSize: 'clamp(0.7rem, 2.2cqw, 1.85rem)',
+              lineHeight: 1.4,
+            }}
+          >
+            <span
+              aria-hidden="true"
+              className="absolute font-banner-quote leading-none text-robotechy-green"
+              style={{
+                left: 'clamp(-2.4rem, -3.4cqw, -1rem)',
+                top: '-0.05em',
+                fontSize: 'clamp(2rem, 7cqw, 6rem)',
+              }}
+            >
+              &ldquo;
+            </span>
+            {/* Explicit breaks reproduce the PSD's three-line split on wider
+                screens; on narrow/mobile they collapse so the text wraps naturally
+                and stays clear of the avatar. */}
+            Welcome to my Bitcoin store, where I<br className="hidden md:block" /> sell items
+            printed on my 3D printer for …<br className="hidden md:block" /> well, Bitcoin of
+            course!
+          </blockquote>
+          {/* By-line in the subset Japanese Robot Italic display font. DOM text is
+              mixed-case for accessibility/selection; CSS uppercases it to hit the
+              subset glyphs (I S A C W E K). Name only — no age. */}
+          <figcaption
+            className="text-right font-banner-name italic uppercase tracking-wide text-robotechy-green drop-shadow-lg"
+            style={{
+              marginTop: 'clamp(0.5rem, 1.8cqw, 1.75rem)',
+              fontSize: 'clamp(1rem, 4cqw, 3.4rem)',
+            }}
+          >
+            Isaac Weeks
+          </figcaption>
+        </figure>
       </div>
 
       {/* Filters */}

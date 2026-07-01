@@ -16,15 +16,15 @@
   font-display: swap;
 }
 
-/* 2. "ISAAC WEEKS" by-line -> Avengeance Heroic Avenger Italic — the EXACT green
-      display font from the source PSD. This is a COMMERCIAL/licensed font, so the
-      full face is NOT shipped: this .woff2 is SUBSET to only the glyphs in the
-      fixed string "ISAAC WEEKS" (I S A C W E K + space, 9 glyphs, ~0.9 KB). That
-      renders the one by-line faithfully without redistributing a usable font.
+/* 2. "ISAAC WEEKS" by-line -> Japanese Robot Italic — the EXACT green display
+      font from the source PSD. Verified against the PSD text layer, whose FontSet
+      names "JapaneseRobot-Italic" (NOT Avengeance, which an earlier revision
+      assumed). To keep the payload tiny this .woff2 is SUBSET to only the glyphs
+      in the fixed string "ISAAC WEEKS" (I S A C W E K + space, 9 glyphs, ~0.7 KB).
       See public/fonts/README-fonts.md for the licence note. */
 @font-face {
   font-family: 'Banner Name';
-  src: url('/fonts/avengeance-isaac-weeks.woff2') format('woff2');
+  src: url('/fonts/isaac-weeks-japanese-robot.woff2') format('woff2');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
