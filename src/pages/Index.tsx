@@ -164,9 +164,9 @@ const Index = () => {
             {/* Explicit breaks reproduce the PSD's three-line split on wider
                 screens; on narrow/mobile they collapse so the text wraps naturally
                 and stays clear of the avatar. */}
-            Welcome to my Bitcoin store, where I<br className="hidden md:block" /> sell items
-            printed on my 3D printer for …<br className="hidden md:block" /> well, Bitcoin of
-            course!
+            Welcome to my Bitcoin store, where I <br className="hidden md:block" />
+            sell items printed on my 3D printer for … <br className="hidden md:block" />
+            well, Bitcoin of course!
           </blockquote>
           {/* By-line in the subset Japanese Robot Italic display font. DOM text is
               mixed-case for accessibility/selection; CSS uppercases it to hit the
