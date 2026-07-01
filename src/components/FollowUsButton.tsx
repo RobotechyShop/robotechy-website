@@ -42,8 +42,11 @@ interface FollowUsButtonProps {
  *
  * - Signed in: reads the current kind-3 on mount to show "Following" when already
  *   following; clicking publishes an updated kind-3 and toasts on success.
- * - Signed out: opens the LoginDialog (auto-following once signed in) and always
- *   offers a "View on Nostr" fallback link so the shop can be followed externally.
+ * - Signed out: opens the LoginDialog (auto-following once signed in) and, when
+ *   {@link FollowUsButtonProps.showViewOnNostr} is enabled (the default), offers
+ *   a "View on Nostr" fallback link so the shop can be followed externally. The
+ *   story hero passes `showViewOnNostr={false}` since its action row links out
+ *   elsewhere.
  */
 export function FollowUsButton({
   className,

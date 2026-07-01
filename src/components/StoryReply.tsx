@@ -1,20 +1,30 @@
 import type { NostrEvent } from '@nostrify/nostrify';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
+import { Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NoteContent } from '@/components/NoteContent';
 import { ZapButton } from '@/components/ZapButton';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { genUserName } from '@/lib/genUserName';
+
+interface StoryReplyProps {
+  event: NostrEvent;
+  /** Called when a signed-out visitor taps the Zap affordance. The parent owns
+   *  a single shared LoginDialog rather than one dialog per reply. */
+  onRequireLogin: () => void;
+}
 
 /**
  * A single reply (kind-1) shown under a story post: the commenter's avatar and
  * name (from their kind-0 metadata), a relative timestamp, the linkified reply
  * text, and a zap affordance for the reply itself.
  */
-export function StoryReply({ event }: { event: NostrEvent }) {
+export function StoryReply({ event, onRequireLogin }: StoryReplyProps) {
   const author = useAuthor(event.pubkey);
+  const { user } = useCurrentUser();
   const metadata = author.data?.metadata;
   const name = metadata?.display_name || metadata?.name || genUserName(event.pubkey);
   const npub = nip19.npubEncode(event.pubkey);
@@ -42,11 +52,26 @@ export function StoryReply({ event }: { event: NostrEvent }) {
           event={event}
           className="mt-0.5 text-sm text-sage-700 dark:text-sage-200 leading-relaxed"
         />
+        {/* Zap the reply (NIP-57). Signed-in users see the real ZapButton (which
+            self-hides on a self-zap or an author with no lightning address);
+            signed-out users get a Zap affordance that opens the sign-in dialog —
+            the same login-gated pattern as posts and the hero. */}
         <div className="mt-1">
-          <ZapButton
-            target={event}
-            className="text-xs text-sage-500 hover:text-robotechy-green-dark"
-          />
+          {user ? (
+            <ZapButton
+              target={event}
+              className="text-xs text-sage-500 hover:text-robotechy-green-dark dark:text-sage-300"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={onRequireLogin}
+              className="flex items-center gap-1 text-xs text-sage-500 transition-colors hover:text-robotechy-green-dark dark:text-sage-300"
+            >
+              <Zap className="h-4 w-4" />
+              <span>Zap</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

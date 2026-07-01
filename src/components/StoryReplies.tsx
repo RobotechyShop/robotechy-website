@@ -79,7 +79,7 @@ export function StoryReplies({ note }: { note: NostrEvent }) {
       ) : replies.length > 0 ? (
         <div className="space-y-4">
           {replies.map((reply) => (
-            <StoryReply key={reply.id} event={reply} />
+            <StoryReply key={reply.id} event={reply} onRequireLogin={() => setShowLogin(true)} />
           ))}
         </div>
       ) : (
