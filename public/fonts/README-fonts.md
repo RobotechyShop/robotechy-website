@@ -18,8 +18,9 @@ assumed "Avengeance Heroic Avenger"; rendering all four Avengeance cuts against
 the original showed a clear mismatch, while Japanese Robot Italic is a
 pixel-for-pixel match). Japanese Robot is distributed as a **free font**
 (via Fonts2u); to keep the payload tiny the file shipped here is **subset to only
-the glyphs needed for the fixed string "ISAAC WEEKS"** — the letters
-`I S A C W E K` plus a space (9 glyphs, ~0.7 KB). It cannot set any other text.
+the glyphs needed for the fixed string "ISAAC WEEKS"** — the 7 unique letters
+`I S A C W E K` plus a space (8 glyphs; 9 in the file counting the mandatory
+`.notdef`), ~0.7 KB. It cannot set any other text.
 
 Regenerate from the source `.ttf` (`Japanese_Robot_Italic.ttf`, kept out of the
 repo) with:
