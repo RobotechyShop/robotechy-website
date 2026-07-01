@@ -56,13 +56,19 @@ async function injectLogin(page, nsec) {
 async function gotoFirstProduct(page) {
   await page.goto(BASE_URL + '/', { waitUntil: 'networkidle', timeout: 30000 });
   await page.waitForTimeout(1500);
-  // Product cards link to /<naddr>. Click the first one.
+  // Product cards link to /<naddr>. Navigate to the first one directly (the
+  // card image overlay can intercept a click, so resolve the href and goto).
   const firstProduct = page.locator('a[href^="/naddr1"]').first();
   await firstProduct.waitFor({ timeout: 15000 });
-  await firstProduct.click();
+  const href = await firstProduct.getAttribute('href');
+  if (!href) {
+    throw new Error('First product card has no href — cannot navigate to the product page.');
+  }
+  await page.goto(BASE_URL + href, { waitUntil: 'networkidle', timeout: 30000 });
   await page.waitForTimeout(1500);
-  // The reviews section heading confirms we're on a product page.
-  await page.getByRole('heading', { name: /reviews/i }).first().waitFor({ timeout: 15000 });
+  // Reviews + Comments are tabs (Reviews is the default active tab). The
+  // Reviews tab confirms we're on a product page with the feedback tabs mounted.
+  await page.getByRole('tab', { name: /reviews/i }).first().waitFor({ timeout: 15000 });
 }
 
 const browser = await chromium.launch({ headless: HEADLESS, args: ['--no-sandbox'] });
@@ -72,8 +78,8 @@ const browser = await chromium.launch({ headless: HEADLESS, args: ['--no-sandbox
   const page = await browser.newPage({ viewport: { width: 1280, height: 1100 } });
   await gotoFirstProduct(page);
 
-  const reviewsHeading = page.getByRole('heading', { name: /reviews/i }).first();
-  await reviewsHeading.scrollIntoViewIfNeeded();
+  const reviewsTab = page.getByRole('tab', { name: /reviews/i }).first();
+  await reviewsTab.scrollIntoViewIfNeeded();
   await page.waitForTimeout(500);
 
   // The "Sign in to review" button must open the LoginDialog (not no-op).
@@ -96,8 +102,8 @@ if (NSEC) {
   await injectLogin(page, NSEC);
   await gotoFirstProduct(page);
 
-  const reviewsHeading = page.getByRole('heading', { name: /reviews/i }).first();
-  await reviewsHeading.scrollIntoViewIfNeeded();
+  const reviewsTab = page.getByRole('tab', { name: /reviews/i }).first();
+  await reviewsTab.scrollIntoViewIfNeeded();
   await page.waitForTimeout(500);
 
   // Pick 4 stars (the picker is an ARIA radiogroup of star buttons).
@@ -112,7 +118,7 @@ if (NSEC) {
   await page.getByText(text).first().waitFor({ timeout: 20000 });
   console.log('signed-in: kind-31555 review published and rendered OK');
 
-  await reviewsHeading.scrollIntoViewIfNeeded();
+  await reviewsTab.scrollIntoViewIfNeeded();
   await page.waitForTimeout(1000);
   if (SHOT_DIR) await page.screenshot({ path: `${SHOT_DIR}/03-just-submitted.png` });
   await page.close();

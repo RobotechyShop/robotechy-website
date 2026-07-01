@@ -128,8 +128,10 @@ let hasPosts = false;
         .textContent()) || '';
     console.log(`replies section OK on first post — ${repliesLabel.trim()}`);
 
-    // Signed-out zap affordance + sign-in-gated reply composer.
-    await first.getByRole('button', { name: /^zap$/i }).waitFor({ timeout: 5000 });
+    // Signed-out zap affordance + sign-in-gated reply composer. The post's own
+    // ZapButton renders before the replies (which now each carry their own zap),
+    // so scope to the first match — the post's — to stay out of strict mode.
+    await first.getByRole('button', { name: /^zap$/i }).first().waitFor({ timeout: 5000 });
     const replyBtn = first.getByRole('button', { name: /sign in to reply/i });
     await replyBtn.waitFor({ timeout: 5000 });
     console.log('signed-out: Zap + "Sign in to reply" affordances present OK');
