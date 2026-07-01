@@ -20,8 +20,10 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				// Home hero banner welcome quote (see @font-face in src/index.css).
+				// Home hero banner text (see @font-face rules in src/index.css).
+				// Quote = Ubuntu Bold Italic; name = subset Avengeance Heroic Avenger Italic.
 				'banner-quote': ['"Banner Quote"', 'ui-sans-serif', 'sans-serif'],
+				'banner-name': ['"Banner Name"', 'ui-sans-serif', 'sans-serif'],
 			},
 			colors: {
 				robotechy: {

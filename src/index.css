@@ -2,14 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Self-hosted font for the home hero banner welcome quote. This re-creates the
-   text that used to be baked into the banner JPG so it can live as real, editable
-   HTML. Ubuntu Bold Italic is the EXACT font of the original quote (Ubuntu Font
-   Licence — freely redistributable). */
+/* Self-hosted fonts for the home hero banner. These re-create the text that used
+   to be baked into the banner JPG so it can live as real, editable, selectable
+   HTML while matching the original composition exactly.
+
+   1. Welcome quote -> Ubuntu Bold Italic — the EXACT font of the original quote
+      (Ubuntu Font Licence — freely redistributable, so shipped in full). */
 @font-face {
   font-family: 'Banner Quote';
   src: url('/fonts/ubuntu-bold-italic.woff2') format('woff2');
   font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* 2. "ISAAC WEEKS" by-line -> Avengeance Heroic Avenger Italic — the EXACT green
+      display font from the source PSD. This is a COMMERCIAL/licensed font, so the
+      full face is NOT shipped: this .woff2 is SUBSET to only the glyphs in the
+      fixed string "ISAAC WEEKS" (I S A C W E K + space, 9 glyphs, ~0.9 KB). That
+      renders the one by-line faithfully without redistributing a usable font.
+      See public/fonts/README-fonts.md for the licence note. */
+@font-face {
+  font-family: 'Banner Name';
+  src: url('/fonts/avengeance-isaac-weeks.woff2') format('woff2');
+  font-weight: 400;
   font-style: italic;
   font-display: swap;
 }
