@@ -101,6 +101,14 @@ export function createOrderTags(
     tags.push(['item', productRef, item.quantity.toString()]);
   }
 
+  // Reference the chosen shipping option per the Gamma spec so the merchant
+  // knows exactly which method (and price) the buyer selected:
+  // ["shipping", "30406:<pubkey>:<d-tag>"]. Absent for legacy fallback zones,
+  // which aren't real 30406 events.
+  if (shipping.shippingRef) {
+    tags.push(['shipping', shipping.shippingRef]);
+  }
+
   // Add shipping/contact info
   tags.push(['address', formatAddress(shipping)]);
   tags.push(['email', shipping.email]);
