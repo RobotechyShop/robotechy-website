@@ -58,13 +58,30 @@ function formatOrderSummary(
 
   const messageText = shipping.message ? `\nNote: ${shipping.message}` : '';
 
+  // Itemise shipping and show the ALL-IN total (items + shipping) — the same
+  // total that goes into the order's `amount` tag and gets invoiced.
+  const shippingLabel = shipping.shippingTitle || shipping.shippingZone;
+  const shippingCurrency = shipping.shippingCurrency || currency;
+  const shippingCostText =
+    shipping.shippingCost != null
+      ? ` (${formatPrice(shipping.shippingCost, shippingCurrency)})`
+      : '';
+  // Only sum for display when the currencies actually match; otherwise show
+  // both amounts rather than adding apples to oranges (the sats `amount` tag
+  // converts each part in its own currency, so it stays correct either way).
+  const sameCurrency = shippingCurrency.toUpperCase() === currency.toUpperCase();
+  const totalText =
+    shipping.shippingCost != null && !sameCurrency
+      ? `${formatPrice(totalPrice, currency)} + ${formatPrice(shipping.shippingCost, shippingCurrency)} shipping`
+      : formatPrice(totalPrice + (sameCurrency ? (shipping.shippingCost ?? 0) : 0), currency);
+
   return `📦 New Order #${orderIdShort}
 
 Items:
 ${itemsText}
 
-Shipping: ${shipping.shippingZone}
-Total: ${formatPrice(totalPrice, currency)}
+Shipping: ${shippingLabel}${shippingCostText}
+Total: ${totalText}
 ${addressText}${contactText}${messageText}`.trim();
 }
 
@@ -161,7 +178,14 @@ export function useGammaCheckout() {
 
       try {
         const orderId = generateOrderId();
-        const totalSats = convertToSats(totalPrice, currency);
+        // Per the Gamma spec the order `amount` is the ALL-IN total in sats —
+        // items PLUS the selected shipping option's cost. Convert each part in
+        // its own currency (the shipping option may be priced differently).
+        const itemsSats = convertToSats(totalPrice, currency);
+        const shippingSats = shipping.shippingCost
+          ? convertToSats(shipping.shippingCost, shipping.shippingCurrency || currency)
+          : 0;
+        const totalSats = itemsSats + shippingSats;
 
         // Build the order rumor (Kind 16 Type 1). This template carries the
         // structured order tags AND the customer's PII (address/email/phone).

@@ -24,8 +24,15 @@ export interface ShippingInfo {
   state: string;
   postalCode: string;
   country: string;
-  shippingZone: string; // Shipping zone ID (uk, europe, worldwide)
+  shippingZone: string; // Selected shipping option id (kind 30406 d-tag)
   message?: string; // Optional note to merchant
+  // Country-first shipping selection (Gamma kind 30406). Optional so legacy
+  // callers/tests still compile; the checkout form always fills them in.
+  countryCode?: string; // Ship-to country (ISO 3166-1 alpha-2)
+  shippingRef?: string; // Order `shipping` tag value: "30406:<pubkey>:<d-tag>"
+  shippingCost?: number; // Option base price + product extra-cost
+  shippingCurrency?: string; // Currency of shippingCost
+  shippingTitle?: string; // Display title for human-readable summaries
 }
 
 // Gamma Markets Kind 16 Order (Type 1) - Order creation

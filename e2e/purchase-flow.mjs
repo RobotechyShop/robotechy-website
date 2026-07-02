@@ -72,12 +72,36 @@ await step(`open "${PRODUCT}" and Buy It Now`, async () => {
 });
 
 await step('fill shipping and place order', async () => {
+  const dialog = page.locator('[role="dialog"]');
+
+  // Country-first checkout: pick the ship-to country in the searchable
+  // combobox (it may already be pre-selected from the browser locale), which
+  // filters the shipping methods to those covering it.
+  await dialog.getByRole('combobox').first().click();
+  await page.getByPlaceholder(/search country/i).fill('united k');
+  await page.getByRole('option', { name: /united kingdom/i }).first().click();
+
+  // Wait deterministically for the shipping options to finish resolving from
+  // relays (the loading skeleton disappears; 'hidden' also covers the case
+  // where the options were already cached and it never rendered at all).
+  await dialog
+    .getByTestId('shipping-options-loading')
+    .waitFor({ state: 'hidden', timeout: 20000 });
+
+  // Select the first available shipping method (auto-selected when only one
+  // fits; the trigger then shows the method instead of the placeholder).
+  const methodTrigger = dialog.getByRole('combobox').nth(1);
+  await methodTrigger.waitFor({ timeout: 10000 });
+  if ((await methodTrigger.textContent())?.match(/select shipping method/i)) {
+    await methodTrigger.click();
+    await page.getByRole('option').first().click();
+  }
+
   await page.locator('#name').fill('Sat Oshi');
   await page.locator('#address').fill('21 Lightning Lane');
   await page.locator('#city').fill('London');
   await page.locator('#postalCode').fill('N1 21BTC');
-  await page.locator('#country').fill('United Kingdom');
-  await page.locator('[role="dialog"]').locator('button[type="submit"]').first().click();
+  await dialog.locator('button[type="submit"]').first().click();
 });
 
 // The merchant backend delivers the invoice over Nostr relays — allow generous time.

@@ -91,6 +91,30 @@ describe('NIP-17 commerce gift wraps', () => {
     expect(inner.tags.find((t) => t[0] === 'address')?.[1]).toContain('123 Robot Lane');
   });
 
+  it('includes the Gamma shipping reference tag when a 30406 option was selected', () => {
+    const shipping = {
+      ...buildShipping(),
+      shippingRef: `30406:${'b'.repeat(64)}:uk-standard`,
+      shippingCost: 3.5,
+      shippingCurrency: 'GBP',
+      shippingTitle: 'UK Standard',
+    } as ShippingInfo;
+
+    const tags = createOrderTags('order-1', [buildCartItem()], shipping, 'c'.repeat(64), 1000);
+    expect(tags).toContainEqual(['shipping', `30406:${'b'.repeat(64)}:uk-standard`]);
+  });
+
+  it('omits the shipping tag for legacy fallback zones (no real 30406 event)', () => {
+    const tags = createOrderTags(
+      'order-1',
+      [buildCartItem()],
+      buildShipping(),
+      'c'.repeat(64),
+      1000
+    );
+    expect(tags.some((t) => t[0] === 'shipping')).toBe(false);
+  });
+
   it('round-trips an inner kind 16 type 2 payment request and parses it', () => {
     const merchantSk = generateSecretKey();
     const buyerSk = generateSecretKey();

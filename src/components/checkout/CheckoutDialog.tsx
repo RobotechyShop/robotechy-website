@@ -10,6 +10,7 @@ import { ShippingForm } from './ShippingForm';
 import { OrderConfirmation } from './OrderConfirmation';
 import { PaymentDisplay } from './PaymentDisplay';
 import { useCart } from '@/hooks/useCart';
+import { useCheckoutShippingOptions } from '@/hooks/useCheckoutShippingOptions';
 import { useGammaCheckout } from '@/hooks/useGammaCheckout';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import LoginDialog from '@/components/auth/LoginDialog';
@@ -29,6 +30,8 @@ type CheckoutStep = 'shipping' | 'payment' | 'confirmation';
 export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
   const { user } = useCurrentUser();
   const { totalPrice, currency, totalItems } = useCart();
+  const { options: shippingOptions, isLoading: shippingOptionsLoading } =
+    useCheckoutShippingOptions();
   const {
     checkoutState,
     submitOrder,
@@ -142,7 +145,14 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
                 </p>
               </div>
 
-              <ShippingForm onSubmit={handleShippingSubmit} isSubmitting={isSubmitting} />
+              <ShippingForm
+                onSubmit={handleShippingSubmit}
+                isSubmitting={isSubmitting}
+                currency={currency}
+                shippingOptions={shippingOptions}
+                optionsLoading={shippingOptionsLoading}
+                subtotal={totalPrice}
+              />
             </div>
           )}
 
