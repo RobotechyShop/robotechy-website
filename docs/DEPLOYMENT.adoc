@@ -105,5 +105,11 @@ docker compose up -d --build robotechy   # after main points at the good commit
 * Service `robotechy` in `apps-stack/docker-compose.yml`, published on `8084:3000`.
 * Env: `MERCHANT_NSEC`, `LIGHTNING_ADDRESS`, `FALLBACK_RELAYS` (order service);
   without the first two it runs frontend-only.
+* Volume: mount a named volume at `/app/order-service/data` — it holds the
+  order-service dedup store (`.processed.json`), which must survive container
+  *rebuilds* (not just restarts). Without it, every deploy wipes the store and
+  the service re-invoices up to 2 days of already-processed orders, sending
+  buyers duplicate payment-request DMs. (`PROCESSED_STORE_PATH` overrides the
+  store path if a different layout is needed.)
 * See link:INSTALLATION.adoc#_docker_deployment[Installation → Docker Deployment]
   for the image details and link:TROUBLESHOOTING.adoc[Troubleshooting].

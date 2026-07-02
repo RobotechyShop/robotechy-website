@@ -18,6 +18,21 @@ function tmpFile() {
   return { path: join(dir, '.processed.json'), dir };
 }
 
+test('creates a missing parent directory on first save (fresh data/ dir or empty volume)', () => {
+  const { dir } = tmpFile();
+  try {
+    // Point the store at a path whose parent directory does not exist yet —
+    // exactly the state of a fresh checkout or a just-created Docker volume.
+    const nested = join(dir, 'data', '.processed.json');
+    const store = new ProcessedStore(nested, 0);
+    store.addOrder('order-1'); // must not warn/fail — save() mkdirs the parent
+    const reloaded = new ProcessedStore(nested, 0);
+    assert.equal(reloaded.hasOrder('order-1'), true, 'store should persist into the created dir');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('processed IDs survive a restart (persisted to disk)', () => {
   const { path, dir } = tmpFile();
   try {
