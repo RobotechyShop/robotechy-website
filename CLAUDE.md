@@ -147,7 +147,7 @@ The `vite.config.ts` includes `optimizeDeps.include: ['style-to-js']` to handle 
 - Read `AGENTS.md` for complete Nostr protocol implementation patterns and design standards
 - Never modify `App.tsx` unless adding new providers
 - Dev server binds to `::` (IPv6) on port 8080
-- Uses TypeScript with `strictNullChecks` but not `strict` mode
+- Uses TypeScript in full `strict` mode
 
 ## User Context
 
