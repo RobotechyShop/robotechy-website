@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
@@ -32,7 +32,10 @@ export const EditProfileForm: React.FC = () => {
 
   // Initialize the form with default values
   const form = useForm<NostrMetadata>({
-    resolver: zodResolver(n.metadata()),
+    // standardSchemaResolver is zod-major-agnostic: n.metadata() comes from
+    // nostrify's own zod 4 while the app schemas use zod 3 — both implement
+    // Standard Schema, so this avoids pinning the two type identities together.
+    resolver: standardSchemaResolver(n.metadata()),
     defaultValues: {
       name: '',
       about: '',
