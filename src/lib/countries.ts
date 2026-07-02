@@ -520,9 +520,14 @@ const ALPHA3_TO_ALPHA2: Record<string, string> = {
  * Normalise a country code to ISO 3166-1 alpha-2 (uppercase). Accepts alpha-2
  * or alpha-3 input; returns undefined for anything unrecognisable.
  */
+// O(1) validity lookups for toAlpha2 (COUNTRY_CODES is an array).
+const COUNTRY_CODE_SET = new Set(COUNTRY_CODES);
+
 export function toAlpha2(code: string): string | undefined {
   const upper = code.trim().toUpperCase();
-  if (upper.length === 2) return upper;
+  // Validate 2-letter codes against the assigned ISO set — an unassigned pair
+  // like "ZZ" from external event data must NOT pass as a valid country.
+  if (upper.length === 2) return COUNTRY_CODE_SET.has(upper) ? upper : undefined;
   if (upper.length === 3) return ALPHA3_TO_ALPHA2[upper];
   return undefined;
 }

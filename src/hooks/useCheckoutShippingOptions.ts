@@ -32,8 +32,13 @@ export function useCheckoutShippingOptions(): {
     shippingOptionRefs: cartRefs.map((r) => r.ref),
   });
 
-  // Merchant-wide fallback — only fetched when the products reference nothing.
-  const merchantOptionsQuery = useMerchantShippingOptions();
+  // Merchant-wide fallback — the query only actually fires when it's needed:
+  // no product refs at all, or the referenced options resolved to nothing
+  // (deleted/unreachable). Otherwise checkout skips the extra relay query.
+  const needMerchantFallback =
+    cartRefs.length === 0 ||
+    (!productOptionsQuery.isLoading && (productOptionsQuery.data ?? []).length === 0);
+  const merchantOptionsQuery = useMerchantShippingOptions(needMerchantFallback);
 
   return useMemo(() => {
     if (cartRefs.length > 0) {

@@ -80,11 +80,18 @@ await step('fill shipping and place order', async () => {
   await dialog.getByRole('combobox').first().click();
   await page.getByPlaceholder(/search country/i).fill('united k');
   await page.getByRole('option', { name: /united kingdom/i }).first().click();
-  await page.waitForTimeout(1000);
+
+  // Wait deterministically for the shipping options to finish resolving from
+  // relays (the loading skeleton disappears; 'hidden' also covers the case
+  // where the options were already cached and it never rendered at all).
+  await dialog
+    .getByTestId('shipping-options-loading')
+    .waitFor({ state: 'hidden', timeout: 20000 });
 
   // Select the first available shipping method (auto-selected when only one
   // fits; the trigger then shows the method instead of the placeholder).
   const methodTrigger = dialog.getByRole('combobox').nth(1);
+  await methodTrigger.waitFor({ timeout: 10000 });
   if ((await methodTrigger.textContent())?.match(/select shipping method/i)) {
     await methodTrigger.click();
     await page.getByRole('option').first().click();

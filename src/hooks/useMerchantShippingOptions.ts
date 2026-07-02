@@ -8,11 +8,15 @@ import { SHIPPING_OPTION_KIND } from '@/lib/productAdmin';
  * Fetches ALL shipping-option events (kind 30406) authored by the merchant — the
  * owner's shipping methods/zones/costs, for the management UI. (Distinct from
  * `useShippingOptions`, which resolves the specific options a product references.)
+ *
+ * @param enabled - set false to skip the relay query entirely (e.g. the checkout
+ *   only needs this as a fallback when the products reference no options).
  */
-export function useMerchantShippingOptions() {
+export function useMerchantShippingOptions(enabled = true) {
   const { nostr } = useNostr();
 
   return useQuery({
+    enabled,
     queryKey: ['shipping-options', 'merchant', MERCHANT_PUBKEY],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);

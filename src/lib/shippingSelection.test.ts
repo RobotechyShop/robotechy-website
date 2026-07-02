@@ -60,6 +60,10 @@ describe('shipsToCountry', () => {
   it('rejects unrecognisable codes rather than accidentally matching', () => {
     expect(shipsToCountry(option({ countries: ['GB'] }), 'BRITAIN')).toBe(false);
     expect(shipsToCountry(option({ countries: ['NOTACODE'] }), 'GB')).toBe(false);
+    // Unassigned 2-letter pairs must not pass validation either — "ZZ" is the
+    // right length but is not an ISO 3166-1 assigned code.
+    expect(shipsToCountry(option({ countries: ['ZZ'] }), 'GB')).toBe(false);
+    expect(shipsToCountry(option({ countries: ['GB'] }), 'ZZ')).toBe(false);
   });
 });
 
