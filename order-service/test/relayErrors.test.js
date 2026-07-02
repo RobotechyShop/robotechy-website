@@ -18,6 +18,15 @@ test('ignores the ws handshake rejection ("Unexpected server response: 403") tha
   assert.equal(isIgnorableRelayError(new Error('Unexpected server response: 502')), true);
 });
 
+test('ignores the relay publish timeout ("publish timed out") that crashed the service in production', () => {
+  // nostr-tools raises this on an internal promise when a slow relay never
+  // ACKs a published event — relay noise, not a genuine bug (2026-07-02).
+  assert.equal(isIgnorableRelayError(new Error('publish timed out')), true);
+  // But generic/HTTP timeouts must STAY fatal (LNURL fetch timeouts are real).
+  assert.equal(isIgnorableRelayError(new Error('Request Timeout')), false);
+  assert.equal(isIgnorableRelayError(new Error('fetch timeout')), false);
+});
+
 test('ignores known transient relay/network errors (case-insensitive)', () => {
   for (const m of [
     'restricted: Pay on https://nostr.land for access.',
