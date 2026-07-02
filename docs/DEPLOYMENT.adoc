@@ -35,9 +35,14 @@ so nothing is exposed to the internet.
 
 == Releasing
 
+The footer shows the site version (from `package.json`'s `version` field,
+injected at build time — see `vite.config.ts`). Keep the tag and that field in
+lockstep: bump the version on `main` first, then tag that commit `v<version>`.
+
 [source,bash]
 ----
-# Tag the commit on main you want to ship, and push the tag.
+# 1. Bump the version in package.json (e.g. 1.2.3), commit to main.
+# 2. Tag the same commit on main and push the tag.
 git tag v1.2.3
 git push origin v1.2.3
 ----
