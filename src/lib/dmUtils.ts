@@ -96,3 +96,96 @@ export function formatFullDateTime(timestamp: number): string {
     minute: '2-digit',
   });
 }
+
+/**
+ * Minimal structural shape needed to merge conversation messages — matches the
+ * fields of DMProvider's DecryptedMessage that dedup/replacement relies on.
+ */
+export interface MergeableMessage {
+  id: string;
+  pubkey: string;
+  created_at: number;
+  decryptedContent?: string;
+  /** True on the local optimistic bubble added when the user hits send. */
+  isSending?: boolean;
+  /** NIP-17: the outer gift wrap id (stable dedup key across re-fetches). */
+  originalGiftWrapId?: string;
+  /** Client-side arrival stamp used for entry animations. */
+  clientFirstSeen?: number;
+}
+
+/**
+ * How far apart (seconds) an optimistic bubble and its confirmed relay copy may
+ * be stamped and still be treated as the same message. Mirrors the live
+ * subscription path's window in DMProvider.addMessageToState.
+ */
+const OPTIMISTIC_MATCH_WINDOW_SECONDS = 30;
+
+/**
+ * Merge incoming (relay-fetched) messages into a conversation's existing list.
+ *
+ * - Dedupes by `originalGiftWrapId || id` (NIP-17 wraps re-fetched across polls
+ *   keep a stable wrap id; NIP-04 and cached messages use the event id).
+ * - Replaces a matching optimistic bubble (`isSending` + same author + same
+ *   decrypted content within a small time window) instead of appending a
+ *   second copy. Without this, a sent message shows TWICE whenever the poll
+ *   path fetches the sender's own wrap before the live subscription does —
+ *   the optimistic bubble (spinner forever) plus the confirmed copy. The
+ *   replacement keeps the optimistic `created_at`/`clientFirstSeen` so the
+ *   bubble doesn't jump or re-animate (mirrors addMessageToState).
+ *
+ * Returns a new array sorted by `created_at` ascending.
+ */
+export function mergeConversationMessages<T extends MergeableMessage>(
+  existing: T[],
+  incoming: T[]
+): T[] {
+  const merged = [...existing];
+  const seenIds = new Set(merged.map((msg) => msg.originalGiftWrapId || msg.id));
+
+  // Optimistic bubbles can only pre-exist in `existing` (relay-fetched copies
+  // never carry isSending), and there are at most a handful at once. Index them
+  // up front and search only that set — a full findIndex per incoming message
+  // would make large catch-up merges (thousands of messages, no bubbles at all)
+  // O(n²) for nothing.
+  let optimisticIndices = merged.reduce<number[]>((indices, msg, index) => {
+    if (msg.isSending) indices.push(index);
+    return indices;
+  }, []);
+
+  for (const message of incoming) {
+    const messageId = message.originalGiftWrapId || message.id;
+    if (seenIds.has(messageId)) {
+      continue;
+    }
+    seenIds.add(messageId);
+
+    const optimisticIndex =
+      optimisticIndices.length > 0
+        ? optimisticIndices.find((index) => {
+            const msg = merged[index];
+            return (
+              msg.pubkey === message.pubkey &&
+              msg.decryptedContent === message.decryptedContent &&
+              Math.abs(msg.created_at - message.created_at) <= OPTIMISTIC_MATCH_WINDOW_SECONDS
+            );
+          })
+        : undefined;
+
+    if (optimisticIndex !== undefined) {
+      const optimistic = merged[optimisticIndex];
+      merged[optimisticIndex] = {
+        ...message,
+        created_at: optimistic.created_at,
+        clientFirstSeen: optimistic.clientFirstSeen,
+      };
+      // Consumed — a bubble is replaced at most once.
+      optimisticIndices = optimisticIndices.filter((index) => index !== optimisticIndex);
+    } else {
+      merged.push(message);
+    }
+  }
+
+  merged.sort((a, b) => a.created_at - b.created_at);
+  return merged;
+}

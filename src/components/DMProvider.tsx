@@ -5,7 +5,7 @@ import { useNostr } from '@nostrify/react';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
-import { validateDMEvent } from '@/lib/dmUtils';
+import { validateDMEvent, mergeConversationMessages } from '@/lib/dmUtils';
 import {
   LOADING_PHASES,
   type LoadingPhase,
@@ -795,17 +795,12 @@ export function DMProvider({ children, config }: DMProviderProps) {
       newState.forEach((value, key) => {
         const existing = finalMap.get(key);
         if (existing) {
-          // For NIP-17 messages with originalGiftWrapId, dedupe by gift wrap ID
-          // For NIP-04 and cached NIP-17 messages, dedupe by message ID
-          const existingMessageIds = new Set(
-            existing.messages.map((msg) => msg.originalGiftWrapId || msg.id)
-          );
-          const newMessages = value.messages.filter(
-            (msg) => !existingMessageIds.has(msg.originalGiftWrapId || msg.id)
-          );
-
-          const mergedMessages = [...existing.messages, ...newMessages];
-          mergedMessages.sort((a, b) => a.created_at - b.created_at);
+          // Dedupe by gift wrap ID (NIP-17) / message ID (NIP-04, cache) AND
+          // replace a matching optimistic bubble instead of appending a second
+          // copy — otherwise a sent message renders twice whenever this poll
+          // path fetches the sender's own wrap before the live subscription
+          // does (the live path's addMessageToState already handles this).
+          const mergedMessages = mergeConversationMessages(existing.messages, value.messages);
 
           // Recalculate lastActivity and lastMessage after merging
           const lastMessage =
