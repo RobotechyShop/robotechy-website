@@ -11,6 +11,13 @@ test('ignores the "connection timed out" rejection that previously crashed the s
   assert.equal(isIgnorableRelayError('connection timed out'), true);
 });
 
+test('ignores the ws handshake rejection ("Unexpected server response: 403") that crashed the service in production', () => {
+  // A relay refusing the WebSocket upgrade rejects an internal nostr-tools
+  // connection promise nobody awaits — it must be classified as relay noise.
+  assert.equal(isIgnorableRelayError(new Error('Unexpected server response: 403')), true);
+  assert.equal(isIgnorableRelayError(new Error('Unexpected server response: 502')), true);
+});
+
 test('ignores known transient relay/network errors (case-insensitive)', () => {
   for (const m of [
     'restricted: Pay on https://nostr.land for access.',

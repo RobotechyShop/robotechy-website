@@ -20,6 +20,13 @@ const RELAY_NOISE = [
   'network error',
   'non-101',
   'websocket',
+  // ws's handshake failure ("Unexpected server response: 403") when a relay
+  // refuses the WebSocket upgrade with an HTTP status. Raised on an internal
+  // nostr-tools connection promise nobody awaits, so it reaches this handler
+  // (and crashed the service in production on 2026-07-02). The phrase is
+  // specific to ws's upgrade path — the LNURL/Lightning fetch path can never
+  // produce it — so matching it cannot swallow a real payment error.
+  'unexpected server response',
   // Specific connection/socket phrases only — a bare 'connection' or 'timeout'
   // would swallow unrelated failures (e.g. a Lightning/LNURL HTTP timeout, which
   // is a real error). Relay/socket timeouts reaching this handler always carry a
