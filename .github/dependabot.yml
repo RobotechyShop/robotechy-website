@@ -1,0 +1,39 @@
+# Dependabot version updates. Security updates are enabled separately in the
+# repo settings (Dependabot security updates) and fire regardless of this file.
+version: 2
+updates:
+  # Frontend (Vite/React app)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    # One PR per week for all minor+patch bumps keeps the noise down; majors
+    # stay separate so breaking upgrades get individual review.
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Order service (Node backend)
+  - package-ecosystem: npm
+    directory: /order-service
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # GitHub Actions workflows
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2
