@@ -48,7 +48,7 @@ sequenceDiagram
     Note right of M: One invoice, delivered two ways —<br/>same BOLT11, same ["order", id] tag
     M->>B: Payment request · gift wrap 1059 ⟶ inner kind 16 type 2<br/>(rich "order card" — BOLT11 invoice)
     M->>B: Invoice note · gift wrap 1059 ⟶ inner kind 14<br/>(SAME BOLT11 — fallback for generic NIP-17 clients)
-    Note over B: Gamma-aware client (Lightning Piggy) shows the<br/>kind 16 card and suppresses the kind 14 duplicate;<br/>a generic client (0xchat · Amethyst) shows the kind 14 note
+    Note over B: Gamma-aware client (Lightning Piggy) shows the<br/>kind 16 card and suppresses the kind 14 duplicate —<br/>a generic client (0xchat · Amethyst) shows the kind 14 note
     B->>L: Pay invoice ⚡
     B->>M: Receipt · gift wrap 1059 ⟶ inner kind 17<br/>(BOLT11 + preimage proof)
     M->>B: Confirmation · gift wrap 1059 ⟶ inner kind 16 type 3<br/>(status: confirmed)
