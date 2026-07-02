@@ -143,6 +143,16 @@ export function mergeConversationMessages<T extends MergeableMessage>(
   const merged = [...existing];
   const seenIds = new Set(merged.map((msg) => msg.originalGiftWrapId || msg.id));
 
+  // Optimistic bubbles can only pre-exist in `existing` (relay-fetched copies
+  // never carry isSending), and there are at most a handful at once. Index them
+  // up front and search only that set — a full findIndex per incoming message
+  // would make large catch-up merges (thousands of messages, no bubbles at all)
+  // O(n²) for nothing.
+  let optimisticIndices = merged.reduce<number[]>((indices, msg, index) => {
+    if (msg.isSending) indices.push(index);
+    return indices;
+  }, []);
+
   for (const message of incoming) {
     const messageId = message.originalGiftWrapId || message.id;
     if (seenIds.has(messageId)) {
@@ -150,21 +160,27 @@ export function mergeConversationMessages<T extends MergeableMessage>(
     }
     seenIds.add(messageId);
 
-    const optimisticIndex = merged.findIndex(
-      (msg) =>
-        msg.isSending &&
-        msg.pubkey === message.pubkey &&
-        msg.decryptedContent === message.decryptedContent &&
-        Math.abs(msg.created_at - message.created_at) <= OPTIMISTIC_MATCH_WINDOW_SECONDS
-    );
+    const optimisticIndex =
+      optimisticIndices.length > 0
+        ? optimisticIndices.find((index) => {
+            const msg = merged[index];
+            return (
+              msg.pubkey === message.pubkey &&
+              msg.decryptedContent === message.decryptedContent &&
+              Math.abs(msg.created_at - message.created_at) <= OPTIMISTIC_MATCH_WINDOW_SECONDS
+            );
+          })
+        : undefined;
 
-    if (optimisticIndex !== -1) {
+    if (optimisticIndex !== undefined) {
       const optimistic = merged[optimisticIndex];
       merged[optimisticIndex] = {
         ...message,
         created_at: optimistic.created_at,
         clientFirstSeen: optimistic.clientFirstSeen,
       };
+      // Consumed — a bubble is replaced at most once.
+      optimisticIndices = optimisticIndices.filter((index) => index !== optimisticIndex);
     } else {
       merged.push(message);
     }
