@@ -96,3 +96,80 @@ export function formatFullDateTime(timestamp: number): string {
     minute: '2-digit',
   });
 }
+
+/**
+ * Minimal structural shape needed to merge conversation messages — matches the
+ * fields of DMProvider's DecryptedMessage that dedup/replacement relies on.
+ */
+export interface MergeableMessage {
+  id: string;
+  pubkey: string;
+  created_at: number;
+  decryptedContent?: string;
+  /** True on the local optimistic bubble added when the user hits send. */
+  isSending?: boolean;
+  /** NIP-17: the outer gift wrap id (stable dedup key across re-fetches). */
+  originalGiftWrapId?: string;
+  /** Client-side arrival stamp used for entry animations. */
+  clientFirstSeen?: number;
+}
+
+/**
+ * How far apart (seconds) an optimistic bubble and its confirmed relay copy may
+ * be stamped and still be treated as the same message. Mirrors the live
+ * subscription path's window in DMProvider.addMessageToState.
+ */
+const OPTIMISTIC_MATCH_WINDOW_SECONDS = 30;
+
+/**
+ * Merge incoming (relay-fetched) messages into a conversation's existing list.
+ *
+ * - Dedupes by `originalGiftWrapId || id` (NIP-17 wraps re-fetched across polls
+ *   keep a stable wrap id; NIP-04 and cached messages use the event id).
+ * - Replaces a matching optimistic bubble (`isSending` + same author + same
+ *   decrypted content within a small time window) instead of appending a
+ *   second copy. Without this, a sent message shows TWICE whenever the poll
+ *   path fetches the sender's own wrap before the live subscription does —
+ *   the optimistic bubble (spinner forever) plus the confirmed copy. The
+ *   replacement keeps the optimistic `created_at`/`clientFirstSeen` so the
+ *   bubble doesn't jump or re-animate (mirrors addMessageToState).
+ *
+ * Returns a new array sorted by `created_at` ascending.
+ */
+export function mergeConversationMessages<T extends MergeableMessage>(
+  existing: T[],
+  incoming: T[]
+): T[] {
+  const merged = [...existing];
+  const seenIds = new Set(merged.map((msg) => msg.originalGiftWrapId || msg.id));
+
+  for (const message of incoming) {
+    const messageId = message.originalGiftWrapId || message.id;
+    if (seenIds.has(messageId)) {
+      continue;
+    }
+    seenIds.add(messageId);
+
+    const optimisticIndex = merged.findIndex(
+      (msg) =>
+        msg.isSending &&
+        msg.pubkey === message.pubkey &&
+        msg.decryptedContent === message.decryptedContent &&
+        Math.abs(msg.created_at - message.created_at) <= OPTIMISTIC_MATCH_WINDOW_SECONDS
+    );
+
+    if (optimisticIndex !== -1) {
+      const optimistic = merged[optimisticIndex];
+      merged[optimisticIndex] = {
+        ...message,
+        created_at: optimistic.created_at,
+        clientFirstSeen: optimistic.clientFirstSeen,
+      };
+    } else {
+      merged.push(message);
+    }
+  }
+
+  merged.sort((a, b) => a.created_at - b.created_at);
+  return merged;
+}
