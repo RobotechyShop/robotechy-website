@@ -27,6 +27,14 @@ const RELAY_NOISE = [
   // specific to ws's upgrade path — the LNURL/Lightning fetch path can never
   // produce it — so matching it cannot swallow a real payment error.
   'unexpected server response',
+  // nostr-tools' relay publish timeout ("publish timed out"), raised on an
+  // internal promise nobody awaits when a slow relay never ACKs the event.
+  // The publish paths already handle per-relay failures via allSettled — a
+  // single slow relay must not kill the service (crashed production on
+  // 2026-07-02 and restarted the container via the supervised entrypoint).
+  // Phrase is specific to the relay publish path, so it cannot swallow a
+  // Lightning/LNURL HTTP timeout.
+  'publish timed out',
   // Specific connection/socket phrases only — a bare 'connection' or 'timeout'
   // would swallow unrelated failures (e.g. a Lightning/LNURL HTTP timeout, which
   // is a real error). Relay/socket timeouts reaching this handler always carry a
