@@ -5,12 +5,19 @@ import { useCurrentUser } from './useCurrentUser';
 
 import type { NostrEvent } from '@nostrify/nostrify';
 
-export function useNostrPublish(): UseMutationResult<NostrEvent> {
+/** Unsigned event template accepted by the publish mutation. `tags` and
+ *  `created_at` are optional — the mutation defaults them to [] / "now". */
+type EventTemplate = Omit<NostrEvent, 'id' | 'pubkey' | 'sig' | 'created_at' | 'tags'> & {
+  tags?: string[][];
+  created_at?: number;
+};
+
+export function useNostrPublish(): UseMutationResult<NostrEvent, Error, EventTemplate> {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
 
   return useMutation({
-    mutationFn: async (t: Omit<NostrEvent, 'id' | 'pubkey' | 'sig'>) => {
+    mutationFn: async (t: EventTemplate) => {
       if (user) {
         const tags = t.tags ?? [];
 
