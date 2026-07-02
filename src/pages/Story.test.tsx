@@ -57,6 +57,31 @@ describe('Story page', () => {
     >);
   });
 
+  it('shows a name skeleton (never a generated pseudonym) while the profile loads', () => {
+    // Regression: before the fix, the hero fell back to genUserName() while the
+    // kind-0 profile was still loading, flashing a pseudonym like "Brave Falcon"
+    // that then flipped to the real shop name.
+    mockedUseAuthor.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    } as unknown as ReturnType<typeof useAuthor>);
+    mockedUseStoryNotes.mockReturnValue(storyResult({ isLoading: true }));
+    renderStory();
+    expect(screen.getByTestId('story-name-loading')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^$/);
+  });
+
+  it('falls back to a generated name only after the profile lookup settles empty', () => {
+    mockedUseAuthor.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+    } as unknown as ReturnType<typeof useAuthor>);
+    mockedUseStoryNotes.mockReturnValue(storyResult({ isLoading: true }));
+    renderStory();
+    expect(screen.queryByTestId('story-name-loading')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 }).textContent).not.toHaveLength(0);
+  });
+
   it('renders the shop profile hero (name + about + Our Story label)', () => {
     mockedUseStoryNotes.mockReturnValue(storyResult({ isLoading: true }));
     renderStory();
