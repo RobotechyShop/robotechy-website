@@ -55,6 +55,23 @@ you want on `main` first.)
 You can also deploy manually: in the *black-panther* repo, Actions → *Deploy
 robotechy* → *Run workflow*.
 
+=== Verifying a release
+
+1. Watch the two workflow runs go green: *Trigger production deploy* in this
+   repo, then *Deploy robotechy* in the black-panther repo (the rebuild takes a
+   few minutes).
+2. Load https://www.robotechy.com and scroll to the footer — the credits line
+   should end with the new `v<version>`.
+3. Container health on the box (both processes must be children of the
+   entrypoint shell):
++
+[source,bash]
+----
+ssh black-panther 'cd ~/GitHub/black-panther/apps-stack && \
+  docker compose ps robotechy && \
+  docker compose exec robotechy ps -o pid,args'
+----
+
 == One-time setup
 
 === 1. Self-hosted runner (on black-panther)
@@ -68,6 +85,19 @@ cd ~/actions-runner
 sudo ./svc.sh install benweeks
 sudo ./svc.sh start
 sudo ./svc.sh status
+----
+
+To check the runner is healthy (it must show *online*, or tag pushes will queue
+and never deploy):
+
+[source,bash]
+----
+# From anywhere with gh:
+gh api repos/BenGWeeks/black-panther/actions/runners \
+  --jq '.runners[] | "\(.name): \(.status)"'
+
+# On the box:
+systemctl status 'actions.runner.*'
 ----
 
 === 2. Dispatch token (secret in robotechy-website)
@@ -87,23 +117,37 @@ The trigger fails fast if the secret is missing.
 
 [source,bash]
 ----
-ssh black-panther.local
+ssh black-panther   # the ~/.ssh/config alias (user benweeks, key auth)
 cd ~/GitHub/black-panther/apps-stack
 git -C ~/GitHub/black-panther pull --ff-only
 docker compose up -d --build robotechy
 docker compose ps robotechy
 ----
 
+NOTE: The compose build context is the GitHub repo URL, so the rebuild always
+ships the latest `main` — the local checkout on the box only provides the
+compose file itself.
+
 == Rollback
 
-Tag and ship a previous good commit, or on the box check out the prior commit and
-rebuild:
+The build context is always the *latest `main`* — tagging an old commit does
+NOT roll back (the tag only triggers the deploy; it doesn't pick the code).
+To roll back, put the good code back on `main` first:
 
 [source,bash]
 ----
-cd ~/GitHub/black-panther/apps-stack
-docker compose up -d --build robotechy   # after main points at the good commit
+# 1. Revert the bad change(s) on main.
+git revert <bad-commit-sha>
+# 2. Bump the patch version in package.json, commit, then tag & push as usual.
+git tag v1.2.4
+git push origin main v1.2.4
 ----
+
+In an emergency you can also rebuild directly on the box from a pinned commit
+by temporarily pointing the compose `build.context` at
+`https://github.com/RobotechyShop/robotechy-website.git#<sha>` and running
+`docker compose up -d --build robotechy` — but revert-on-main is the path that
+keeps the repo, the tag history and the footer version honest.
 
 == Container reference
 
