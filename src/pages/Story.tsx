@@ -54,10 +54,14 @@ const Story = () => {
       {/* Profile hero — the shop's kind-0 banner / avatar / name / about. */}
       <div>
         {/* Banner: the shop's profile banner, or a brand-green gradient fallback
-            when the kind-0 metadata has no banner image. */}
+            when the kind-0 metadata has no banner image. The banner is full-bleed
+            with object-cover, so a fixed thin strip crops a ~3:1 profile banner
+            into a letterbox sliver on wide screens (the banner text ends up
+            touching the top/bottom edges) — let the height scale up with the
+            viewport so the image keeps breathing room above/below its content. */}
         <div
           data-testid="story-banner"
-          className="relative h-40 w-full sm:h-56 bg-gradient-to-r from-robotechy-green/30 via-robotechy-green-dark/20 to-sage-200 dark:to-neutral-800"
+          className="relative h-40 w-full sm:h-56 lg:h-72 xl:h-80 bg-gradient-to-r from-robotechy-green/30 via-robotechy-green-dark/20 to-sage-200 dark:to-neutral-800"
         >
           {metadata?.banner && (
             <img
