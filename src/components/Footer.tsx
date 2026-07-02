@@ -220,6 +220,16 @@ export function Footer({ selectedCollection, onCollectionClick }: FooterProps) {
               className="text-robotechy-green-dark hover:text-robotechy-orange transition-colors"
             >
               Vibed with MKStack
+            </a>{' '}
+            ·{' '}
+            <a
+              href={`https://github.com/RobotechyShop/robotechy-website/releases/tag/v${__APP_VERSION__}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Deployed site version (release tag)"
+              className="hover:text-robotechy-green-dark transition-colors"
+            >
+              v{__APP_VERSION__}
             </a>
           </p>
         </div>

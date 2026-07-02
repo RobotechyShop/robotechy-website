@@ -1,13 +1,23 @@
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig, configDefaults } from 'vitest/config';
+
+// The site version shown in the footer. Single source of truth is package.json's
+// `version` field — the release process bumps it and tags the same commit
+// `v<version>` (see docs/DEPLOYMENT.adoc), so what the footer shows always
+// matches the deployed tag.
+const pkg = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'));
 
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
   server: {
     host: '::',
     port: 8080,
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
   },
   plugins: [react()],
   optimizeDeps: {
