@@ -119,10 +119,7 @@ export function parseProductEvent(event: NostrEvent): ProductData | null {
 
   const summary = event.tags.find(([name]) => name === 'summary')?.[1];
   const visibility = event.tags.find(([name]) => name === 'visibility')?.[1] as
-    | 'hidden'
-    | 'on-sale'
-    | 'pre-order'
-    | undefined;
+    'hidden' | 'on-sale' | 'pre-order' | undefined;
   const stockTag = event.tags.find(([name]) => name === 'stock')?.[1];
   const location = event.tags.find(([name]) => name === 'location')?.[1];
   const geohash = event.tags.find(([name]) => name === 'g')?.[1];
