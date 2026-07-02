@@ -15,7 +15,9 @@ coverage/
 order-service/.env
 order-service/.env.test
 
-# Order-service persisted dedup store (processed order/receipt IDs)
+# Order-service persisted dedup store (processed order/receipt IDs). Lives in
+# data/ so a Docker volume can be mounted there (survives container rebuilds).
+order-service/data/
 order-service/.processed.json
 
 # IDE

@@ -14,14 +14,21 @@
  * keeps the file bounded.
  */
 
-import { readFileSync, writeFileSync, existsSync, renameSync, rmSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, renameSync, rmSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Default location: order-service/.processed.json (gitignored).
-export const DEFAULT_STORE_PATH = join(__dirname, '..', '.processed.json');
+// Default location: order-service/data/.processed.json (gitignored). The store
+// lives in a dedicated data/ directory — not next to the code — so a Docker
+// deployment can mount a volume at that directory and the dedup state survives
+// container REBUILDS, not just restarts. (Without the volume, every rebuild
+// wiped the store and re-invoiced up to 2 days of orders — buyers received
+// duplicate payment-request DMs after each deploy.) Override with
+// PROCESSED_STORE_PATH for non-default layouts.
+export const DEFAULT_STORE_PATH =
+  process.env.PROCESSED_STORE_PATH || join(__dirname, '..', 'data', '.processed.json');
 
 export class ProcessedStore {
   /**
@@ -88,6 +95,9 @@ export class ProcessedStore {
         orders: Object.fromEntries(this.orders),
         receipts: Object.fromEntries(this.receipts),
       };
+      // The data/ directory may not exist yet (fresh checkout, or an empty
+      // just-created Docker volume) — create it before the first write.
+      mkdirSync(dirname(this.filePath), { recursive: true });
       writeFileSync(tmpPath, JSON.stringify(data), 'utf-8');
       renameSync(tmpPath, this.filePath);
     } catch (error) {
