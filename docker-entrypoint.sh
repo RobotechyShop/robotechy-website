@@ -4,6 +4,7 @@ set -e
 echo "Starting Robotechy services..."
 
 # Start order service in background (if env vars are set)
+ORDER_PID=""
 if [ -n "$MERCHANT_NSEC" ] && [ -n "$LIGHTNING_ADDRESS" ]; then
   echo "Starting order processing service..."
   cd /app/order-service
@@ -15,6 +16,39 @@ else
   echo "Warning: MERCHANT_NSEC or LIGHTNING_ADDRESS not set - order service disabled"
 fi
 
-# Start frontend static server
+# Start frontend static server (backgrounded — the shell stays PID 1 so it can
+# supervise BOTH children; the previous `exec serve` left the container looking
+# "healthy" with a dead order service, which is how a backend crash went
+# unnoticed in production. If either child dies, exit so Docker's restart
+# policy revives the whole container.)
 echo "Starting frontend on port 3000..."
-exec serve -s dist -l 3000
+serve -s dist -l 3000 &
+SERVE_PID=$!
+
+# Forward docker stop / ctrl-c to the children, then exit cleanly.
+shutdown() {
+  echo "Shutting down..."
+  [ -n "$ORDER_PID" ] && kill "$ORDER_PID" 2>/dev/null
+  kill "$SERVE_PID" 2>/dev/null
+  exit 0
+}
+trap shutdown TERM INT
+
+# Supervise: if either process dies, take the container down with it.
+while :; do
+  if [ -n "$ORDER_PID" ] && ! kill -0 "$ORDER_PID" 2>/dev/null; then
+    echo "Order service exited - stopping container so Docker restarts it"
+    kill "$SERVE_PID" 2>/dev/null
+    exit 1
+  fi
+  if ! kill -0 "$SERVE_PID" 2>/dev/null; then
+    echo "Frontend exited - stopping container so Docker restarts it"
+    [ -n "$ORDER_PID" ] && kill "$ORDER_PID" 2>/dev/null
+    exit 1
+  fi
+  # Background sleep + wait keeps the TERM/INT trap responsive mid-interval.
+  # (|| true: a trap-interrupted wait returns non-zero, which must not trip
+  # set -e and kill PID 1.)
+  sleep 5 &
+  wait $! || true
+done
