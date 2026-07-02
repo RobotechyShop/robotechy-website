@@ -19,6 +19,12 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				// Home hero banner text (see @font-face rules in src/index.css).
+				// Quote = Ubuntu Bold Italic; name = subset Japanese Robot Italic.
+				'banner-quote': ['"Banner Quote"', 'ui-sans-serif', 'sans-serif'],
+				'banner-name': ['"Banner Name"', 'ui-sans-serif', 'sans-serif'],
+			},
 			colors: {
 				robotechy: {
 					orange: '#fa5200',

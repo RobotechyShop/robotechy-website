@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Self-hosted fonts for the home hero banner. These re-create the text that used
+   to be baked into the banner JPG so it can live as real, editable, selectable
+   HTML while matching the original composition exactly.
+
+   1. Welcome quote -> Ubuntu Bold Italic — the EXACT font of the original quote
+      (Ubuntu Font Licence — freely redistributable, so shipped in full). */
+@font-face {
+  font-family: 'Banner Quote';
+  src: url('/fonts/ubuntu-bold-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* 2. "ISAAC WEEKS" by-line -> Japanese Robot Italic — the EXACT green display
+      font from the source PSD. Verified against the PSD text layer, whose FontSet
+      names "JapaneseRobot-Italic" (NOT Avengeance, which an earlier revision
+      assumed). To keep the payload tiny this .woff2 is SUBSET to only the glyphs
+      in the fixed string "ISAAC WEEKS" — the 7 unique letters I S A C W E K plus
+      a space (8 glyphs, or 9 in the file counting the mandatory .notdef), ~0.7 KB.
+      See public/fonts/README-fonts.md for the licence note. */
+@font-face {
+  font-family: 'Banner Name';
+  src: url('/fonts/isaac-weeks-japanese-robot.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

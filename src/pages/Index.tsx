@@ -94,20 +94,28 @@ const Index = () => {
 
       <OwnerToolbar />
 
-      {/* Hero Banner — photo-removed plate + live shop-owner avatar dropped into
-          the original photo circle, so the portrait always matches Isaac's Nostr
-          profile (same source as the footer) instead of a baked-in photo. */}
+      {/* Hero Banner — the SAME short band as before (height set by padding,
+          avatar at 26.2% / 15.4% width — identical geometry to the previous
+          baked-text banner), but the quote and by-line are now real, editable,
+          selectable HTML over the text-free background plate
+          (bitcoin-banner-plate-clean.jpg — the plate with photo AND text layers
+          hidden). Text positions/sizes replicate where the baked text sat, in
+          the PSD's actual fonts (Ubuntu Bold Italic + Japanese Robot Italic —
+          see README-fonts.md). By-line is name only — no age. The banner is a
+          container-query context so text tracks the band width in `cqw` exactly
+          like the bitmap text used to. */}
       <div
         className="relative bg-slate-100 dark:bg-neutral-900 border-b overflow-hidden"
         style={{
-          backgroundImage: 'url(/images/bitcoin-banner-plate.jpg)',
+          containerType: 'inline-size',
+          backgroundImage: 'url(/images/bitcoin-banner-plate-clean.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
         {/* Avatar over the plate's circle: center x≈26.2%, vertically centered.
             Sized to ~75% of the original photo circle so it doesn't touch the
-            banner's top/bottom edges. */}
+            banner's top/bottom edges. (Unchanged from the previous banner.) */}
         <Avatar
           className="absolute aspect-square h-auto -translate-x-1/2 -translate-y-1/2 border-4 border-white shadow-lg"
           style={{ left: '26.2%', top: '50%', width: '15.4%' }}
@@ -118,9 +126,55 @@ const Index = () => {
           </AvatarFallback>
         </Avatar>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 md:py-48">
-          {/* Padding sets the hero height; the plate shows behind it. */}
-        </div>
+        {/* Editable hero text, vertically centred to the right of the avatar —
+            same placement as the old baked-in text: quote from x≈40.5% with its
+            green opening quote mark hanging left, by-line right-aligned under
+            the quote's right edge (x≈83.6%). */}
+        <figure
+          className="absolute -translate-y-1/2 text-left"
+          style={{ top: '50%', left: '40.5%', right: '16.4%' }}
+        >
+          <blockquote
+            className="relative font-banner-quote font-bold italic text-white drop-shadow-lg"
+            style={{
+              fontSize: 'clamp(0.85rem, 2.2cqw, 2rem)',
+              lineHeight: 1.35,
+            }}
+          >
+            <span
+              aria-hidden="true"
+              className="absolute font-banner-quote leading-none text-robotechy-green"
+              style={{
+                left: 'clamp(-2.6rem, -3.9cqw, -1.1rem)',
+                top: '-0.12em',
+                fontSize: 'clamp(1.7rem, 4.3cqw, 3.9rem)',
+              }}
+            >
+              &ldquo;
+            </span>
+            {/* Explicit breaks reproduce the original three-line split on wider
+                screens; on narrow/mobile they collapse so the text wraps naturally
+                and stays clear of the avatar. */}
+            Welcome to my Bitcoin store, where I <br className="hidden md:block" />
+            sell items printed on my 3D printer for … <br className="hidden md:block" />
+            well, Bitcoin of course!
+          </blockquote>
+          {/* By-line in the subset Japanese Robot Italic display font. DOM text is
+              mixed-case for accessibility/selection; CSS uppercases it to hit the
+              subset glyphs (I S A C W E K). Name only — no age. */}
+          <figcaption
+            className="text-right font-banner-name italic uppercase tracking-wide text-robotechy-green drop-shadow-lg"
+            style={{
+              marginTop: 'clamp(0.4rem, 1.1cqw, 1rem)',
+              fontSize: 'clamp(1rem, 2.95cqw, 2.7rem)',
+            }}
+          >
+            Isaac Weeks
+          </figcaption>
+        </figure>
+
+        {/* Padding sets the hero height — the same band as the previous banner. */}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 md:py-48" />
       </div>
 
       {/* Filters */}
