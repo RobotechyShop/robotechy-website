@@ -36,7 +36,14 @@ const Story = () => {
   const shopEvent = author.data?.event;
 
   const metadata = author.data?.metadata;
-  const name = metadata?.display_name || metadata?.name || genUserName(MERCHANT_PUBKEY);
+  // While the kind-0 profile is still loading, don't fall back to a generated
+  // pseudonym — it briefly flashes (e.g. "Brave Falcon") and then flips to the
+  // real shop name. Leave the name empty (the hero shows a skeleton) and only
+  // generate a placeholder once the lookup has settled with no metadata.
+  const name =
+    metadata?.display_name ||
+    metadata?.name ||
+    (author.isLoading ? '' : genUserName(MERCHANT_PUBKEY));
   const bio =
     metadata?.about ||
     'The story of Robotechy — 3D printing for the Bitcoin community, one print at a time.';
@@ -66,7 +73,7 @@ const Story = () => {
           {metadata?.banner && (
             <img
               src={metadata.banner}
-              alt={`${name} banner`}
+              alt={`${name || 'Robotechy'} banner`}
               decoding="async"
               referrerPolicy="no-referrer"
               className="absolute inset-0 h-full w-full object-cover"
@@ -78,7 +85,7 @@ const Story = () => {
           {/* Avatar overlaps the banner, profile-style. */}
           <div className="-mt-12 sm:-mt-14">
             <Avatar className="h-24 w-24 border-4 border-white shadow-md dark:border-neutral-950 sm:h-28 sm:w-28">
-              <AvatarImage src={metadata?.picture} alt={name} />
+              <AvatarImage src={metadata?.picture} alt={name || 'Robotechy'} />
               <AvatarFallback className="text-3xl">
                 {(name.trim().charAt(0) || 'R').toUpperCase()}
               </AvatarFallback>
@@ -87,7 +94,7 @@ const Story = () => {
 
           <div className="mt-3">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
-              {name}
+              {name || <Skeleton className="h-8 w-56" data-testid="story-name-loading" />}
             </h1>
             <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-sage-600 dark:text-sage-400">
               {bio}

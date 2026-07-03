@@ -17,7 +17,13 @@ import { collectCartShippingRefs } from '@/lib/shippingSelection';
  * Returns `isLoading` so the checkout can hold the form while options resolve
  * instead of flashing the legacy hard-coded zones.
  */
-export function useCheckoutShippingOptions(): {
+/**
+ * @param enabled - pass the checkout dialog's `open` state: the relay queries
+ *   only fire while the checkout is actually visible. The drawer (and its
+ *   dialog) is mounted in the Header on every page, so an always-on query
+ *   would hit relays on every page load for nothing.
+ */
+export function useCheckoutShippingOptions(enabled = true): {
   options: ShippingOptionData[];
   isLoading: boolean;
 } {
@@ -29,7 +35,8 @@ export function useCheckoutShippingOptions(): {
   );
 
   const productOptionsQuery = useShippingOptions({
-    shippingOptionRefs: cartRefs.map((r) => r.ref),
+    // An empty ref list disables the query (its internal `enabled` gate).
+    shippingOptionRefs: enabled ? cartRefs.map((r) => r.ref) : [],
   });
 
   // Merchant-wide fallback — the query only actually fires when it's needed:
@@ -38,7 +45,7 @@ export function useCheckoutShippingOptions(): {
   const needMerchantFallback =
     cartRefs.length === 0 ||
     (!productOptionsQuery.isLoading && (productOptionsQuery.data ?? []).length === 0);
-  const merchantOptionsQuery = useMerchantShippingOptions(needMerchantFallback);
+  const merchantOptionsQuery = useMerchantShippingOptions(enabled && needMerchantFallback);
 
   return useMemo(() => {
     if (cartRefs.length > 0) {
