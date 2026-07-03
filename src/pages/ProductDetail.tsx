@@ -9,7 +9,6 @@ import { formatPriceFromTag, parseProductEvent } from '@/lib/productUtils';
 import { buildProductMeta, SITE_NAME, SITE_URL } from '@/lib/productMeta';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { CartDrawer } from '@/components/cart/CartDrawer';
 import { CheckoutDialog } from '@/components/checkout/CheckoutDialog';
 import { ProductFeedbackTabs } from '@/components/ProductFeedbackTabs';
 import { productReviewCoord } from '@/lib/productReviews';
@@ -351,9 +350,6 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
       </div>
 
       <Footer />
-
-      {/* Cart Drawer (includes its own checkout dialog) */}
-      <CartDrawer />
 
       {/* Checkout Dialog for "Buy It Now" */}
       <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
