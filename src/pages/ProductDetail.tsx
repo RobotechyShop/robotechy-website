@@ -397,7 +397,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
 
       {/* Full-size image lightbox (the main image's Expand button) */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="max-w-[95vw] border-none bg-black/90 p-2 sm:max-w-[90vw]">
+        <DialogContent className="max-w-[95vw] border-none bg-black/90 p-2 sm:max-w-[90vw] [&>button]:right-3 [&>button]:top-3 [&>button]:rounded-md [&>button]:bg-black/60 [&>button]:p-2 [&>button]:text-white [&>button]:opacity-100 [&>button:hover]:bg-black/80 [&>button>svg]:h-5 [&>button>svg]:w-5">
           <DialogTitle className="sr-only">
             {product ? `${product.title} - full size image` : 'Full size image'}
           </DialogTitle>
