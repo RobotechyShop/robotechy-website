@@ -5,6 +5,7 @@ import { NostrLoginProvider } from '@nostrify/react/login';
 import NostrProvider from '@/components/NostrProvider';
 import { AppProvider } from '@/components/AppProvider';
 import { NWCProvider } from '@/contexts/NWCContext';
+import { CartProvider } from '@/contexts/CartContext';
 import { AppConfig } from '@/contexts/AppContext';
 
 interface TestAppProps {
@@ -36,7 +37,11 @@ export function TestApp({ children }: TestAppProps) {
           <NostrLoginProvider storageKey="test-login">
             <NostrProvider>
               <NWCProvider>
-                <BrowserRouter>{children}</BrowserRouter>
+                {/* Header (rendered by most pages) uses useCart, so the test
+                    harness mirrors App's CartProvider. */}
+                <CartProvider>
+                  <BrowserRouter>{children}</BrowserRouter>
+                </CartProvider>
               </NWCProvider>
             </NostrProvider>
           </NostrLoginProvider>

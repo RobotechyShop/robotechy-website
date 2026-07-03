@@ -1,5 +1,7 @@
 import { Home, BookOpen, Mail, ShoppingCart, Sun, Moon, Monitor } from 'lucide-react';
 import { LoginArea } from '@/components/auth/LoginArea';
+import { CartDrawer } from '@/components/cart/CartDrawer';
+import { useCart } from '@/hooks/useCart';
 import { useTheme } from '@/hooks/useTheme';
 import { useMessagesDrawer } from '@/hooks/useMessagesDrawer';
 import type { Theme } from '@/contexts/AppContext';
@@ -25,6 +27,7 @@ const TEST_MODE =
 export function Header() {
   const { theme, setTheme } = useTheme();
   const { openMessages } = useMessagesDrawer();
+  const { totalItems, setIsOpen: setCartOpen } = useCart();
 
   const cycleTheme = () => {
     const themes: Theme[] = ['light', 'dark', 'system'];
@@ -78,11 +81,22 @@ export function Header() {
             >
               <Mail className="h-5 w-5" />
             </button>
+            {/* Cart: opens the CartDrawer (mounted below, so the cart is
+                reachable from EVERY page with a header — previously the drawer
+                only existed on the product page and this button did nothing). */}
             <button
-              className="p-2 text-sage-700 hover:text-robotechy-green-dark dark:text-sage-300 dark:hover:text-robotechy-green-dark transition-colors"
+              type="button"
+              onClick={() => setCartOpen(true)}
+              className="relative p-2 text-sage-700 hover:text-robotechy-green-dark dark:text-sage-300 dark:hover:text-robotechy-green-dark transition-colors"
               title="Cart"
+              aria-label={`Shopping cart with ${totalItems} item${totalItems === 1 ? '' : 's'}`}
             >
               <ShoppingCart className="h-5 w-5" />
+              {totalItems > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-robotechy-orange text-xs font-bold text-white">
+                  {totalItems > 99 ? '99+' : totalItems}
+                </span>
+              )}
             </button>
             <button
               onClick={cycleTheme}
@@ -95,6 +109,9 @@ export function Header() {
           </nav>
         </div>
       </div>
+
+      {/* The cart drawer lives with its trigger so it exists on every page. */}
+      <CartDrawer />
     </header>
   );
 }

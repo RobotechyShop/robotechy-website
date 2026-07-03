@@ -31,7 +31,7 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
   const { user } = useCurrentUser();
   const { totalPrice, currency, totalItems } = useCart();
   const { options: shippingOptions, isLoading: shippingOptionsLoading } =
-    useCheckoutShippingOptions();
+    useCheckoutShippingOptions(open);
   const {
     checkoutState,
     submitOrder,
