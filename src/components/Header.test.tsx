@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { TestApp } from '@/test/TestApp';
 import { Header } from './Header';
 
@@ -15,7 +14,7 @@ describe('Header', () => {
     );
 
     const cartButton = screen.getByRole('button', { name: /shopping cart/i });
-    await userEvent.click(cartButton);
+    fireEvent.click(cartButton);
 
     expect(await screen.findByRole('dialog')).toHaveTextContent(/shopping cart/i);
   });
