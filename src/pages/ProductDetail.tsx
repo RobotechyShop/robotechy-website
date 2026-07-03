@@ -200,7 +200,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                     onClick={() => setLightboxOpen(true)}
                     aria-label="Expand image"
                     title="Expand image"
-                    className="absolute top-2 right-2 rounded-md bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
+                    className="absolute top-2 right-2 rounded-md bg-black/50 p-2 text-white transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-robotechy-green focus-visible:ring-offset-1"
                   >
                     <Expand className="h-4 w-4" />
                   </button>
@@ -401,12 +401,20 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
           <DialogTitle className="sr-only">
             {product ? `${product.title} - full size image` : 'Full size image'}
           </DialogTitle>
-          {currentImage && (
+          {hasValidImage ? (
             <img
               src={currentImage.url}
               alt={product ? `${product.title} - full size` : 'Full size product image'}
               className="mx-auto max-h-[85vh] w-auto max-w-full object-contain"
+              onError={() => handleImageError(selectedImage)}
             />
+          ) : (
+            <div className="flex h-[50vh] items-center justify-center text-sage-400">
+              <div className="text-center">
+                <ImageIcon className="mx-auto mb-4 h-24 w-24" />
+                <p className="text-sm">Image not available</p>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
