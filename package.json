@@ -2,6 +2,9 @@
   "name": "mkstack",
   "private": true,
   "version": "1.1.1",
+  "engines": {
+    "node": ">=22"
+  },
   "type": "module",
   "scripts": {
     "dev": "npm i --silent && vite",
