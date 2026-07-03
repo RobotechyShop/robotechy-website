@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useHead } from '@unhead/react';
 import { useNavigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -20,7 +20,8 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ShareProductButton } from '@/components/ShareProductButton';
-import { ArrowLeft, Package, ImageIcon } from 'lucide-react';
+import { ArrowLeft, Expand, Package, ImageIcon } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import ReactMarkdown from 'react-markdown';
 import { OwnerProductActions } from '@/components/admin/OwnerProductActions';
 
@@ -35,6 +36,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
   const { toast } = useToast();
   const { addItem, setIsOpen: setCartOpen } = useCart();
   const [selectedImage, setSelectedImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [quantity, setQuantity] = useState(1);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -86,6 +88,28 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
   const isOutOfStock = product && product.stock !== undefined && product.stock === 0;
   const currentImage = product?.images[selectedImage];
   const hasValidImage = currentImage && !imageErrors.has(selectedImage);
+
+  // The main image container adopts the FIRST image's natural aspect ratio
+  // (previously a fixed square that cropped non-square product photos).
+  // Preload image 1 to read its natural dimensions; until known (or on
+  // failure) the container stays square.
+  const firstImageUrl = product?.images[0]?.url;
+  const [firstImageRatio, setFirstImageRatio] = useState<number | null>(null);
+  useEffect(() => {
+    setFirstImageRatio(null);
+    if (!firstImageUrl) return;
+    let cancelled = false;
+    const probe = new Image();
+    probe.onload = () => {
+      if (!cancelled && probe.naturalWidth > 0 && probe.naturalHeight > 0) {
+        setFirstImageRatio(probe.naturalWidth / probe.naturalHeight);
+      }
+    };
+    probe.src = firstImageUrl;
+    return () => {
+      cancelled = true;
+    };
+  }, [firstImageUrl]);
 
   if (isLoading) {
     return (
@@ -157,13 +181,29 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
             {/* Main Image */}
             <div className="bg-white dark:bg-neutral-900 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
               {hasValidImage ? (
-                <div className="relative aspect-square bg-white dark:bg-neutral-850">
+                <div
+                  className="relative bg-white dark:bg-neutral-850"
+                  style={{ aspectRatio: firstImageRatio ?? 1 }}
+                >
+                  {/* object-contain (not cover): the container adopts the FIRST
+                      image's natural aspect ratio, so image 1 fills it exactly
+                      and differently-shaped images letterbox instead of being
+                      cropped. */}
                   <img
                     src={currentImage.url}
                     alt={`${product.title} - Image ${selectedImage + 1}`}
-                    className="object-cover w-full h-full"
+                    className="object-contain w-full h-full"
                     onError={() => handleImageError(selectedImage)}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setLightboxOpen(true)}
+                    aria-label="Expand image"
+                    title="Expand image"
+                    className="absolute top-2 right-2 rounded-md bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
+                  >
+                    <Expand className="h-4 w-4" />
+                  </button>
                 </div>
               ) : (
                 <div className="aspect-square bg-slate-100 dark:bg-neutral-850 flex items-center justify-center">
@@ -354,6 +394,22 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
 
       {/* Cart Drawer (includes its own checkout dialog) */}
       <CartDrawer />
+
+      {/* Full-size image lightbox (the main image's Expand button) */}
+      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+        <DialogContent className="max-w-[95vw] border-none bg-black/90 p-2 sm:max-w-[90vw]">
+          <DialogTitle className="sr-only">
+            {product ? `${product.title} - full size image` : 'Full size image'}
+          </DialogTitle>
+          {currentImage && (
+            <img
+              src={currentImage.url}
+              alt={product ? `${product.title} - full size` : 'Full size product image'}
+              className="mx-auto max-h-[85vh] w-auto max-w-full object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Checkout Dialog for "Buy It Now" */}
       <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
