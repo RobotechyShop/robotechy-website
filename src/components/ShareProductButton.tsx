@@ -30,6 +30,7 @@ import {
   buildProductNaddr,
   buildShareNoteContent,
   buildShareNoteEvent,
+  buildStoreUrl,
   formatPriceLabel,
 } from '@/lib/shareProduct';
 
@@ -92,27 +93,30 @@ export function ShareProductButton({
     [config.relayMetadata.relays]
   );
 
-  // The product's portable pointer and the human-facing njump link. Memoised so
-  // every menu action (copy / native share / Nostr note) uses the same URL.
-  const { naddr, njumpUrl, defaultNote } = useMemo(() => {
+  // The product's portable pointer plus its two human-facing links: the
+  // storefront page (primary — what copy/native share hand out) and the njump
+  // fallback. Memoised so every menu action uses the same URLs.
+  const { naddr, storeUrl, defaultNote } = useMemo(() => {
     const naddr = buildProductNaddr(merchantPubkey, product.id, relayHints);
+    const storeUrl = buildStoreUrl(naddr);
     const njumpUrl = buildNjumpUrl(naddr);
     const defaultNote = buildShareNoteContent({
       title: product.title,
       priceLabel: formatPriceLabel(product.price),
+      storeUrl,
       njumpUrl,
     });
-    return { naddr, njumpUrl, defaultNote };
+    return { naddr, storeUrl, defaultNote };
   }, [merchantPubkey, product.id, product.title, product.price, relayHints]);
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(njumpUrl);
+      await navigator.clipboard.writeText(storeUrl);
       toast({ title: 'Link copied', description: 'Product link copied to clipboard.' });
     } catch {
       toast({
         title: 'Could not copy',
-        description: njumpUrl,
+        description: storeUrl,
         variant: 'destructive',
       });
     }
@@ -127,7 +131,7 @@ export function ShareProductButton({
       await navigator.share({
         title: product.title,
         text: product.summary || product.title,
-        url: njumpUrl,
+        url: storeUrl,
       });
     } catch (error) {
       // AbortError = the user dismissed the share sheet; not worth a toast.
@@ -228,8 +232,8 @@ export function ShareProductButton({
               Share to Nostr
             </DialogTitle>
             <DialogDescription>
-              Post a note about this product to your Nostr feed. The product is linked so your
-              followers can open it on njump.
+              Post a note about this product to your Nostr feed. The note links to the product on
+              the Robotechy store and njump so your followers can open it either way.
             </DialogDescription>
           </DialogHeader>
 
@@ -250,7 +254,7 @@ export function ShareProductButton({
             />
           </div>
 
-          <p className="text-xs text-sage-500 dark:text-sage-400 break-all">{njumpUrl}</p>
+          <p className="text-xs text-sage-500 dark:text-sage-400 break-all">{storeUrl}</p>
 
           <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="outline" onClick={() => void copyLink()} type="button">

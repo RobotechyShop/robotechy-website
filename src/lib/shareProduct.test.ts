@@ -3,9 +3,11 @@ import { nip19 } from 'nostr-tools';
 
 import {
   PRODUCT_KIND,
+  STORE_BASE_URL,
   buildProductAddress,
   buildProductNaddr,
   buildNjumpUrl,
+  buildStoreUrl,
   formatPriceLabel,
   buildShareNoteContent,
   buildShareNoteEvent,
@@ -47,6 +49,13 @@ describe('buildNjumpUrl', () => {
   });
 });
 
+describe('buildStoreUrl', () => {
+  it('prefixes the naddr with the canonical storefront origin', () => {
+    expect(buildStoreUrl('naddr1abc')).toBe(`${STORE_BASE_URL}/naddr1abc`);
+    expect(buildStoreUrl('naddr1abc')).toBe('https://www.robotechy.com/naddr1abc');
+  });
+});
+
 describe('formatPriceLabel', () => {
   it('renders whole sats with thousands separators', () => {
     expect(formatPriceLabel({ amount: '21000', currency: 'sats' })).toBe('21,000 sats');
@@ -62,19 +71,24 @@ describe('formatPriceLabel', () => {
 });
 
 describe('buildShareNoteContent', () => {
-  it('composes the Robotechy share body', () => {
+  it('composes the Robotechy share body with the store link then njump', () => {
     expect(
       buildShareNoteContent({
         title: 'Widget 3000',
         priceLabel: '21,000 sats',
+        storeUrl: 'https://www.robotechy.com/naddr1abc',
         njumpUrl: 'https://njump.me/naddr1abc',
       })
-    ).toBe('Check out Widget 3000 on Robotechy ⚡ 21,000 sats\n\nhttps://njump.me/naddr1abc');
+    ).toBe(
+      'Check out Widget 3000 on Robotechy ⚡ 21,000 sats\n\n' +
+        'https://www.robotechy.com/naddr1abc\n' +
+        'https://njump.me/naddr1abc'
+    );
   });
 });
 
 describe('buildShareNoteEvent', () => {
-  it('builds a kind-1 note with a, r and image tags', () => {
+  it('builds a kind-1 note with a, both r links and image tags', () => {
     const event = buildShareNoteEvent({
       pubkey: PUBKEY,
       identifier: D,
@@ -86,10 +100,14 @@ describe('buildShareNoteEvent', () => {
     expect(event.kind).toBe(1);
 
     const naddr = buildProductNaddr(PUBKEY, D);
+    const storeUrl = buildStoreUrl(naddr);
     const njumpUrl = buildNjumpUrl(naddr);
-    expect(event.content).toBe(`Check out Widget 3000 on Robotechy ⚡ 21,000 sats\n\n${njumpUrl}`);
+    expect(event.content).toBe(
+      `Check out Widget 3000 on Robotechy ⚡ 21,000 sats\n\n${storeUrl}\n${njumpUrl}`
+    );
 
     expect(event.tags).toContainEqual(['a', `30402:${PUBKEY}:${D}`]);
+    expect(event.tags).toContainEqual(['r', storeUrl]);
     expect(event.tags).toContainEqual(['r', njumpUrl]);
     expect(event.tags).toContainEqual(['image', 'https://img.example/widget.png']);
   });
