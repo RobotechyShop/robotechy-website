@@ -51,8 +51,10 @@ describe('buildNjumpUrl', () => {
 
 describe('buildStoreUrl', () => {
   it('prefixes the naddr with the canonical storefront origin', () => {
+    // Pin the production origin once so a stray edit to the constant is caught,
+    // then assert the helper composes the URL from it.
+    expect(STORE_BASE_URL).toBe('https://www.robotechy.com');
     expect(buildStoreUrl('naddr1abc')).toBe(`${STORE_BASE_URL}/naddr1abc`);
-    expect(buildStoreUrl('naddr1abc')).toBe('https://www.robotechy.com/naddr1abc');
   });
 });
 
