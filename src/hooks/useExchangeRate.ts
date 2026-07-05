@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getExchangeRates } from '@/lib/exchangeRate';
 
 interface UseExchangeRateReturn {
@@ -23,28 +23,39 @@ export function useExchangeRate(): UseExchangeRateReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Tracks whether the component is still mounted, so the async rate fetch never
+  // calls setState after unmount — which otherwise surfaces as an unhandled
+  // "window is not defined" from React's scheduler once a test env tears down.
+  const mountedRef = useRef(false);
+
   const fetchRates = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
       const rates = await getExchangeRates();
+      if (!mountedRef.current) return;
       // sats per £1 = 100,000,000 / BTC price in GBP
       setSatsPerGbp(Math.round(SATS_PER_BTC / rates.btcToGbp));
       setSatsPerUsd(Math.round(SATS_PER_BTC / rates.btcToUsd));
     } catch (err) {
+      if (!mountedRef.current) return;
       const message = err instanceof Error ? err.message : 'Failed to fetch rates';
       setError(message);
       // Use fallback rates
       setSatsPerGbp(Math.round(SATS_PER_BTC / FALLBACK_BTC_GBP));
       setSatsPerUsd(Math.round(SATS_PER_BTC / FALLBACK_BTC_USD));
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchRates();
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchRates]);
 
   const convertToSats = useCallback(
