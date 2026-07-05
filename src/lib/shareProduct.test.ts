@@ -73,24 +73,34 @@ describe('formatPriceLabel', () => {
 });
 
 describe('buildShareNoteContent', () => {
-  it('composes the Robotechy share body with the store link then njump', () => {
+  it('composes the body with the product photo then the store link, no njump', () => {
     expect(
       buildShareNoteContent({
         title: 'Widget 3000',
         priceLabel: '21,000 sats',
         storeUrl: 'https://www.robotechy.com/naddr1abc',
-        njumpUrl: 'https://njump.me/naddr1abc',
+        imageUrl: 'https://img.example/widget.png',
       })
     ).toBe(
       'Check out Widget 3000 on Robotechy ⚡ 21,000 sats\n\n' +
-        'https://www.robotechy.com/naddr1abc\n' +
-        'https://njump.me/naddr1abc'
+        'https://img.example/widget.png\n\n' +
+        'https://www.robotechy.com/naddr1abc'
     );
+  });
+
+  it('drops the image line when there is no photo', () => {
+    expect(
+      buildShareNoteContent({
+        title: 'No Photo',
+        priceLabel: '1,000 sats',
+        storeUrl: 'https://www.robotechy.com/naddr1abc',
+      })
+    ).toBe('Check out No Photo on Robotechy ⚡ 1,000 sats\n\nhttps://www.robotechy.com/naddr1abc');
   });
 });
 
 describe('buildShareNoteEvent', () => {
-  it('builds a kind-1 note with a, both r links and image tags', () => {
+  it('puts the photo + store link in the body, njump as an r tag, image as imeta', () => {
     const event = buildShareNoteEvent({
       pubkey: PUBKEY,
       identifier: D,
@@ -105,23 +115,28 @@ describe('buildShareNoteEvent', () => {
     const storeUrl = buildStoreUrl(naddr);
     const njumpUrl = buildNjumpUrl(naddr);
     expect(event.content).toBe(
-      `Check out Widget 3000 on Robotechy ⚡ 21,000 sats\n\n${storeUrl}\n${njumpUrl}`
+      `Check out Widget 3000 on Robotechy ⚡ 21,000 sats\n\nhttps://img.example/widget.png\n\n${storeUrl}`
     );
+    // njump is referenced but never appears in the body (avoids Primal's
+    // "Mentioned event not found" for the kind-30402 listing).
+    expect(event.content).not.toContain('njump.me');
 
     expect(event.tags).toContainEqual(['a', `30402:${PUBKEY}:${D}`]);
     expect(event.tags).toContainEqual(['r', storeUrl]);
     expect(event.tags).toContainEqual(['r', njumpUrl]);
-    expect(event.tags).toContainEqual(['image', 'https://img.example/widget.png']);
+    expect(event.tags).toContainEqual(['imeta', 'url https://img.example/widget.png']);
+    // No non-standard bare `image` tag.
+    expect(event.tags.some(([name]) => name === 'image')).toBe(false);
   });
 
-  it('omits the image tag when there is no image', () => {
+  it('omits the imeta tag when there is no image', () => {
     const event = buildShareNoteEvent({
       pubkey: PUBKEY,
       identifier: D,
       title: 'No Photo',
       price: { amount: '1000', currency: 'sats' },
     });
-    expect(event.tags.some(([name]) => name === 'image')).toBe(false);
+    expect(event.tags.some(([name]) => name === 'imeta')).toBe(false);
   });
 
   it('honours an edited body but keeps the product tags', () => {

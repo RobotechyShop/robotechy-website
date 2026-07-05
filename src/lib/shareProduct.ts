@@ -72,22 +72,27 @@ export interface ShareNoteContentInput {
   title: string;
   priceLabel: string;
   storeUrl: string;
-  njumpUrl: string;
+  /** Product photo. Placed in the body so clients (Primal, Damus…) render it inline. */
+  imageUrl?: string;
 }
 
 /**
- * The human-readable body of the kind-1 note. Carries both links — the
- * storefront page first (the branded, buy-here destination) and the njump
- * fallback second, so it renders for Nostr-native and web readers alike:
- * `Check out Widget on Robotechy ⚡ 21,000 sats\n\n<storeUrl>\n<njumpUrl>`.
+ * The human-readable body of the kind-1 note. The product photo goes in the body
+ * (a bare image URL is what Nostr clients render inline), followed by the
+ * storefront link — the branded, buy-here destination. The njump link is left
+ * out of the body on purpose: clients like Primal try to inline-embed a njump
+ * `naddr` link as a mentioned event, and a NIP-99 (kind-30402) listing renders
+ * as "Mentioned event not found". njump is kept as an `r` tag instead (see
+ * `buildShareNoteEvent`).
  */
 export function buildShareNoteContent({
   title,
   priceLabel,
   storeUrl,
-  njumpUrl,
+  imageUrl,
 }: ShareNoteContentInput): string {
-  return `Check out ${title} on Robotechy ⚡ ${priceLabel}\n\n${storeUrl}\n${njumpUrl}`;
+  const intro = `Check out ${title} on Robotechy ⚡ ${priceLabel}`;
+  return [intro, imageUrl, storeUrl].filter(Boolean).join('\n\n');
 }
 
 export interface ShareNoteEventInput {
@@ -108,11 +113,12 @@ export interface ShareNoteEventTemplate {
 }
 
 /**
- * Build the kind-1 note template that references a product: the body links to
- * the product on both the storefront and njump, an `a` tag points at the
- * addressable product event, `r` tags carry the store and njump URLs, and (when
- * present) an `image` tag carries the product photo. This is a fresh note — it
- * never edits an existing event.
+ * Build the kind-1 note template that references a product: the body carries the
+ * product photo and the storefront link, an `a` tag points at the addressable
+ * product event, `r` tags carry the store and njump URLs (njump stays a tag so
+ * it doesn't trigger a failed inline-embed in the body), and — when present — a
+ * NIP-92 `imeta` tag describes the product photo. This is a fresh note; it never
+ * edits an existing event.
  */
 export function buildShareNoteEvent(input: ShareNoteEventInput): ShareNoteEventTemplate {
   const naddr = buildProductNaddr(input.pubkey, input.identifier, input.relays);
@@ -124,7 +130,7 @@ export function buildShareNoteEvent(input: ShareNoteEventInput): ShareNoteEventT
       title: input.title,
       priceLabel: formatPriceLabel(input.price),
       storeUrl,
-      njumpUrl,
+      imageUrl: input.imageUrl,
     });
 
   const tags: string[][] = [
@@ -133,7 +139,9 @@ export function buildShareNoteEvent(input: ShareNoteEventInput): ShareNoteEventT
     ['r', njumpUrl],
   ];
   if (input.imageUrl) {
-    tags.push(['image', input.imageUrl]);
+    // NIP-92: attach the image as media metadata (the URL is also in `content`,
+    // which is what actually renders inline across clients).
+    tags.push(['imeta', `url ${input.imageUrl}`]);
   }
 
   return { kind: 1, content, tags };
