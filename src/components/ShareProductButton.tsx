@@ -26,7 +26,6 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import type { ProductData } from '@/lib/productUtils';
 import {
-  buildNjumpUrl,
   buildProductNaddr,
   buildShareNoteContent,
   buildShareNoteEvent,
@@ -93,21 +92,20 @@ export function ShareProductButton({
     [config.relayMetadata.relays]
   );
 
-  // The product's portable pointer plus its two human-facing links: the
-  // storefront page (primary — what copy/native share hand out) and the njump
-  // fallback. Memoised so every menu action uses the same URLs.
+  // The product's portable pointer and its storefront link (what copy / native
+  // share hand out). The default note also embeds the product photo so it
+  // renders inline when posted. Memoised so every menu action uses the same URL.
   const { naddr, storeUrl, defaultNote } = useMemo(() => {
     const naddr = buildProductNaddr(merchantPubkey, product.id, relayHints);
     const storeUrl = buildStoreUrl(naddr);
-    const njumpUrl = buildNjumpUrl(naddr);
     const defaultNote = buildShareNoteContent({
       title: product.title,
       priceLabel: formatPriceLabel(product.price),
       storeUrl,
-      njumpUrl,
+      imageUrl,
     });
     return { naddr, storeUrl, defaultNote };
-  }, [merchantPubkey, product.id, product.title, product.price, relayHints]);
+  }, [merchantPubkey, product.id, product.title, product.price, imageUrl, relayHints]);
 
   const copyLink = async () => {
     try {
@@ -232,8 +230,8 @@ export function ShareProductButton({
               Share to Nostr
             </DialogTitle>
             <DialogDescription>
-              Post a note about this product to your Nostr feed. The note links to the product on
-              the Robotechy store and njump so your followers can open it either way.
+              Post a note about this product to your Nostr feed. The note shows the product photo
+              and links to it on the Robotechy store.
             </DialogDescription>
           </DialogHeader>
 
