@@ -44,7 +44,7 @@ export function RelaySettingsDialog({ open, onOpenChange }: RelaySettingsDialogP
         if (republished === 0) {
           toast({
             title: 'Re-publish failed',
-            description: `None of your ${found} listing${found === 1 ? '' : 's'} could be re-broadcast. Check that your write relays accept your events.`,
+            description: `None of your ${found} catalog item${found === 1 ? '' : 's'} could be re-broadcast. Check that your write relays accept your events.`,
             variant: 'destructive',
           });
           return;
@@ -52,7 +52,7 @@ export function RelaySettingsDialog({ open, onOpenChange }: RelaySettingsDialogP
         const partial = republished < found;
         toast({
           title: partial ? 'Catalog partly re-published' : 'Catalog re-published ✓',
-          description: `Re-broadcast ${republished} of ${found} listing${found === 1 ? '' : 's'} to your write relays.`,
+          description: `Re-broadcast ${republished} of ${found} catalog item${found === 1 ? '' : 's'} to your write relays.`,
         });
       },
       onError: (error) => {
@@ -75,10 +75,11 @@ export function RelaySettingsDialog({ open, onOpenChange }: RelaySettingsDialogP
             Relays
           </DialogTitle>
           <DialogDescription>
-            Your products publish to the <strong>write</strong> relays below, and this list is saved
-            to Nostr as your NIP-65 relay list. Some relays (e.g. Primal, Ditto) only accept reads —
-            keep at least one open-write relay such as <code>nos.lol</code> or{' '}
-            <code>relay.damus.io</code> so listings actually get stored.
+            Your catalog (products, collections and shipping options) publishes to the{' '}
+            <strong>write</strong> relays below, and this list is saved to Nostr as your NIP-65
+            relay list. Some relays (e.g. Primal, Ditto) only accept reads — keep at least one
+            open-write relay such as <code>nos.lol</code> or <code>relay.damus.io</code> so your
+            catalog actually gets stored.
           </DialogDescription>
         </DialogHeader>
 
