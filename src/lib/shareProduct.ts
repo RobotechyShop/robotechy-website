@@ -138,9 +138,10 @@ export function buildShareNoteEvent(input: ShareNoteEventInput): ShareNoteEventT
     ['r', storeUrl],
     ['r', njumpUrl],
   ];
-  if (input.imageUrl) {
-    // NIP-92: attach the image as media metadata (the URL is also in `content`,
-    // which is what actually renders inline across clients).
+  if (input.imageUrl && content.includes(input.imageUrl)) {
+    // NIP-92: attach the image as media metadata — but only when the URL is
+    // still in `content` (a user-edited body may have removed it), so the tag
+    // never describes an image the note doesn't actually show.
     tags.push(['imeta', `url ${input.imageUrl}`]);
   }
 

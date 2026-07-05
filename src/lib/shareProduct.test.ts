@@ -150,4 +150,28 @@ describe('buildShareNoteEvent', () => {
     expect(event.content).toBe('My own words about this');
     expect(event.tags).toContainEqual(['a', `30402:${PUBKEY}:${D}`]);
   });
+
+  it('drops the imeta tag when an edited body no longer contains the image URL', () => {
+    const event = buildShareNoteEvent({
+      pubkey: PUBKEY,
+      identifier: D,
+      title: 'Widget 3000',
+      price: { amount: '21000', currency: 'sats' },
+      imageUrl: 'https://img.example/widget.png',
+      content: 'No photo link in my custom words',
+    });
+    expect(event.tags.some(([name]) => name === 'imeta')).toBe(false);
+  });
+
+  it('keeps the imeta tag when an edited body still contains the image URL', () => {
+    const event = buildShareNoteEvent({
+      pubkey: PUBKEY,
+      identifier: D,
+      title: 'Widget 3000',
+      price: { amount: '21000', currency: 'sats' },
+      imageUrl: 'https://img.example/widget.png',
+      content: 'Look: https://img.example/widget.png',
+    });
+    expect(event.tags).toContainEqual(['imeta', 'url https://img.example/widget.png']);
+  });
 });
