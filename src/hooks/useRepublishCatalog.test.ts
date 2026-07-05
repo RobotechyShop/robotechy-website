@@ -1,7 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { NostrEvent } from '@nostrify/nostrify';
 
-import { republishCatalog, CATALOG_KINDS, type RepublishNostr } from './useRepublishCatalog';
+import {
+  republishCatalog,
+  CATALOG_KINDS,
+  REPUBLISH_CONCURRENCY,
+  type RepublishNostr,
+} from './useRepublishCatalog';
 import { MERCHANT_PUBKEY } from './useProducts';
 import { PRODUCT_KIND, COLLECTION_KIND, SHIPPING_OPTION_KIND } from '@/lib/productAdmin';
 
@@ -58,6 +63,26 @@ describe('republishCatalog', () => {
       republished: 1,
       byKind: { [PRODUCT_KIND]: 1 },
     });
+  });
+
+  it('re-broadcasts in bounded batches, never exceeding the concurrency limit', async () => {
+    const events = Array.from({ length: 20 }, (_, i) => ev(PRODUCT_KIND, `p${i}`));
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const nostr: RepublishNostr = {
+      query: vi.fn().mockResolvedValue(events),
+      event: vi.fn().mockImplementation(async () => {
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise((r) => setTimeout(r, 0));
+        inFlight -= 1;
+      }),
+    };
+
+    const result = await republishCatalog(nostr);
+
+    expect(result.republished).toBe(20);
+    expect(maxInFlight).toBeLessThanOrEqual(REPUBLISH_CONCURRENCY);
   });
 
   it('reports nothing found when the catalog query is empty', async () => {

@@ -8,6 +8,12 @@ import { COLLECTION_KIND, PRODUCT_KIND, SHIPPING_OPTION_KIND } from '@/lib/produ
 /** The addressable catalog kinds a merchant owns: products, collections, shipping options. */
 export const CATALOG_KINDS = [PRODUCT_KIND, COLLECTION_KIND, SHIPPING_OPTION_KIND];
 
+/**
+ * How many events to re-broadcast at once. Bounded so a large catalog (up to the
+ * 500-event query limit) doesn't open hundreds of simultaneous relay publishes.
+ */
+export const REPUBLISH_CONCURRENCY = 8;
+
 export interface RepublishResult {
   /** How many catalog events were found on the current read relays. */
   found: number;
@@ -40,10 +46,18 @@ export async function republishCatalog(nostr: RepublishNostr): Promise<Republish
     { signal: AbortSignal.timeout(8000) }
   );
 
-  // allSettled so one relay/event failing doesn't abort the rest.
-  const results = await Promise.allSettled(
-    events.map((ev) => nostr.event(ev, { signal: AbortSignal.timeout(8000) }))
-  );
+  // Re-broadcast in bounded batches so a large catalog doesn't flood the relay
+  // connections with hundreds of concurrent publishes. allSettled within each
+  // batch so one relay/event failing doesn't abort the rest; batch results are
+  // appended in order, keeping `results[i]` aligned with `events[i]`.
+  const results: PromiseSettledResult<void>[] = [];
+  for (let i = 0; i < events.length; i += REPUBLISH_CONCURRENCY) {
+    const batch = events.slice(i, i + REPUBLISH_CONCURRENCY);
+    const settled = await Promise.allSettled(
+      batch.map((ev) => nostr.event(ev, { signal: AbortSignal.timeout(8000) }))
+    );
+    results.push(...settled);
+  }
 
   const byKind: Record<number, number> = {};
   let republished = 0;

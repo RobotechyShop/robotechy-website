@@ -33,12 +33,26 @@ export function RelaySettingsDialog({ open, onOpenChange }: RelaySettingsDialogP
   const handleRepublish = () => {
     republish(undefined, {
       onSuccess: ({ found, republished }) => {
+        if (found === 0) {
+          toast({
+            title: 'Nothing to re-publish',
+            description:
+              'No catalog events were found on your current read relays. Keep a relay that has your catalog (e.g. nos.lol) enabled for reading, then try again.',
+          });
+          return;
+        }
+        if (republished === 0) {
+          toast({
+            title: 'Re-publish failed',
+            description: `None of your ${found} listing${found === 1 ? '' : 's'} could be re-broadcast. Check that your write relays accept your events.`,
+            variant: 'destructive',
+          });
+          return;
+        }
+        const partial = republished < found;
         toast({
-          title: republished > 0 ? 'Catalog re-published ✓' : 'Nothing to re-publish',
-          description:
-            found === 0
-              ? 'No catalog events were found on your current read relays. Keep a relay that has your catalog (e.g. nos.lol) enabled for reading, then try again.'
-              : `Re-broadcast ${republished} of ${found} listing${found === 1 ? '' : 's'} to your write relays.`,
+          title: partial ? 'Catalog partly re-published' : 'Catalog re-published ✓',
+          description: `Re-broadcast ${republished} of ${found} listing${found === 1 ? '' : 's'} to your write relays.`,
         });
       },
       onError: (error) => {
@@ -87,7 +101,7 @@ export function RelaySettingsDialog({ open, onOpenChange }: RelaySettingsDialogP
             ) : (
               <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
             )}
-            Re-publish all products to my relays
+            Re-publish my catalog to these relays
           </Button>
         </div>
       </DialogContent>
