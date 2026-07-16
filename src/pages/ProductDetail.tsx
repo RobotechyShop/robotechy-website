@@ -329,11 +329,17 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm, remarkBreaks]}
                   components={{
-                    a: ({ href, children }) => (
-                      <a href={href} target="_blank" rel="noopener noreferrer">
-                        {children}
-                      </a>
-                    ),
+                    // Forward react-markdown's props (title, className, …) but
+                    // drop its non-DOM `node` prop; if the URL was sanitized
+                    // away, render plain text instead of a dead link.
+                    a: ({ node: _node, href, children, ...props }) =>
+                      href ? (
+                        <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                          {children}
+                        </a>
+                      ) : (
+                        <span {...props}>{children}</span>
+                      ),
                   }}
                 >
                   {product.content}
