@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { parseShippingOptionEvent, parseCollectionEvent, parseProductEvent } from './productUtils';
+import {
+  parseShippingOptionEvent,
+  parseCollectionEvent,
+  parseProductEvent,
+  getCurrencyOptions,
+  SUPPORTED_CURRENCIES,
+} from './productUtils';
 import { buildShippingOptionEvent, buildCollectionEvent, buildProductEvent } from './productAdmin';
 
 const toEvent = (
@@ -71,5 +77,19 @@ describe('product collection refs parse', () => {
       })
     );
     expect(parseProductEvent(toEvent(built))?.collections).toEqual(['30405:MERCHANT:seed-signers']);
+  });
+});
+
+describe('getCurrencyOptions', () => {
+  it('returns the supported set when no current currency is given', () => {
+    expect(getCurrencyOptions()).toEqual([...SUPPORTED_CURRENCIES]);
+  });
+
+  it('returns the supported set unchanged when current is already in it', () => {
+    expect(getCurrencyOptions('gbp')).toEqual([...SUPPORTED_CURRENCIES]);
+  });
+
+  it('appends an out-of-set currency so editing an existing listing never corrupts it', () => {
+    expect(getCurrencyOptions('CAD')).toEqual([...SUPPORTED_CURRENCIES, 'CAD']);
   });
 });

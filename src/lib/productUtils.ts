@@ -205,6 +205,27 @@ export function parseProductEvent(event: NostrEvent): ProductData | null {
   };
 }
 
+/**
+ * Currencies the storefront actually understands price-formatting and live
+ * exchange-rate conversion for (see `formatPrice` below and
+ * `src/lib/exchangeRate.ts`). Used to drive the currency `<Select>` in the
+ * owner's product and shipping-option forms.
+ */
+export const SUPPORTED_CURRENCIES = ['SATS', 'BTC', 'GBP', 'USD', 'EUR'] as const;
+
+/**
+ * Currency options for a form `<Select>`, guaranteed to include `current` even
+ * when it falls outside the supported set (e.g. an older/foreign listing) so
+ * editing never silently rewrites data the owner didn't ask to change.
+ */
+export function getCurrencyOptions(current?: string): string[] {
+  const normalized = current?.trim().toUpperCase();
+  if (!normalized || (SUPPORTED_CURRENCIES as readonly string[]).includes(normalized)) {
+    return [...SUPPORTED_CURRENCIES];
+  }
+  return [...SUPPORTED_CURRENCIES, normalized];
+}
+
 export function formatPrice(price: number, currency: string): string {
   const amount = price.toLocaleString('en-US', {
     minimumFractionDigits: 2,
