@@ -59,11 +59,14 @@ const EMPTY_FORM: ProductFormData = {
 /**
  * Small preview of an image URL, shown beside each Images row so the owner can
  * tell listings apart at a glance. Falls back to a placeholder icon when the
- * URL is empty or the image can't load. Keyed by URL at the call site so the
- * error state resets whenever the row's URL changes.
+ * URL is empty or the image can't load; the error state resets whenever the
+ * URL changes so pasting a new URL retries the preview.
  */
 function ImageThumb({ url }: { url: string }) {
   const [errored, setErrored] = useState(false);
+  useEffect(() => {
+    setErrored(false);
+  }, [url]);
   const trimmed = url.trim();
   const showImage = trimmed !== '' && !errored;
 
@@ -243,7 +246,7 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
             <Label>Images</Label>
             {form.images.map((image, index) => (
               <div key={index} className="flex items-center gap-2">
-                <ImageThumb key={image} url={image} />
+                <ImageThumb url={image} />
                 <Input
                   aria-label={`Image URL ${index + 1}`}
                   value={image}
