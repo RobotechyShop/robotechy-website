@@ -7,13 +7,14 @@ export const RELAY_CONNECT_TIMEOUT_MS = 5000;
 /**
  * Probe a relay by opening a WebSocket: 'connected' if the socket opens,
  * 'unreachable' on error or timeout. The socket is closed as soon as the
- * result is known, and the probe aborts cleanly via the given signal.
+ * result is known. Aborting the signal rejects with the abort reason, so
+ * React Query treats it as a cancellation rather than caching a result.
  */
 export function checkRelayStatus(
   url: string,
   signal?: AbortSignal
 ): Promise<Exclude<RelayStatus, 'connecting'>> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     let socket: WebSocket;
     try {
       socket = new WebSocket(url);
@@ -22,7 +23,7 @@ export function checkRelayStatus(
       return;
     }
 
-    const settle = (status: Exclude<RelayStatus, 'connecting'>) => {
+    const cleanup = () => {
       clearTimeout(timer);
       signal?.removeEventListener('abort', onAbort);
       socket.onopen = null;
@@ -32,9 +33,15 @@ export function checkRelayStatus(
       } catch {
         // Socket may already be closed or in a closing state.
       }
+    };
+    const settle = (status: Exclude<RelayStatus, 'connecting'>) => {
+      cleanup();
       resolve(status);
     };
-    const onAbort = () => settle('unreachable');
+    const onAbort = () => {
+      cleanup();
+      reject(signal?.reason ?? new DOMException('The operation was aborted.', 'AbortError'));
+    };
 
     const timer = setTimeout(() => settle('unreachable'), RELAY_CONNECT_TIMEOUT_MS);
     signal?.addEventListener('abort', onAbort);

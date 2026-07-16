@@ -68,14 +68,16 @@ describe('checkRelayStatus', () => {
     await expect(checkRelayStatus('throw://bad-url')).resolves.toBe('unreachable');
   });
 
-  it('cleans up the socket when the abort signal fires', async () => {
+  it('rejects with the abort reason and cleans up the socket when the abort signal fires', async () => {
     const controller = new AbortController();
     const promise = checkRelayStatus('wss://relay.example.com', controller.signal);
     const socket = MockWebSocket.instances[0];
 
     controller.abort();
 
-    await expect(promise).resolves.toBe('unreachable');
+    // Rejecting (not resolving 'unreachable') lets React Query treat a
+    // cancelled probe as a cancellation instead of caching a false result.
+    await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
     expect(socket.closed).toBe(true);
   });
 });
