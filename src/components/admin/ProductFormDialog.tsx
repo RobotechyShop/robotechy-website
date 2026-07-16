@@ -43,6 +43,13 @@ interface ProductFormDialogProps {
 /** Sentinel Select value for "no location set" — Radix Select forbids "". */
 const NO_LOCATION = '__none__';
 
+/**
+ * Namespace real location values so a stored location that happens to equal
+ * the sentinel can never collide with it (Radix requires unique item values).
+ */
+const encodeLocation = (location: string) => `loc:${location}`;
+const decodeLocation = (value: string) => value.slice('loc:'.length);
+
 const EMPTY_FORM: ProductFormData = {
   id: '',
   title: '',
@@ -339,8 +346,10 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
             <div className="space-y-2">
               <Label htmlFor="product-location">Location</Label>
               <Select
-                value={form.location?.trim() || NO_LOCATION}
-                onValueChange={(value) => set('location', value === NO_LOCATION ? '' : value)}
+                value={form.location?.trim() ? encodeLocation(form.location.trim()) : NO_LOCATION}
+                onValueChange={(value) =>
+                  set('location', value === NO_LOCATION ? '' : decodeLocation(value))
+                }
               >
                 <SelectTrigger id="product-location">
                   <SelectValue placeholder="No location set" />
@@ -348,7 +357,7 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
                 <SelectContent>
                   <SelectItem value={NO_LOCATION}>No location set</SelectItem>
                   {locationOptions.map((location) => (
-                    <SelectItem key={location} value={location}>
+                    <SelectItem key={location} value={encodeLocation(location)}>
                       {location}
                     </SelectItem>
                   ))}
