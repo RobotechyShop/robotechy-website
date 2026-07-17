@@ -8,12 +8,30 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useAppContext } from '@/hooks/useAppContext';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { useRelayStatus, type RelayStatus } from '@/hooks/useRelayStatus';
 import { useToast } from '@/hooks/useToast';
 
 interface Relay {
   url: string;
   read: boolean;
   write: boolean;
+}
+
+const STATUS_DISPLAY: Record<RelayStatus, { label: string; className: string }> = {
+  connected: { label: 'Connected', className: 'text-green-500' },
+  connecting: { label: 'Checking…', className: 'text-amber-500 animate-pulse' },
+  unreachable: { label: 'Unreachable', className: 'text-red-500' },
+};
+
+function RelayStatusIcon({ url }: { url: string }) {
+  const status = useRelayStatus(url);
+  const { label, className } = STATUS_DISPLAY[status];
+
+  return (
+    <span role="img" title={label} aria-label={label} className="shrink-0">
+      <Wifi aria-hidden="true" focusable="false" className={`h-4 w-4 ${className}`} />
+    </span>
+  );
 }
 
 export function RelayListManager() {
@@ -186,7 +204,7 @@ export function RelayListManager() {
             key={relay.url}
             className="flex items-center gap-3 p-3 rounded-md border bg-muted/20"
           >
-            <Wifi className="h-4 w-4 text-muted-foreground shrink-0" />
+            <RelayStatusIcon url={relay.url} />
             <span className="font-mono text-sm flex-1 truncate" title={relay.url}>
               {renderRelayUrl(relay.url)}
             </span>
