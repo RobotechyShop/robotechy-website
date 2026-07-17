@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { FolderTree, PackagePlus, Truck } from 'lucide-react';
+import { FolderTree, PackagePlus, Radio, Truck } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useIsStoreOwner } from '@/hooks/useIsStoreOwner';
 import { ProductFormDialog } from '@/components/admin/ProductFormDialog';
 import { ShippingOptionsDialog } from '@/components/admin/ShippingOptionsDialog';
 import { CollectionsDialog } from '@/components/admin/CollectionsDialog';
+import { RelaySettingsDialog } from '@/components/admin/RelaySettingsDialog';
 
 /**
  * Store-owner controls shown on the storefront. Rendered only when the
@@ -16,6 +17,7 @@ export function OwnerToolbar() {
   const [addOpen, setAddOpen] = useState(false);
   const [shippingOpen, setShippingOpen] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const [relaysOpen, setRelaysOpen] = useState(false);
 
   if (!isOwner) return null;
 
@@ -42,6 +44,10 @@ export function OwnerToolbar() {
             <FolderTree className="mr-2 h-4 w-4" />
             Categories &amp; collections
           </Button>
+          <Button size="sm" variant="outline" onClick={() => setRelaysOpen(true)}>
+            <Radio className="mr-2 h-4 w-4" />
+            Relays
+          </Button>
         </div>
       </div>
 
@@ -53,6 +59,7 @@ export function OwnerToolbar() {
       {collectionsOpen && (
         <CollectionsDialog open={collectionsOpen} onOpenChange={setCollectionsOpen} />
       )}
+      {relaysOpen && <RelaySettingsDialog open={relaysOpen} onOpenChange={setRelaysOpen} />}
     </div>
   );
 }

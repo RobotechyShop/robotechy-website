@@ -13,7 +13,9 @@ import TermsOfService from './pages/TermsOfService';
 
 export function AppRouter() {
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    // react-router 7: the v7_* future flags are the defaults now and the
+    // `future` prop is gone.
+    <BrowserRouter>
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Index />} />

@@ -13,6 +13,13 @@ import { formatPriceFromTag, type ProductData } from '@/lib/productUtils';
 export const PRODUCT_KIND = 30402;
 
 /**
+ * Canonical, production storefront origin. Shared links must point here (not
+ * `window.location.origin`, which is `localhost` in dev / a test host) so the
+ * URL a shopper copies or posts always opens the real, branded shop.
+ */
+export const STORE_BASE_URL = 'https://www.robotechy.com';
+
+/**
  * The addressable-event coordinate for a product, used as the value of an `a`
  * tag (NIP-01): `30402:<merchant-pubkey>:<d-identifier>`.
  */
@@ -39,6 +46,15 @@ export function buildNjumpUrl(naddr: string): string {
 }
 
 /**
+ * The product's canonical page on the Robotechy storefront itself. The `/:nip19`
+ * route resolves the naddr to the product detail page, so this is the branded,
+ * works-for-everyone link (with a Buy button) — the primary thing we share.
+ */
+export function buildStoreUrl(naddr: string): string {
+  return `${STORE_BASE_URL}/${naddr}`;
+}
+
+/**
  * Format a product price for the share note. Sats are shown as whole numbers
  * (no fractional sats); every other currency falls back to the storefront's
  * shared price formatter so the wording matches what the card/detail show.
@@ -55,19 +71,28 @@ export function formatPriceLabel(price: ProductData['price']): string {
 export interface ShareNoteContentInput {
   title: string;
   priceLabel: string;
-  njumpUrl: string;
+  storeUrl: string;
+  /** Product photo. Placed in the body so clients (Primal, Damus…) render it inline. */
+  imageUrl?: string;
 }
 
 /**
- * The human-readable body of the kind-1 note, e.g.
- * `Check out Widget on Robotechy ⚡ 21,000 sats\n\nhttps://njump.me/naddr1…`.
+ * The human-readable body of the kind-1 note. The product photo goes in the body
+ * (a bare image URL is what Nostr clients render inline), followed by the
+ * storefront link — the branded, buy-here destination. The njump link is left
+ * out of the body on purpose: clients like Primal try to inline-embed a njump
+ * `naddr` link as a mentioned event, and a NIP-99 (kind-30402) listing renders
+ * as "Mentioned event not found". njump is kept as an `r` tag instead (see
+ * `buildShareNoteEvent`).
  */
 export function buildShareNoteContent({
   title,
   priceLabel,
-  njumpUrl,
+  storeUrl,
+  imageUrl,
 }: ShareNoteContentInput): string {
-  return `Check out ${title} on Robotechy ⚡ ${priceLabel}\n\n${njumpUrl}`;
+  const intro = `Check out ${title} on Robotechy ⚡ ${priceLabel}`;
+  return [intro, imageUrl, storeUrl].filter(Boolean).join('\n\n');
 }
 
 export interface ShareNoteEventInput {
@@ -88,28 +113,36 @@ export interface ShareNoteEventTemplate {
 }
 
 /**
- * Build the kind-1 note template that references a product: the body links to
- * the product via njump, an `a` tag points at the addressable product event, an
- * `r` tag carries the njump URL, and (when present) an `image` tag carries the
- * product photo. This is a fresh note — it never edits an existing event.
+ * Build the kind-1 note template that references a product: the body carries the
+ * product photo and the storefront link, an `a` tag points at the addressable
+ * product event, `r` tags carry the store and njump URLs (njump stays a tag so
+ * it doesn't trigger a failed inline-embed in the body), and — when present — a
+ * NIP-92 `imeta` tag describes the product photo. This is a fresh note; it never
+ * edits an existing event.
  */
 export function buildShareNoteEvent(input: ShareNoteEventInput): ShareNoteEventTemplate {
   const naddr = buildProductNaddr(input.pubkey, input.identifier, input.relays);
+  const storeUrl = buildStoreUrl(naddr);
   const njumpUrl = buildNjumpUrl(naddr);
   const content =
     input.content ??
     buildShareNoteContent({
       title: input.title,
       priceLabel: formatPriceLabel(input.price),
-      njumpUrl,
+      storeUrl,
+      imageUrl: input.imageUrl,
     });
 
   const tags: string[][] = [
     ['a', buildProductAddress(input.pubkey, input.identifier)],
+    ['r', storeUrl],
     ['r', njumpUrl],
   ];
-  if (input.imageUrl) {
-    tags.push(['image', input.imageUrl]);
+  if (input.imageUrl && content.includes(input.imageUrl)) {
+    // NIP-92: attach the image as media metadata — but only when the URL is
+    // still in `content` (a user-edited body may have removed it), so the tag
+    // never describes an image the note doesn't actually show.
+    tags.push(['imeta', `url ${input.imageUrl}`]);
   }
 
   return { kind: 1, content, tags };

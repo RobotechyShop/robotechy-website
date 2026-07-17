@@ -23,16 +23,10 @@ export function useExchangeRate(): UseExchangeRateReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Track mount so a rates fetch resolving AFTER unmount never calls setState —
-  // that late setState surfaced as an unhandled "window is not defined" in CI
-  // (the fetch's finally fired after the test environment was torn down).
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  // Tracks whether the component is still mounted, so the async rate fetch never
+  // calls setState after unmount — which otherwise surfaces as an unhandled
+  // "window is not defined" from React's scheduler once a test env tears down.
+  const mountedRef = useRef(false);
 
   const fetchRates = useCallback(async () => {
     setIsLoading(true);
@@ -52,14 +46,16 @@ export function useExchangeRate(): UseExchangeRateReturn {
       setSatsPerGbp(Math.round(SATS_PER_BTC / FALLBACK_BTC_GBP));
       setSatsPerUsd(Math.round(SATS_PER_BTC / FALLBACK_BTC_USD));
     } finally {
-      if (mountedRef.current) {
-        setIsLoading(false);
-      }
+      if (mountedRef.current) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchRates();
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchRates]);
 
   const convertToSats = useCallback(

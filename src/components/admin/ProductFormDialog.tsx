@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Plus, Upload, X } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -31,6 +31,7 @@ import {
   type ProductFormData,
   type ProductVisibility,
 } from '@/lib/productAdmin';
+import { PRODUCT_LOCATIONS } from '@/lib/productLocations';
 
 interface ProductFormDialogProps {
   open: boolean;
@@ -38,6 +39,16 @@ interface ProductFormDialogProps {
   /** When provided, the dialog opens in edit mode for this product event. */
   event?: NostrEvent;
 }
+
+/** Sentinel Select value for "no location set" — Radix Select forbids "". */
+const NO_LOCATION = '__none__';
+
+/**
+ * Namespace real location values so a stored location that happens to equal
+ * the sentinel can never collide with it (Radix requires unique item values).
+ */
+const encodeLocation = (location: string) => `loc:${location}`;
+const decodeLocation = (value: string) => value.slice('loc:'.length);
 
 const EMPTY_FORM: ProductFormData = {
   id: '',
@@ -111,6 +122,16 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
       'categories',
       form.categories.filter((c) => c !== value)
     );
+
+  // Predefined ship-from locations, plus the current value if it's a custom
+  // one (e.g. set before this dropdown existed) so editing never silently
+  // drops it.
+  const locationOptions = useMemo(() => {
+    const current = form.location?.trim();
+    return current && !PRODUCT_LOCATIONS.includes(current)
+      ? [...PRODUCT_LOCATIONS, current]
+      : PRODUCT_LOCATIONS;
+  }, [form.location]);
 
   const handleSubmit = async () => {
     const errors = validateProductForm(form);
@@ -324,12 +345,24 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
             </div>
             <div className="space-y-2">
               <Label htmlFor="product-location">Location</Label>
-              <Input
-                id="product-location"
-                value={form.location ?? ''}
-                onChange={(e) => set('location', e.target.value)}
-                placeholder="UK"
-              />
+              <Select
+                value={form.location?.trim() ? encodeLocation(form.location.trim()) : NO_LOCATION}
+                onValueChange={(value) =>
+                  set('location', value === NO_LOCATION ? '' : decodeLocation(value))
+                }
+              >
+                <SelectTrigger id="product-location">
+                  <SelectValue placeholder="No location set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_LOCATION}>No location set</SelectItem>
+                  {locationOptions.map((location) => (
+                    <SelectItem key={location} value={encodeLocation(location)}>
+                      {location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
