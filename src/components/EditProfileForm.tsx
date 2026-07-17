@@ -33,7 +33,7 @@ export const EditProfileForm: React.FC = () => {
   // Initialize the form with default values
   const form = useForm<NostrMetadata>({
     // standardSchemaResolver is zod-major-agnostic: n.metadata() comes from
-    // nostrify's own zod 4 while the app schemas use zod 3 — both implement
+    // nostrify's own zod instance while the app has its own — both implement
     // Standard Schema, so this avoids pinning the two type identities together.
     resolver: standardSchemaResolver(n.metadata()),
     defaultValues: {
