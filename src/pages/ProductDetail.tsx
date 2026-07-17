@@ -23,7 +23,6 @@ import { ArrowLeft, Expand, Package, ImageIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
 import { OwnerProductActions } from '@/components/admin/OwnerProductActions';
 
 interface ProductDetailProps {
@@ -324,10 +323,12 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
             {/* Product Description */}
             {product.content && (
               <div className="prose prose-neutral dark:prose-invert max-w-none prose-sm prose-a:text-robotechy-green-dark dark:prose-a:text-robotechy-green">
-                {/* remark-gfm auto-links bare URLs (www.example.com); remark-breaks
-                    keeps the single line breaks owners type into the description. */}
+                {/* remark-gfm auto-links bare URLs (www.example.com). Owners
+                    write one line per paragraph, so promote every newline to a
+                    Markdown paragraph break — each line becomes its own <p>
+                    and gets the prose spacing between paragraphs. */}
                 <ReactMarkdown
-                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                  remarkPlugins={[remarkGfm]}
                   components={{
                     // Forward react-markdown's props (title, className, …) but
                     // drop its non-DOM `node` prop; if the URL was sanitized
@@ -342,7 +343,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                       ),
                   }}
                 >
-                  {product.content}
+                  {product.content.replace(/\n+/g, '\n\n')}
                 </ReactMarkdown>
               </div>
             )}
