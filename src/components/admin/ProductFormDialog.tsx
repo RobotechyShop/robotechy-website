@@ -31,6 +31,7 @@ import {
   type ProductFormData,
   type ProductVisibility,
 } from '@/lib/productAdmin';
+import { getCurrencyOptions } from '@/lib/productUtils';
 import { PRODUCT_LOCATIONS } from '@/lib/productLocations';
 
 interface ProductFormDialogProps {
@@ -250,12 +251,21 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
             </div>
             <div className="space-y-2">
               <Label htmlFor="product-currency">Currency</Label>
-              <Input
-                id="product-currency"
+              <Select
                 value={form.priceCurrency}
-                onChange={(e) => set('priceCurrency', e.target.value.toUpperCase())}
-                placeholder="SATS"
-              />
+                onValueChange={(value) => set('priceCurrency', value)}
+              >
+                <SelectTrigger id="product-currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getCurrencyOptions(form.priceCurrency).map((currency) => (
+                    <SelectItem key={currency} value={currency}>
+                      {currency}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="product-stock">Stock</Label>

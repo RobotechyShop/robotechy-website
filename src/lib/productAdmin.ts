@@ -21,6 +21,8 @@
  */
 import type { NostrEvent } from '@nostrify/nostrify';
 
+import { normalizeCurrency } from './productUtils';
+
 export const PRODUCT_KIND = 30402;
 export const COLLECTION_KIND = 30405;
 export const SHIPPING_OPTION_KIND = 30406;
@@ -415,7 +417,9 @@ export function productEventToFormData(event: NostrEvent): ProductFormData {
     summary: get('summary') || '',
     description: event.content || '',
     priceAmount: priceTag?.[1] || '',
-    priceCurrency: priceTag?.[2] || 'USD',
+    // Normalize so the currency <Select> (whose options are normalized) always
+    // finds a matching value — `gbp` or ` cad ` would otherwise render blank.
+    priceCurrency: normalizeCurrency(priceTag?.[2], 'USD'),
     priceFrequency: priceTag?.[3] || '',
     // Order images by the NIP-99/Gamma sort-order field (4th element), matching
     // parseProductEvent, so opening a product for edit preserves image order.
