@@ -29,7 +29,7 @@ function RelayStatusIcon({ url }: { url: string }) {
 
   return (
     <span role="img" title={label} aria-label={label} className="shrink-0">
-      <Wifi className={`h-4 w-4 ${className}`} />
+      <Wifi aria-hidden="true" focusable="false" className={`h-4 w-4 ${className}`} />
     </span>
   );
 }

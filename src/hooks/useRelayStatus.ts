@@ -15,6 +15,11 @@ export function checkRelayStatus(
   signal?: AbortSignal
 ): Promise<Exclude<RelayStatus, 'connecting'>> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason ?? new DOMException('The operation was aborted.', 'AbortError'));
+      return;
+    }
+
     let socket: WebSocket;
     try {
       socket = new WebSocket(url);

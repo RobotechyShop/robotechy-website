@@ -80,4 +80,14 @@ describe('checkRelayStatus', () => {
     await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
     expect(socket.closed).toBe(true);
   });
+
+  it('rejects immediately without opening a socket when the signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    const promise = checkRelayStatus('wss://relay.example.com', controller.signal);
+
+    await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
+    expect(MockWebSocket.instances).toHaveLength(0);
+  });
 });
