@@ -1,6 +1,6 @@
 /**
- * PR #63 confidence test: full NIP-47 round-trip on @getalby/sdk v8 over a
- * real relay, exercising the app's EXACT payment path from useNWC.ts:
+ * PR #63 confidence test: full NIP-47 round-trip on @getalby/sdk v8 over
+ * real public relays, exercising the app's EXACT payment path from useNWC.ts:
  *   new LN(connectionString)  ->  client.pay(invoice)  ->  { preimage }
  * A mock NWCWalletService (also SDK v8) plays the wallet side and returns a
  * known preimage. No real sats involved.
@@ -59,13 +59,13 @@ async function main() {
   // ── app side: the EXACT code path from useNWC.ts ──────────────────────────
   const relayParams = RELAYS.map((r) => `relay=${encodeURIComponent(r)}`).join('&');
   const connectionString = `nostr+walletconnect://${walletPubkey}?${relayParams}&secret=${clientSecret}`;
-  const client = new LN(connectionString); // useNWC.ts:173
+  const client = new LN(connectionString); // as useNWC does on connect
   console.log('✓ new LN(connectionString) constructed');
 
   const t0 = Date.now();
   // Mirror useNWC's 15s timeout race exactly.
   const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Payment timeout after 15 seconds')), 15000));
-  const response = await Promise.race([client.pay(INVOICE), timeout]); // useNWC.ts:190
+  const response = await Promise.race([client.pay(INVOICE), timeout]); // as useNWC's payInvoice does
   const ms = Date.now() - t0;
 
   if (response?.preimage !== PREIMAGE) {

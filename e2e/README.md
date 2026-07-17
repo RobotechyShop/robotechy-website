@@ -194,8 +194,8 @@ NSEC=nsec1… SHOT_DIR=docs/screenshots/NN node e2e/product-comments.mjs
 Proves the NWC payment path (`new LN(connectionString)` → `client.pay(invoice)`
 — the exact calls `useNWC.ts` makes) against the installed `@getalby/sdk`, with
 a mock `NWCWalletService` playing the wallet over real relays. Full NIP-47
-encrypted round-trip; fetches a real (never-paid) 21-sat invoice from the
-shop's lightning address so bolt11 decoding is exercised too. No sats move.
+encrypted round-trip; pays a hardcoded real (never-paid) 21-sat invoice so
+bolt11 decoding is exercised too. No sats move.
 Used to validate the SDK v8 major bump (#63).
 
 ```bash
