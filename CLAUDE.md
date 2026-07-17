@@ -19,7 +19,10 @@ npm run deploy        # Optional static-only Nostr/Blossom mirror - NOT the prod
 `package.json`'s version on main FIRST (the footer reads it), then push a `v<version>`
 tag — the tag push itself triggers the production deploy (GitHub workflow →
 black-panther's self-hosted runner rebuilds the `robotechy` container, which serves
-both the site and the order-service). `npm run deploy` only updates the static mirror.
+both the site and the order-service). NOTE the tag only *triggers* the deploy — the
+container always builds from the **latest `main`** (the Docker build context is the
+repo's default branch), so the tag does not pin what ships, and rolling back means
+reverting on main first. `npm run deploy` only updates the static mirror.
 
 For running a single test file:
 ```bash
