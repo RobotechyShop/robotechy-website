@@ -37,7 +37,9 @@ await page.waitForTimeout(800);
 const dialog = page.locator('[role="dialog"]').first();
 await dialog.locator('#shipping-title').fill(TITLE);
 await dialog.locator('#shipping-price').fill('500');
-await dialog.locator('#shipping-currency').fill('SATS');
+// Currency is a Select dropdown since #101 — pick SATS from the listbox.
+await dialog.locator('#shipping-currency').click();
+await page.getByRole('option', { name: 'SATS', exact: true }).click();
 await dialog.locator('#shipping-countries').fill('GB, IE');
 await dialog.locator('#shipping-carrier').fill('Royal Mail');
 

@@ -36,7 +36,9 @@ await page.waitForTimeout(2000);
 
 // Open a product detail page.
 if (PRODUCT) {
-  await page.getByText(PRODUCT, { exact: false }).first().click();
+  // The card's stretched overlay link (#98) sits above the title text, so
+  // click the card link itself rather than the h3 Playwright can't reach.
+  await page.getByRole('link', { name: PRODUCT }).first().click();
 } else {
   await page.locator('a[href^="/naddr"]').first().click();
 }

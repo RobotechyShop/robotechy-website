@@ -53,6 +53,13 @@ const RELAY_NOISE = [
   'eai_again',
   'rate-limit',
   'noting too much',
+  // Relay-side failure notice delivered on the subscription OK/CLOSED path
+  // (AbstractRelay.handleNext) — an internal nostr-tools promise nobody
+  // awaits. Crashed the service twice on 2026-07-17 while a relay was
+  // failing. Matched WITH the relay machine-readable "error:" prefix so a
+  // Lightning/LNURL HTTP failure mentioning "internal error" (a real bug)
+  // can never be swallowed — same specificity principle as the entries above.
+  'error: internal error',
 ];
 
 /**

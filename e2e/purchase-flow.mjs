@@ -65,7 +65,9 @@ await step('log in', async () => {
 });
 
 await step(`open "${PRODUCT}" and Buy It Now`, async () => {
-  await page.getByText(PRODUCT, { exact: false }).first().click();
+  // The card's stretched overlay link (#98) sits above the title text, so
+  // click the card link itself rather than the h3 Playwright can't reach.
+  await page.getByRole('link', { name: PRODUCT }).first().click();
   await page.waitForTimeout(2000);
   await page.getByRole('button', { name: /buy it now/i }).first().click();
   await page.waitForTimeout(1500);
