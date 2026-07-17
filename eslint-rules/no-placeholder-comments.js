@@ -19,7 +19,8 @@ export default {
   },
 
   create(context) {
-    const sourceCode = context.getSourceCode();
+    // ESLint 10 removed context.getSourceCode(); use the context.sourceCode property.
+    const sourceCode = context.sourceCode;
 
     return {
       Program() {
