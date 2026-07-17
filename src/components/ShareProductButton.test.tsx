@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { nip19 } from 'nostr-tools';
 
 import { TestApp } from '@/test/TestApp';
@@ -26,21 +26,24 @@ const productEvent: NostrEvent = {
 
 const product = parseProductEvent(productEvent)!;
 
+async function renderShareButton(ui: React.ReactElement) {
+  const result = render(<TestApp>{ui}</TestApp>);
+  // NostrLoginProvider (@nostrify/react >= 0.5) loads persisted logins
+  // asynchronously and renders nothing until that resolves; flush the
+  // microtask so TestApp's children are mounted before assertions run.
+  await act(async () => {});
+  return result;
+}
+
 describe('ShareProductButton', () => {
-  it('renders an accessible share trigger', () => {
-    render(
-      <TestApp>
-        <ShareProductButton product={product} />
-      </TestApp>
-    );
+  it('renders an accessible share trigger', async () => {
+    await renderShareButton(<ShareProductButton product={product} />);
     expect(screen.getByRole('button', { name: /share widget 3000 on nostr/i })).toBeInTheDocument();
   });
 
-  it('exposes the product naddr pointing at the right addressable event', () => {
-    const { container } = render(
-      <TestApp>
-        <ShareProductButton product={product} variant="icon" />
-      </TestApp>
+  it('exposes the product naddr pointing at the right addressable event', async () => {
+    const { container } = await renderShareButton(
+      <ShareProductButton product={product} variant="icon" />
     );
 
     const naddr = container

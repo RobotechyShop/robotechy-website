@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { TestApp } from '@/test/TestApp';
 import { MessagesDrawerProvider } from '@/contexts/MessagesDrawerContext';
@@ -37,14 +37,19 @@ function storyResult(over: Partial<ReturnType<typeof useStoryNotes>>) {
   >;
 }
 
-function renderStory() {
-  return render(
+async function renderStory() {
+  const result = render(
     <TestApp>
       <MessagesDrawerProvider>
         <Story />
       </MessagesDrawerProvider>
     </TestApp>
   );
+  // NostrLoginProvider (@nostrify/react >= 0.5) loads persisted logins
+  // asynchronously and renders nothing until that resolves; flush the
+  // microtask so TestApp's children are mounted before assertions run.
+  await act(async () => {});
+  return result;
 }
 
 describe('Story page', () => {
@@ -57,7 +62,7 @@ describe('Story page', () => {
     >);
   });
 
-  it('shows a name skeleton (never a generated pseudonym) while the profile loads', () => {
+  it('shows a name skeleton (never a generated pseudonym) while the profile loads', async () => {
     // Regression: before the fix, the hero fell back to genUserName() while the
     // kind-0 profile was still loading, flashing a pseudonym like "Brave Falcon"
     // that then flipped to the real shop name.
@@ -66,25 +71,25 @@ describe('Story page', () => {
       isLoading: true,
     } as unknown as ReturnType<typeof useAuthor>);
     mockedUseStoryNotes.mockReturnValue(storyResult({ isLoading: true }));
-    renderStory();
+    await renderStory();
     expect(screen.getByTestId('story-name-loading')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^$/);
   });
 
-  it('falls back to a generated name only after the profile lookup settles empty', () => {
+  it('falls back to a generated name only after the profile lookup settles empty', async () => {
     mockedUseAuthor.mockReturnValue({
       data: undefined,
       isLoading: false,
     } as unknown as ReturnType<typeof useAuthor>);
     mockedUseStoryNotes.mockReturnValue(storyResult({ isLoading: true }));
-    renderStory();
+    await renderStory();
     expect(screen.queryByTestId('story-name-loading')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 }).textContent).not.toHaveLength(0);
   });
 
-  it('renders the shop profile hero (name + about + Our Story label)', () => {
+  it('renders the shop profile hero (name + about + Our Story label)', async () => {
     mockedUseStoryNotes.mockReturnValue(storyResult({ isLoading: true }));
-    renderStory();
+    await renderStory();
     expect(screen.getByRole('heading', { name: /robotechy/i, level: 1 })).toBeInTheDocument();
     // About appears in the hero (and again in the footer's About Me) — at least one.
     expect(screen.getAllByText(/a bitcoin 3d printing shop/i).length).toBeGreaterThan(0);
@@ -92,40 +97,40 @@ describe('Story page', () => {
     expect(screen.getAllByText(/our story/i).length).toBeGreaterThan(0);
   });
 
-  it('renders a Message button that targets the shop drawer', () => {
+  it('renders a Message button that targets the shop drawer', async () => {
     mockedUseStoryNotes.mockReturnValue(storyResult({ isLoading: true }));
-    renderStory();
+    await renderStory();
     // Exact "Message" (the hero CTA), distinct from the Header's "Messages" icon.
     expect(screen.getByRole('button', { name: /^message$/i })).toBeInTheDocument();
   });
 
-  it('renders a "Zap the shop" affordance in the hero action row (signed out)', () => {
+  it('renders a "Zap the shop" affordance in the hero action row (signed out)', async () => {
     mockedUseStoryNotes.mockReturnValue(storyResult({ isLoading: true }));
-    renderStory();
+    await renderStory();
     // Signed-out visitors (TestApp default) get a Zap affordance that prompts
     // sign-in; labelled "Zap the shop" to distinguish it from per-post zaps.
     expect(screen.getByRole('button', { name: /zap the shop/i })).toBeInTheDocument();
   });
 
-  it('shows the loading skeleton while notes are being fetched', () => {
+  it('shows the loading skeleton while notes are being fetched', async () => {
     mockedUseStoryNotes.mockReturnValue(storyResult({ isLoading: true }));
-    renderStory();
+    await renderStory();
     expect(screen.getByTestId('story-loading')).toBeInTheDocument();
   });
 
-  it('renders fetched notes with a replies affordance', () => {
+  it('renders fetched notes with a replies affordance', async () => {
     mockedUseStoryNotes.mockReturnValue(
       storyResult({ data: [makeNote('Fresh print off the bed!')] })
     );
-    renderStory();
+    await renderStory();
     expect(screen.getByText(/fresh print off the bed/i)).toBeInTheDocument();
     expect(screen.getByText(/no replies yet/i)).toBeInTheDocument();
     expect(screen.queryByTestId('story-loading')).not.toBeInTheDocument();
   });
 
-  it('shows the empty state when there are no notes', () => {
+  it('shows the empty state when there are no notes', async () => {
     mockedUseStoryNotes.mockReturnValue(storyResult({ data: [] }));
-    renderStory();
+    await renderStory();
     expect(screen.getByText(/no posts yet/i)).toBeInTheDocument();
   });
 });

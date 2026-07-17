@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { TestApp } from '@/test/TestApp';
 import { useNoteReplies } from '@/hooks/useNoteReplies';
@@ -21,14 +21,19 @@ function makeNote(): NostrEvent {
   };
 }
 
-function renderNote() {
-  return render(
+async function renderNote() {
+  const result = render(
     <TestApp>
       <ol>
         <StoryNote event={makeNote()} />
       </ol>
     </TestApp>
   );
+  // NostrLoginProvider (@nostrify/react >= 0.5) loads persisted logins
+  // asynchronously and renders nothing until that resolves; flush the
+  // microtask so TestApp's children are mounted before assertions run.
+  await act(async () => {});
+  return result;
 }
 
 describe('StoryNote interactions (signed out)', () => {
@@ -38,15 +43,15 @@ describe('StoryNote interactions (signed out)', () => {
     >);
   });
 
-  it('renders the post text and a zap affordance', () => {
-    renderNote();
+  it('renders the post text and a zap affordance', async () => {
+    await renderNote();
     expect(screen.getByText(/behind the scenes at the shop/i)).toBeInTheDocument();
     // Signed-out users get a Zap affordance (which prompts sign-in on click).
     expect(screen.getByRole('button', { name: /zap/i })).toBeInTheDocument();
   });
 
-  it('shows the replies thread with a sign-in-gated composer', () => {
-    renderNote();
+  it('shows the replies thread with a sign-in-gated composer', async () => {
+    await renderNote();
     expect(screen.getByText(/no replies yet/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in to reply/i })).toBeInTheDocument();
   });
