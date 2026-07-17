@@ -228,7 +228,7 @@ export function normalizeCurrency(code: string | undefined, fallback = 'SATS'): 
  * editing never silently rewrites data the owner didn't ask to change.
  */
 export function getCurrencyOptions(current?: string): string[] {
-  const normalized = current?.trim().toUpperCase();
+  const normalized = normalizeCurrency(current, '');
   if (!normalized || (SUPPORTED_CURRENCIES as readonly string[]).includes(normalized)) {
     return [...SUPPORTED_CURRENCIES];
   }
