@@ -1,11 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { TestApp } from '@/test/TestApp';
 import { NoteContent } from './NoteContent';
 import type { NostrEvent } from '@nostrify/nostrify';
 
+async function renderNoteContent(event: NostrEvent) {
+  const result = render(
+    <TestApp>
+      <NoteContent event={event} />
+    </TestApp>
+  );
+  // NostrLoginProvider (@nostrify/react >= 0.5) loads persisted logins
+  // asynchronously and renders nothing until that resolves; flush the
+  // microtask so TestApp's children are mounted before assertions run.
+  await act(async () => {});
+  return result;
+}
+
 describe('NoteContent', () => {
-  it('linkifies URLs in kind 1 events', () => {
+  it('linkifies URLs in kind 1 events', async () => {
     const event: NostrEvent = {
       id: 'test-id',
       pubkey: 'test-pubkey',
@@ -16,11 +29,7 @@ describe('NoteContent', () => {
       sig: 'test-sig',
     };
 
-    render(
-      <TestApp>
-        <NoteContent event={event} />
-      </TestApp>
-    );
+    await renderNoteContent(event);
 
     const link = screen.getByRole('link', { name: 'https://example.com' });
     expect(link).toBeInTheDocument();
@@ -28,7 +37,7 @@ describe('NoteContent', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
 
-  it('linkifies URLs in kind 1111 events (comments)', () => {
+  it('linkifies URLs in kind 1111 events (comments)', async () => {
     const event: NostrEvent = {
       id: 'test-comment-id',
       pubkey: 'test-pubkey',
@@ -44,11 +53,7 @@ describe('NoteContent', () => {
       sig: 'test-sig',
     };
 
-    render(
-      <TestApp>
-        <NoteContent event={event} />
-      </TestApp>
-    );
+    await renderNoteContent(event);
 
     const link = screen.getByRole('link', { name: 'https://nostrbook.dev/kinds/1111' });
     expect(link).toBeInTheDocument();
@@ -56,7 +61,7 @@ describe('NoteContent', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
 
-  it('handles text without URLs correctly', () => {
+  it('handles text without URLs correctly', async () => {
     const event: NostrEvent = {
       id: 'test-id',
       pubkey: 'test-pubkey',
@@ -67,17 +72,13 @@ describe('NoteContent', () => {
       sig: 'test-sig',
     };
 
-    render(
-      <TestApp>
-        <NoteContent event={event} />
-      </TestApp>
-    );
+    await renderNoteContent(event);
 
     expect(screen.getByText('This is just plain text without any links.')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('renders hashtags as links', () => {
+  it('renders hashtags as links', async () => {
     const event: NostrEvent = {
       id: 'test-id',
       pubkey: 'test-pubkey',
@@ -88,11 +89,7 @@ describe('NoteContent', () => {
       sig: 'test-sig',
     };
 
-    render(
-      <TestApp>
-        <NoteContent event={event} />
-      </TestApp>
-    );
+    await renderNoteContent(event);
 
     const nostrHashtag = screen.getByRole('link', { name: '#nostr' });
     const bitcoinHashtag = screen.getByRole('link', { name: '#bitcoin' });
@@ -103,7 +100,7 @@ describe('NoteContent', () => {
     expect(bitcoinHashtag).toHaveAttribute('href', '/t/bitcoin');
   });
 
-  it('generates deterministic names for users without metadata and styles them differently', () => {
+  it('generates deterministic names for users without metadata and styles them differently', async () => {
     // Use a valid npub for testing
     const event: NostrEvent = {
       id: 'test-id',
@@ -115,11 +112,7 @@ describe('NoteContent', () => {
       sig: 'test-sig',
     };
 
-    render(
-      <TestApp>
-        <NoteContent event={event} />
-      </TestApp>
-    );
+    await renderNoteContent(event);
 
     // The mention should be rendered with a deterministic name
     const mention = screen.getByRole('link');
