@@ -64,27 +64,31 @@ const EMPTY_FORM: ProductFormData = {
  */
 function ImageThumb({ url }: { url: string }) {
   const [errored, setErrored] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     setErrored(false);
+    setLoaded(false);
   }, [url]);
   const trimmed = url.trim();
+  // The img stays hidden until onLoad fires so a bad URL never flashes the
+  // browser's broken-image glyph — the placeholder icon shows until then.
   const showImage = trimmed !== '' && !errored;
 
   return (
     <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
-      {showImage ? (
+      {showImage && (
         <img
           src={trimmed}
           alt=""
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
-          className="h-full w-full object-cover"
+          className={loaded ? 'h-full w-full object-cover' : 'hidden'}
+          onLoad={() => setLoaded(true)}
           onError={() => setErrored(true)}
         />
-      ) : (
-        <ImageIcon className="h-4 w-4 text-muted-foreground" />
       )}
+      {!(showImage && loaded) && <ImageIcon className="h-4 w-4 text-muted-foreground" />}
     </div>
   );
 }
