@@ -27,6 +27,16 @@ test('ignores the relay publish timeout ("publish timed out") that crashed the s
   assert.equal(isIgnorableRelayError(new Error('fetch timeout')), false);
 });
 
+test('ignores the relay "error: internal error" notice that crashed the service (2026-07-17)', () => {
+  // A failing relay's OK/CLOSED reason, raised by nostr-tools on an internal
+  // promise nobody awaits — relay noise, must not kill order processing.
+  assert.equal(isIgnorableRelayError(new Error('error: internal error')), true);
+  // But an unprefixed "internal error" (e.g. an LNURL/Lightning HTTP failure)
+  // must STAY fatal — the needle is deliberately prefix-specific.
+  assert.equal(isIgnorableRelayError(new Error('Internal error')), false);
+  assert.equal(isIgnorableRelayError(new Error('LNURL: 500 internal error')), false);
+});
+
 test('ignores known transient relay/network errors (case-insensitive)', () => {
   for (const m of [
     'restricted: Pay on https://nostr.land for access.',
