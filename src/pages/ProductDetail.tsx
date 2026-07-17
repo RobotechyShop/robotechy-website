@@ -334,7 +334,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                     // away, render plain text instead of a dead link.
                     a: ({ node: _node, href, children, ...props }) =>
                       href ? (
-                        <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                        <a {...props} href={href} target="_blank" rel="noopener noreferrer">
                           {children}
                         </a>
                       ) : (
