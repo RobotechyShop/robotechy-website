@@ -5,9 +5,15 @@ import {
   parseCollectionEvent,
   parseProductEvent,
   getCurrencyOptions,
+  normalizeCurrency,
   SUPPORTED_CURRENCIES,
 } from './productUtils';
-import { buildShippingOptionEvent, buildCollectionEvent, buildProductEvent } from './productAdmin';
+import {
+  buildShippingOptionEvent,
+  buildCollectionEvent,
+  buildProductEvent,
+  productEventToFormData,
+} from './productAdmin';
 
 const toEvent = (
   tpl: { kind: number; content: string; tags: string[][] },
@@ -91,5 +97,32 @@ describe('getCurrencyOptions', () => {
 
   it('appends an out-of-set currency so editing an existing listing never corrupts it', () => {
     expect(getCurrencyOptions('CAD')).toEqual([...SUPPORTED_CURRENCIES, 'CAD']);
+  });
+});
+
+describe('normalizeCurrency', () => {
+  it('uppercases and trims so a controlled Select value matches its options', () => {
+    expect(normalizeCurrency(' gbp ')).toBe('GBP');
+    expect(normalizeCurrency('cad')).toBe('CAD');
+  });
+
+  it('falls back when the code is missing or blank', () => {
+    expect(normalizeCurrency(undefined)).toBe('SATS');
+    expect(normalizeCurrency('  ', 'USD')).toBe('USD');
+  });
+});
+
+describe('productEventToFormData currency hydration', () => {
+  it('normalizes a lowercase stored currency so the Select shows it', () => {
+    const event = toEvent({
+      kind: 30402,
+      content: '',
+      tags: [
+        ['d', 'p1'],
+        ['title', 'Widget'],
+        ['price', '10', 'gbp'],
+      ],
+    });
+    expect(productEventToFormData(event).priceCurrency).toBe('GBP');
   });
 });

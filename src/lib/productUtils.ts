@@ -214,6 +214,15 @@ export function parseProductEvent(event: NostrEvent): ProductData | null {
 export const SUPPORTED_CURRENCIES = ['SATS', 'BTC', 'GBP', 'USD', 'EUR'] as const;
 
 /**
+ * Canonicalize a currency code (`" gbp "` -> `"GBP"`). Form state must hold the
+ * normalized code so a controlled `<Select>` value always matches one of the
+ * options produced by `getCurrencyOptions` (which normalizes the same way).
+ */
+export function normalizeCurrency(code: string | undefined, fallback = 'SATS'): string {
+  return code?.trim().toUpperCase() || fallback;
+}
+
+/**
  * Currency options for a form `<Select>`, guaranteed to include `current` even
  * when it falls outside the supported set (e.g. an older/foreign listing) so
  * editing never silently rewrites data the owner didn't ask to change.

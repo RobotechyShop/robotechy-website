@@ -23,7 +23,11 @@ import {
 import { useToast } from '@/hooks/useToast';
 import { useProductAdmin } from '@/hooks/useProductAdmin';
 import { useMerchantShippingOptions } from '@/hooks/useMerchantShippingOptions';
-import { parseShippingOptionEvent, getCurrencyOptions } from '@/lib/productUtils';
+import {
+  parseShippingOptionEvent,
+  getCurrencyOptions,
+  normalizeCurrency,
+} from '@/lib/productUtils';
 import {
   validateShippingForm,
   getDTag,
@@ -75,7 +79,9 @@ export function ShippingOptionsDialog({ open, onOpenChange }: ShippingOptionsDia
       id: parsed.id,
       title: parsed.title,
       priceAmount: parsed.price.amount,
-      priceCurrency: parsed.price.currency,
+      // Normalize so the currency <Select> (whose options are normalized) always
+      // finds a matching value — `gbp` or ` cad ` would otherwise render blank.
+      priceCurrency: normalizeCurrency(parsed.price.currency),
       countries: parsed.countries,
       service: (parsed.service as ShippingService) || 'standard',
       carrier: parsed.carrier || '',
