@@ -25,7 +25,17 @@ export default tseslint.config(
       "custom": customRules,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      // eslint-plugin-react-hooks v7's "recommended" preset also enables the
+      // new React Compiler-powered rules (set-state-in-effect, purity, refs,
+      // immutability, ...), which flag ~35 pre-existing call sites. Keep the
+      // two classic rules that were enforced before the ESLint 10 upgrade;
+      // adopting the compiler rules is follow-up work.
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+      // New in ESLint 10's recommended config. Existing throw sites don't
+      // attach `cause` yet; disabled to keep the upgrade mechanical — enable
+      // and fix the call sites in a follow-up.
+      "preserve-caught-error": "off",
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },
