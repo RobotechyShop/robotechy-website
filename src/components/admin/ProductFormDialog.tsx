@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Plus, Upload, X } from 'lucide-react';
+import { ImageIcon, Loader2, Plus, Upload, X } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 import {
@@ -66,6 +66,43 @@ const EMPTY_FORM: ProductFormData = {
   location: '',
   categories: [],
 };
+
+/**
+ * Small preview of an image URL, shown beside each Images row so the owner can
+ * tell listings apart at a glance. Falls back to a placeholder icon when the
+ * URL is empty or the image can't load; the error state resets whenever the
+ * URL changes so pasting a new URL retries the preview.
+ */
+function ImageThumb({ url }: { url: string }) {
+  const [errored, setErrored] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    setErrored(false);
+    setLoaded(false);
+  }, [url]);
+  const trimmed = url.trim();
+  // The img stays hidden until onLoad fires so a bad URL never flashes the
+  // browser's broken-image glyph — the placeholder icon shows until then.
+  const showImage = trimmed !== '' && !errored;
+
+  return (
+    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+      {showImage && (
+        <img
+          src={trimmed}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          className={loaded ? 'h-full w-full object-cover' : 'hidden'}
+          onLoad={() => setLoaded(true)}
+          onError={() => setErrored(true)}
+        />
+      )}
+      {!(showImage && loaded) && <ImageIcon className="h-4 w-4 text-muted-foreground" />}
+    </div>
+  );
+}
 
 export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDialogProps) {
   const isEdit = Boolean(event);
@@ -236,6 +273,7 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
             <Label>Images</Label>
             {form.images.map((image, index) => (
               <div key={index} className="flex items-center gap-2">
+                <ImageThumb url={image} />
                 <Input
                   aria-label={`Image URL ${index + 1}`}
                   value={image}
