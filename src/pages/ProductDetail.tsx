@@ -343,7 +343,7 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
                       ),
                   }}
                 >
-                  {product.content.replace(/\n+/g, '\n\n')}
+                  {product.content.replace(/[\r\n]+/g, '\n\n')}
                 </ReactMarkdown>
               </div>
             )}
