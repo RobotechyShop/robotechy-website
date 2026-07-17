@@ -88,7 +88,7 @@
     "unist-util-visit": "^5.1.0",
     "vaul": "^0.9.3",
     "vfile": "^6.0.3",
-    "zod": "^3.25.71"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
