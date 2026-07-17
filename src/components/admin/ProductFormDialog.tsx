@@ -77,6 +77,8 @@ function ImageThumb({ url }: { url: string }) {
           src={trimmed}
           alt=""
           loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
           className="h-full w-full object-cover"
           onError={() => setErrored(true)}
         />
