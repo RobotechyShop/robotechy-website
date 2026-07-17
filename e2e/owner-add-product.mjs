@@ -44,7 +44,9 @@ await dialog.locator('#product-title').fill(TITLE);
 await dialog.locator('#product-summary').fill('Created by the owner-add-product e2e flow');
 await dialog.locator('#product-description').fill('A **test** product published over Nostr.');
 await dialog.locator('#product-price').fill('12345');
-await dialog.locator('#product-currency').fill('SATS');
+// Currency is a Select dropdown since #101 — pick SATS from the listbox.
+await dialog.locator('#product-currency').click();
+await page.getByRole('option', { name: 'SATS', exact: true }).click();
 await dialog.locator('[aria-label="Image URL 1"]').fill('https://robotechy.com/images/nostr-badge.png');
 await dialog.locator('#product-category').fill('e2e');
 await dialog.getByRole('button', { name: /^add$/i }).click();

@@ -53,6 +53,12 @@ const RELAY_NOISE = [
   'eai_again',
   'rate-limit',
   'noting too much',
+  // Relay-side failure notice ("error: internal error") delivered on the
+  // subscription OK/CLOSED path (AbstractRelay.handleNext) — an internal
+  // nostr-tools promise nobody awaits. Crashed the service twice on
+  // 2026-07-17 while a relay was failing. Real order-processing errors are
+  // caught in the poll/publish try/catch paths, never via unhandledRejection.
+  'internal error',
 ];
 
 /**

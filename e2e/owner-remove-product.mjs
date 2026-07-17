@@ -33,7 +33,9 @@ await page.goto(BASE_URL + '/', { waitUntil: 'networkidle', timeout: 30000 });
 await page.waitForTimeout(2000);
 
 if (PRODUCT) {
-  await page.getByText(PRODUCT, { exact: false }).first().click();
+  // The card's stretched overlay link (#98) sits above the title text, so
+  // click the card link itself rather than the h3 Playwright can't reach.
+  await page.getByRole('link', { name: PRODUCT }).first().click();
 } else {
   await page.locator('a[href^="/naddr"]').first().click();
 }
