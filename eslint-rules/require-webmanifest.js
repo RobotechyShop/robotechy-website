@@ -18,7 +18,8 @@ export default {
   },
 
   create(context) {
-    const filename = context.getFilename();
+    // ESLint 10 removed context.getFilename(); use the context.filename property.
+    const filename = context.filename;
     
     // Only run this rule on HTML files
     if (!filename.endsWith('.html')) {
@@ -27,7 +28,7 @@ export default {
 
     return {
       Program(node) {
-        const sourceCode = context.getSourceCode();
+        const sourceCode = context.sourceCode;
         const htmlContent = sourceCode.getText();
         
         // Check for manifest link tag in HTML

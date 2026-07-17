@@ -4,6 +4,7 @@ import { getExchangeRates } from '@/lib/exchangeRate';
 interface UseExchangeRateReturn {
   satsPerGbp: number | null;
   satsPerUsd: number | null;
+  satsPerEur: number | null;
   isLoading: boolean;
   error: string | null;
   convertToSats: (amount: number, currency: string) => number;
@@ -13,13 +14,15 @@ interface UseExchangeRateReturn {
 
 const SATS_PER_BTC = 100_000_000;
 
-// Fallback rates if API fails (approximate)
+// Fallback rates if API fails (approximate, matching src/lib/exchangeRate.ts)
 const FALLBACK_BTC_GBP = 80000;
 const FALLBACK_BTC_USD = 100000;
+const FALLBACK_BTC_EUR = 92000;
 
 export function useExchangeRate(): UseExchangeRateReturn {
   const [satsPerGbp, setSatsPerGbp] = useState<number | null>(null);
   const [satsPerUsd, setSatsPerUsd] = useState<number | null>(null);
+  const [satsPerEur, setSatsPerEur] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +41,7 @@ export function useExchangeRate(): UseExchangeRateReturn {
       // sats per £1 = 100,000,000 / BTC price in GBP
       setSatsPerGbp(Math.round(SATS_PER_BTC / rates.btcToGbp));
       setSatsPerUsd(Math.round(SATS_PER_BTC / rates.btcToUsd));
+      setSatsPerEur(Math.round(SATS_PER_BTC / rates.btcToEur));
     } catch (err) {
       if (!mountedRef.current) return;
       const message = err instanceof Error ? err.message : 'Failed to fetch rates';
@@ -45,6 +49,7 @@ export function useExchangeRate(): UseExchangeRateReturn {
       // Use fallback rates
       setSatsPerGbp(Math.round(SATS_PER_BTC / FALLBACK_BTC_GBP));
       setSatsPerUsd(Math.round(SATS_PER_BTC / FALLBACK_BTC_USD));
+      setSatsPerEur(Math.round(SATS_PER_BTC / FALLBACK_BTC_EUR));
     } finally {
       if (mountedRef.current) setIsLoading(false);
     }
@@ -76,11 +81,16 @@ export function useExchangeRate(): UseExchangeRateReturn {
         return Math.round(amount * rate);
       }
 
+      if (upper === 'EUR' || upper === '€') {
+        const rate = satsPerEur || Math.round(SATS_PER_BTC / FALLBACK_BTC_EUR);
+        return Math.round(amount * rate);
+      }
+
       // Default to USD
       const rate = satsPerUsd || Math.round(SATS_PER_BTC / FALLBACK_BTC_USD);
       return Math.round(amount * rate);
     },
-    [satsPerGbp, satsPerUsd]
+    [satsPerGbp, satsPerUsd, satsPerEur]
   );
 
   const convertToFiat = useCallback(
@@ -92,16 +102,22 @@ export function useExchangeRate(): UseExchangeRateReturn {
         return sats / rate;
       }
 
+      if (upper === 'EUR' || upper === '€') {
+        const rate = satsPerEur || Math.round(SATS_PER_BTC / FALLBACK_BTC_EUR);
+        return sats / rate;
+      }
+
       // Default to USD
       const rate = satsPerUsd || Math.round(SATS_PER_BTC / FALLBACK_BTC_USD);
       return sats / rate;
     },
-    [satsPerGbp, satsPerUsd]
+    [satsPerGbp, satsPerUsd, satsPerEur]
   );
 
   return {
     satsPerGbp,
     satsPerUsd,
+    satsPerEur,
     isLoading,
     error,
     convertToSats,

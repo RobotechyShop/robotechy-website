@@ -16,6 +16,7 @@ jobs:
       - name: Validate PR title, body and issue reference
         env:
           GITHUB_ACTOR: ${{ github.actor }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
@@ -24,8 +25,12 @@ jobs:
           # Bots open PRs without ticket refs / test plans — skip with success
           # (exit 0 inside the step, not a job-level `if:`, so the check still
           # reports "success" rather than "skipped" and can be required).
-          if [ "$GITHUB_ACTOR" = 'dependabot[bot]' ] || [ "$GITHUB_ACTOR" = 'github-actions[bot]' ]; then
-            echo "Skipping PR lint for bot actor: $GITHUB_ACTOR"
+          # Keyed off the PR AUTHOR, not just the actor: a human re-running
+          # the check (or editing the PR) becomes the actor, which used to
+          # defeat the skip and fail Dependabot PRs on their titles.
+          if [ "$PR_AUTHOR" = 'dependabot[bot]' ] || [ "$PR_AUTHOR" = 'github-actions[bot]' ] \
+            || [ "$GITHUB_ACTOR" = 'dependabot[bot]' ] || [ "$GITHUB_ACTOR" = 'github-actions[bot]' ]; then
+            echo "Skipping PR lint for bot PR (author: $PR_AUTHOR, actor: $GITHUB_ACTOR)"
             exit 0
           fi
 
@@ -39,7 +44,9 @@ jobs:
           #    Bypass prefixes (Fixes line not required):
           #      chore: ... | ci: ... | docs: ... | deps: ... | test: ... | build: ... | style: ...
           #    A trailing "(#nnn)" or "(#nnn, #mmm)" reference is allowed but optional.
-          title_regex='^(feat|fix|perf|refactor|chore|ci|docs|deps|test|build|style): .+'
+          #    An optional scope is accepted after the prefix — e.g.
+          #    "chore(deps-dev): …" (Dependabot's default title shape).
+          title_regex='^(feat|fix|perf|refactor|chore|ci|docs|deps|test|build|style)(\([a-zA-Z0-9./_-]+\))?!?: .+'
           if ! echo "$PR_TITLE" | grep -Eq "$title_regex"; then
             echo "::error::PR title must start with a conventional-commit prefix:"
             echo "::error::  feat: ...     fix: ...     perf: ...     refactor: ..."
@@ -58,7 +65,7 @@ jobs:
 
           # 3. feat/fix/perf/refactor PRs must contain at least one 'Fixes #nnn' line.
           #    Other prefixes (chore/ci/docs/deps/test/build/style) skip this check.
-          if echo "$PR_TITLE" | grep -Eq '^(feat|fix|perf|refactor): '; then
+          if echo "$PR_TITLE" | grep -Eq '^(feat|fix|perf|refactor)(\([a-zA-Z0-9./_-]+\))?!?: '; then
             fixes_regex='^[[:space:]]*[-*]?[[:space:]]*Fixes #[0-9]+'
             if ! echo "$PR_BODY" | grep -Eq "$fixes_regex"; then
               echo "::error::PR body must contain at least one 'Fixes #nnn' line for feat/fix/perf/refactor PRs."

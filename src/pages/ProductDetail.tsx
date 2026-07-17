@@ -22,6 +22,7 @@ import { ShareProductButton } from '@/components/ShareProductButton';
 import { ArrowLeft, Expand, Package, ImageIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { OwnerProductActions } from '@/components/admin/OwnerProductActions';
 
 interface ProductDetailProps {
@@ -321,8 +322,29 @@ export function ProductDetail({ identifier }: ProductDetailProps) {
 
             {/* Product Description */}
             {product.content && (
-              <div className="prose prose-slate dark:prose-invert max-w-none prose-sm">
-                <ReactMarkdown>{product.content}</ReactMarkdown>
+              <div className="prose prose-neutral dark:prose-invert max-w-none prose-sm prose-a:text-robotechy-green-dark dark:prose-a:text-robotechy-green">
+                {/* remark-gfm auto-links bare URLs (www.example.com). Owners
+                    write one line per paragraph, so promote every newline to a
+                    Markdown paragraph break — each line becomes its own <p>
+                    and gets the prose spacing between paragraphs. */}
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    // Forward react-markdown's props (title, className, …) but
+                    // drop its non-DOM `node` prop; if the URL was sanitized
+                    // away, render plain text instead of a dead link.
+                    a: ({ node: _node, href, children, ...props }) =>
+                      href ? (
+                        <a {...props} href={href} target="_blank" rel="noopener noreferrer">
+                          {children}
+                        </a>
+                      ) : (
+                        <span {...props}>{children}</span>
+                      ),
+                  }}
+                >
+                  {product.content.replace(/[\r\n]+/g, '\n\n')}
+                </ReactMarkdown>
               </div>
             )}
 

@@ -23,7 +23,11 @@ import {
 import { useToast } from '@/hooks/useToast';
 import { useProductAdmin } from '@/hooks/useProductAdmin';
 import { useMerchantShippingOptions } from '@/hooks/useMerchantShippingOptions';
-import { parseShippingOptionEvent } from '@/lib/productUtils';
+import {
+  parseShippingOptionEvent,
+  getCurrencyOptions,
+  normalizeCurrency,
+} from '@/lib/productUtils';
 import {
   validateShippingForm,
   getDTag,
@@ -75,7 +79,9 @@ export function ShippingOptionsDialog({ open, onOpenChange }: ShippingOptionsDia
       id: parsed.id,
       title: parsed.title,
       priceAmount: parsed.price.amount,
-      priceCurrency: parsed.price.currency,
+      // Normalize so the currency <Select> (whose options are normalized) always
+      // finds a matching value — `gbp` or ` cad ` would otherwise render blank.
+      priceCurrency: normalizeCurrency(parsed.price.currency),
       countries: parsed.countries,
       service: (parsed.service as ShippingService) || 'standard',
       carrier: parsed.carrier || '',
@@ -130,7 +136,7 @@ export function ShippingOptionsDialog({ open, onOpenChange }: ShippingOptionsDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-x-hidden overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Truck className="h-5 w-5" /> Shipping options
@@ -141,22 +147,27 @@ export function ShippingOptionsDialog({ open, onOpenChange }: ShippingOptionsDia
         </DialogHeader>
 
         {/* Existing options */}
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <h3 className="text-sm font-semibold">Your shipping methods</h3>
           {isLoading ? (
             <p className="text-sm text-sage-500">Loading…</p>
           ) : options && options.length > 0 ? (
-            <ul className="divide-y rounded-md border">
+            <ul className="divide-y overflow-hidden rounded-md border">
               {options.map((event) => {
                 const parsed = parseShippingOptionEvent(event);
                 if (!parsed) return null;
+                const countriesLabel = parsed.countries.join(', ') || 'no zones';
                 return (
                   <li key={event.id} className="flex items-center justify-between gap-2 p-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{parsed.title}</p>
-                      <p className="truncate text-xs text-sage-500">
-                        {parsed.price.amount} {parsed.price.currency} · {parsed.service} ·{' '}
-                        {parsed.countries.join(', ') || 'no zones'}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium" title={parsed.title}>
+                        {parsed.title}
+                      </p>
+                      <p className="text-xs text-sage-500">
+                        {parsed.price.amount} {parsed.price.currency} · {parsed.service}
+                      </p>
+                      <p className="break-words text-xs text-sage-500" title={countriesLabel}>
+                        {countriesLabel}
                       </p>
                     </div>
                     <div className="flex shrink-0 gap-1">
@@ -187,7 +198,7 @@ export function ShippingOptionsDialog({ open, onOpenChange }: ShippingOptionsDia
         </div>
 
         {/* Editor */}
-        <div className="space-y-4 rounded-md border p-4">
+        <div className="min-w-0 space-y-4 rounded-md border p-4">
           <h3 className="text-sm font-semibold">
             {editing ? 'Edit shipping option' : 'Add shipping option'}
           </h3>
@@ -213,11 +224,21 @@ export function ShippingOptionsDialog({ open, onOpenChange }: ShippingOptionsDia
             </div>
             <div className="space-y-2">
               <Label htmlFor="shipping-currency">Currency</Label>
-              <Input
-                id="shipping-currency"
+              <Select
                 value={form.priceCurrency}
-                onChange={(e) => set('priceCurrency', e.target.value.toUpperCase())}
-              />
+                onValueChange={(value) => set('priceCurrency', value)}
+              >
+                <SelectTrigger id="shipping-currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getCurrencyOptions(form.priceCurrency).map((currency) => (
+                    <SelectItem key={currency} value={currency}>
+                      {currency}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="shipping-service">Service</Label>

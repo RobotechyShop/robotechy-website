@@ -38,10 +38,12 @@ export function ProductCard({ event }: ProductCardProps) {
     <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col border-slate-200 dark:border-slate-800">
       {/* A "stretched link" overlay covers the whole card for navigation. This
           keeps the Share button a sibling (not nested inside the anchor), so we
-          avoid invalid interactive-in-anchor markup. The Share button sits at a
-          higher z-index, so clicks on it never reach the link. */}
-      <Link to={`/${naddr}`} aria-label={product.title} className="absolute inset-0 z-0" />
-      <div className="absolute top-2 right-2 z-10">
+          avoid invalid interactive-in-anchor markup. The overlay must sit above
+          the product image (also a positioned element) or the image swallows
+          the click; the Share button sits at a higher z-index still, so clicks
+          on it never reach the link. */}
+      <Link to={`/${naddr}`} aria-label={product.title} className="absolute inset-0 z-10" />
+      <div className="absolute top-2 right-2 z-20">
         <ShareProductButton product={product} variant="icon" size="icon" />
       </div>
       <div className="contents">

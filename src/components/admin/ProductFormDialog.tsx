@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Loader2, Plus, Upload, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ImageIcon, Loader2, Plus, Upload, X } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 import {
@@ -31,6 +31,8 @@ import {
   type ProductFormData,
   type ProductVisibility,
 } from '@/lib/productAdmin';
+import { getCurrencyOptions } from '@/lib/productUtils';
+import { PRODUCT_LOCATIONS } from '@/lib/productLocations';
 
 interface ProductFormDialogProps {
   open: boolean;
@@ -38,6 +40,16 @@ interface ProductFormDialogProps {
   /** When provided, the dialog opens in edit mode for this product event. */
   event?: NostrEvent;
 }
+
+/** Sentinel Select value for "no location set" — Radix Select forbids "". */
+const NO_LOCATION = '__none__';
+
+/**
+ * Namespace real location values so a stored location that happens to equal
+ * the sentinel can never collide with it (Radix requires unique item values).
+ */
+const encodeLocation = (location: string) => `loc:${location}`;
+const decodeLocation = (value: string) => value.slice('loc:'.length);
 
 const EMPTY_FORM: ProductFormData = {
   id: '',
@@ -55,6 +67,43 @@ const EMPTY_FORM: ProductFormData = {
   location: '',
   categories: [],
 };
+
+/**
+ * Small preview of an image URL, shown beside each Images row so the owner can
+ * tell listings apart at a glance. Falls back to a placeholder icon when the
+ * URL is empty or the image can't load; the error state resets whenever the
+ * URL changes so pasting a new URL retries the preview.
+ */
+function ImageThumb({ url }: { url: string }) {
+  const [errored, setErrored] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    setErrored(false);
+    setLoaded(false);
+  }, [url]);
+  const trimmed = url.trim();
+  // The img stays hidden until onLoad fires so a bad URL never flashes the
+  // browser's broken-image glyph — the placeholder icon shows until then.
+  const showImage = trimmed !== '' && !errored;
+
+  return (
+    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+      {showImage && (
+        <img
+          src={trimmed}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          className={loaded ? 'h-full w-full object-cover' : 'hidden'}
+          onLoad={() => setLoaded(true)}
+          onError={() => setErrored(true)}
+        />
+      )}
+      {!(showImage && loaded) && <ImageIcon className="h-4 w-4 text-muted-foreground" />}
+    </div>
+  );
+}
 
 export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDialogProps) {
   const isEdit = Boolean(event);
@@ -111,6 +160,16 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
       'categories',
       form.categories.filter((c) => c !== value)
     );
+
+  // Predefined ship-from locations, plus the current value if it's a custom
+  // one (e.g. set before this dropdown existed) so editing never silently
+  // drops it.
+  const locationOptions = useMemo(() => {
+    const current = form.location?.trim();
+    return current && !PRODUCT_LOCATIONS.includes(current)
+      ? [...PRODUCT_LOCATIONS, current]
+      : PRODUCT_LOCATIONS;
+  }, [form.location]);
 
   const handleSubmit = async () => {
     const errors = validateProductForm(form);
@@ -192,12 +251,21 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
             </div>
             <div className="space-y-2">
               <Label htmlFor="product-currency">Currency</Label>
-              <Input
-                id="product-currency"
+              <Select
                 value={form.priceCurrency}
-                onChange={(e) => set('priceCurrency', e.target.value.toUpperCase())}
-                placeholder="SATS"
-              />
+                onValueChange={(value) => set('priceCurrency', value)}
+              >
+                <SelectTrigger id="product-currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getCurrencyOptions(form.priceCurrency).map((currency) => (
+                    <SelectItem key={currency} value={currency}>
+                      {currency}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="product-stock">Stock</Label>
@@ -215,6 +283,7 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
             <Label>Images</Label>
             {form.images.map((image, index) => (
               <div key={index} className="flex items-center gap-2">
+                <ImageThumb url={image} />
                 <Input
                   aria-label={`Image URL ${index + 1}`}
                   value={image}
@@ -324,12 +393,24 @@ export function ProductFormDialog({ open, onOpenChange, event }: ProductFormDial
             </div>
             <div className="space-y-2">
               <Label htmlFor="product-location">Location</Label>
-              <Input
-                id="product-location"
-                value={form.location ?? ''}
-                onChange={(e) => set('location', e.target.value)}
-                placeholder="UK"
-              />
+              <Select
+                value={form.location?.trim() ? encodeLocation(form.location.trim()) : NO_LOCATION}
+                onValueChange={(value) =>
+                  set('location', value === NO_LOCATION ? '' : decodeLocation(value))
+                }
+              >
+                <SelectTrigger id="product-location">
+                  <SelectValue placeholder="No location set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_LOCATION}>No location set</SelectItem>
+                  {locationOptions.map((location) => (
+                    <SelectItem key={location} value={encodeLocation(location)}>
+                      {location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
