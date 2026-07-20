@@ -10,8 +10,8 @@
     "test": "node --test"
   },
   "dependencies": {
-    "nostr-tools": "^2.23.9",
-    "ws": "^8.18.3"
+    "nostr-tools": "^2.23.12",
+    "ws": "^8.21.1"
   },
   "engines": {
     "node": ">=22"
