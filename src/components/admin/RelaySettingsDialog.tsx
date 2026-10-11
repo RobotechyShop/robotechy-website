@@ -37,7 +37,7 @@ export function RelaySettingsDialog({ open, onOpenChange }: RelaySettingsDialogP
           toast({
             title: 'Nothing to re-publish',
             description:
-              'No catalog events were found on your current read relays. Keep a relay that has your catalog (e.g. nos.lol) enabled for reading, then try again.',
+              'No catalog events were found on your current read relays. Keep a relay that has your catalog (e.g. relay.ditto.pub) enabled for reading, then try again.',
           });
           return;
         }
@@ -77,9 +77,9 @@ export function RelaySettingsDialog({ open, onOpenChange }: RelaySettingsDialogP
           <DialogDescription>
             Your catalog (products, collections and shipping options) publishes to the{' '}
             <strong>write</strong> relays below, and this list is saved to Nostr as your NIP-65
-            relay list. Some relays (e.g. Primal, Ditto) only accept reads — keep at least one
-            open-write relay such as <code>nos.lol</code> or <code>relay.damus.io</code> so your
-            catalog actually gets stored.
+            relay list. Some relays only accept reads or require payment — keep at least one
+            open-write relay such as <code>relay.ditto.pub</code> or <code>relay.primal.net</code>{' '}
+            so your catalog actually gets stored.
           </DialogDescription>
         </DialogHeader>
 

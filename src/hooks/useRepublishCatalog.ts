@@ -38,7 +38,7 @@ export interface RepublishNostr {
  *
  * Kept as a plain function (not just inline in the hook) so it can be unit-tested
  * without React. Events are gathered from the current read relays, so keep at
- * least one relay that actually has the catalog (e.g. `nos.lol`) in the read set.
+ * least one relay that actually has the catalog (e.g. `relay.ditto.pub`) in the read set.
  */
 export async function republishCatalog(nostr: RepublishNostr): Promise<RepublishResult> {
   const events = await nostr.query(

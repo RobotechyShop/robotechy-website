@@ -1,32 +1,7 @@
-import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/react-query';
 import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
-import { nip19 } from 'nostr-tools';
 
-// Production merchant npub (default). Overridable via VITE_MERCHANT_NPUB so the
-// storefront can run against a throwaway test merchant identity (e.g.
-// `npm run dev -- --mode test`, which loads .env.test). When the env var is
-// unset, production behaviour is identical to the previous hardcoded value.
-const PRODUCTION_MERCHANT_NPUB = 'npub1yy0nyk6nj6tg4sx8nd7q5qcdw6pqd5e2cc0e8u2rmcgjhpvm63hsk67xe5';
-const MERCHANT_NPUB: string = import.meta.env.VITE_MERCHANT_NPUB || PRODUCTION_MERCHANT_NPUB;
-
-/**
- * Decode an npub to a hex pubkey, falling back to the production merchant if the
- * value is malformed. VITE_MERCHANT_NPUB is user-overridable (test mode), so a
- * bad value must not throw at module init and crash the whole app.
- */
-function decodeMerchantPubkey(npub: string): string {
-  try {
-    const decoded = nip19.decode(npub);
-    if (decoded.type === 'npub') return decoded.data;
-  } catch {
-    // fall through to the production default
-  }
-  console.warn('Invalid VITE_MERCHANT_NPUB; falling back to the production merchant.');
-  return nip19.decode(PRODUCTION_MERCHANT_NPUB).data as string;
-}
-
-const MERCHANT_PUBKEY = decodeMerchantPubkey(MERCHANT_NPUB);
+import { useShopQuery } from '@/hooks/useShopQuery';
+import { MERCHANT_PUBKEY } from '@/lib/merchant';
 
 interface ProductFilter {
   collectionId?: string;
@@ -51,95 +26,58 @@ function validateProduct(event: NostrEvent): boolean {
 }
 
 export function useProducts(filter: ProductFilter = {}) {
-  const { nostr } = useNostr();
   const { collectionId, category, limit = 100 } = filter;
 
-  return useQuery({
+  const productFilter: NostrFilter = {
+    kinds: [30402], // NIP-99 product events (Gamma Markets spec)
+    authors: [MERCHANT_PUBKEY],
+    limit,
+  };
+  if (category) {
+    productFilter['#t'] = [category];
+  }
+
+  return useShopQuery({
     queryKey: ['products', MERCHANT_PUBKEY, collectionId, category, limit],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
-
-      const filter: NostrFilter = {
-        kinds: [30402], // NIP-99 product events (Gamma Markets spec)
-        authors: [MERCHANT_PUBKEY],
-        limit,
-      };
-
-      if (category) {
-        filter['#t'] = [category];
-      }
-
-      const filters: NostrFilter[] = [filter];
-
-      const events = await nostr.query(filters, { signal });
-
-      // Filter valid products
-      let validProducts = events.filter(validateProduct);
-
-      // Filter by visibility (only show on-sale products by default)
-      validProducts = validProducts.filter((event) => {
-        const visibility = event.tags.find(([name]) => name === 'visibility')?.[1];
-        return !visibility || visibility === 'on-sale';
-      });
-
-      // Sort by newest first
-      return validProducts.sort((a, b) => b.created_at - a.created_at);
-    },
+    filters: [productFilter],
+    derive: (events) =>
+      events
+        .filter(validateProduct)
+        // Only show on-sale products by default
+        .filter((event) => {
+          const visibility = event.tags.find(([name]) => name === 'visibility')?.[1];
+          return !visibility || visibility === 'on-sale';
+        })
+        // Newest first
+        .sort((a, b) => b.created_at - a.created_at),
   });
 }
 
 export function useProduct(identifier: string) {
-  const { nostr } = useNostr();
-
-  return useQuery({
+  return useShopQuery({
     queryKey: ['product', MERCHANT_PUBKEY, identifier],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
-
-      const productFilter: NostrFilter = {
-        kinds: [30402],
-        authors: [MERCHANT_PUBKEY],
-        '#d': [identifier],
-      };
-
-      const events = await nostr.query([productFilter], { signal });
-      const validProducts = events.filter(validateProduct);
-
-      // Return the most recent valid product
-      return validProducts.sort((a, b) => b.created_at - a.created_at)[0] || null;
-    },
+    filters: [{ kinds: [30402], authors: [MERCHANT_PUBKEY], '#d': [identifier] }],
+    // The most recent valid product
+    derive: (events) =>
+      events.filter(validateProduct).sort((a, b) => b.created_at - a.created_at)[0] || null,
     enabled: !!identifier,
   });
 }
 
 export function useCollections() {
-  const { nostr } = useNostr();
-
-  return useQuery({
+  return useShopQuery({
     queryKey: ['collections', MERCHANT_PUBKEY],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
-
-      const events = await nostr.query(
-        [
-          {
-            kinds: [30405], // Product collection events
-            authors: [MERCHANT_PUBKEY],
-          },
-        ],
-        { signal }
-      );
-
-      // Validate and parse collections
-      const validCollections = events.filter((event) => {
-        const d = event.tags.find(([name]) => name === 'd')?.[1];
-        const title = event.tags.find(([name]) => name === 'title')?.[1];
-        return d && title;
-      });
-
-      return validCollections.sort((a, b) => b.created_at - a.created_at);
-    },
+    filters: [{ kinds: [30405], authors: [MERCHANT_PUBKEY] }], // Product collections
+    derive: (events) =>
+      events
+        .filter((event) => {
+          const d = event.tags.find(([name]) => name === 'd')?.[1];
+          const title = event.tags.find(([name]) => name === 'title')?.[1];
+          return d && title;
+        })
+        .sort((a, b) => b.created_at - a.created_at),
   });
 }
 
+// Re-exported for existing importers; the source of truth is @/lib/merchant.
 export { MERCHANT_PUBKEY };

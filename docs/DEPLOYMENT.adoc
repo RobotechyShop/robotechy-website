@@ -160,5 +160,9 @@ keeps the repo, the tag history and the footer version honest.
   the service re-invoices up to 2 days of already-processed orders, sending
   buyers duplicate payment-request DMs. (`PROCESSED_STORE_PATH` overrides the
   store path if a different layout is needed.)
+* Backups: set `MERCHANT_NPUB` (public key only) and mount a named volume at
+  `/data/backups` to enable the event archiver, catalog snapshot and nightly
+  tarballs. Optional: `BACKUP_COPY_DIR` (e.g. a Nextcloud mount) and
+  `N8N_WEBHOOK_URL`. See README → "Backups & restore".
 * See link:INSTALLATION.adoc#_docker_deployment[Installation → Docker Deployment]
   for the image details and link:TROUBLESHOOTING.adoc[Troubleshooting].

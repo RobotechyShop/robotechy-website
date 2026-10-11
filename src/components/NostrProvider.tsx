@@ -3,6 +3,7 @@ import { NostrEvent, NostrFilter, NPool, NRelay1 } from '@nostrify/nostrify';
 import { NostrContext } from '@nostrify/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '@/hooks/useAppContext';
+import { SHOP_EOSE_TIMEOUT_MS } from '@/lib/shopRelays';
 
 interface NostrProviderProps {
   children: React.ReactNode;
@@ -29,6 +30,9 @@ const NostrProvider: React.FC<NostrProviderProps> = (props) => {
   // Initialize NPool only once
   if (!pool.current) {
     pool.current = new NPool({
+      // Resolve queries shortly after the FIRST relay finishes instead of
+      // waiting on dead/slow relays until the query's own timeout.
+      eoseTimeout: SHOP_EOSE_TIMEOUT_MS,
       open(url: string) {
         return new NRelay1(url);
       },

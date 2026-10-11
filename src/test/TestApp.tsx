@@ -7,6 +7,7 @@ import { AppProvider } from '@/components/AppProvider';
 import { NWCProvider } from '@/contexts/NWCContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { AppConfig } from '@/contexts/AppContext';
+import { shopRelayMetadata } from '@/lib/shopRelays';
 
 interface TestAppProps {
   children: React.ReactNode;
@@ -24,10 +25,9 @@ export function TestApp({ children }: TestAppProps) {
 
   const defaultConfig: AppConfig = {
     theme: 'light',
-    relayMetadata: {
-      relays: [{ url: 'wss://relay.nostr.band', read: true, write: true }],
-      updatedAt: 0,
-    },
+    // Same relays as production. No socket is ever opened in tests: setup.ts
+    // installs an inert WebSocket, so nothing here touches a real relay.
+    relayMetadata: shopRelayMetadata(),
   };
 
   return (
