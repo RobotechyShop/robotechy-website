@@ -16,6 +16,27 @@ else
   echo "Warning: MERCHANT_NSEC or LIGHTNING_ADDRESS not set - order service disabled"
 fi
 
+# Start the event archiver (public key only — never needs MERCHANT_NSEC). It
+# backs up every event the shop key publishes to /data/backups and publishes
+# dist/catalog-snapshot.json so the site never renders blank. It is
+# non-critical, so unlike the services above, the supervisor RESTARTS it on
+# exit (rate-limited) instead of taking the container down.
+ARCHIVER_PID=""
+ARCHIVER_STARTED_AT=0
+start_archiver() {
+  cd /app/order-service
+  node archiver.js &
+  ARCHIVER_PID=$!
+  ARCHIVER_STARTED_AT=$(date +%s)
+  cd /app
+  echo "Event archiver started (PID: $ARCHIVER_PID)"
+}
+if [ -n "$MERCHANT_NPUB" ]; then
+  start_archiver
+else
+  echo "Warning: MERCHANT_NPUB not set - event archiver / backups disabled"
+fi
+
 # Start frontend static server (backgrounded — the shell stays PID 1 so it can
 # supervise BOTH children; the previous `exec serve` left the container looking
 # "healthy" with a dead order service, which is how a backend crash went
@@ -44,6 +65,7 @@ is_alive() {
 shutdown() {
   echo "Shutting down..."
   if [ -n "$ORDER_PID" ]; then kill "$ORDER_PID" 2>/dev/null || true; fi
+  if [ -n "$ARCHIVER_PID" ]; then kill "$ARCHIVER_PID" 2>/dev/null || true; fi
   kill "$SERVE_PID" 2>/dev/null || true
   exit 0
 }
@@ -62,6 +84,14 @@ while :; do
     wait "$SERVE_PID" 2>/dev/null || true # reap if zombie
     if [ -n "$ORDER_PID" ]; then kill "$ORDER_PID" 2>/dev/null || true; fi
     exit 1
+  fi
+  # Archiver died: restart it, but no more than once a minute.
+  if [ -n "$ARCHIVER_PID" ] && ! is_alive "$ARCHIVER_PID"; then
+    wait "$ARCHIVER_PID" 2>/dev/null || true # reap if zombie
+    if [ $(( $(date +%s) - ARCHIVER_STARTED_AT )) -ge 60 ]; then
+      echo "Event archiver exited - restarting it"
+      start_archiver
+    fi
   fi
   # Background sleep + wait keeps the TERM/INT trap responsive mid-interval.
   # (|| true: a trap-interrupted wait returns non-zero, which must not trip

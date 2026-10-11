@@ -42,3 +42,34 @@ global.ResizeObserver = vi.fn().mockImplementation((_callback) => ({
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }));
+
+// Tests must never reach a real relay (see shopRelays.ts — TestApp uses the
+// production relay list). Install an inert WebSocket that never connects;
+// tests that need socket behaviour stub their own via vi.stubGlobal, and
+// vi.unstubAllGlobals() restores this one.
+class InertWebSocket {
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSING = 2;
+  static readonly CLOSED = 3;
+  readonly CONNECTING = 0;
+  readonly OPEN = 1;
+  readonly CLOSING = 2;
+  readonly CLOSED = 3;
+  readyState = 0;
+  url: string;
+  onopen: ((ev: Event) => void) | null = null;
+  onclose: ((ev: Event) => void) | null = null;
+  onerror: ((ev: Event) => void) | null = null;
+  onmessage: ((ev: MessageEvent) => void) | null = null;
+  constructor(url: string) {
+    this.url = url;
+  }
+  addEventListener() {}
+  removeEventListener() {}
+  send() {}
+  close() {
+    this.readyState = 3;
+  }
+}
+globalThis.WebSocket = InertWebSocket as unknown as typeof WebSocket;

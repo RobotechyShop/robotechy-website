@@ -32,9 +32,13 @@ No environment variables are required for basic development. The application con
 
 === Default Relays
 
+Defined in `src/lib/shopRelays.ts` (see README → Relays):
+
+* `wss://relay.weeksfamily.me` (family relay; may be unreachable)
 * `wss://relay.ditto.pub`
-* `wss://relay.nostr.band`
+* `wss://relay.primal.net`
 * `wss://relay.damus.io`
+* `wss://relay.plebeian.market`
 
 == Available Scripts
 
@@ -139,7 +143,8 @@ docker run -d \
   -p 3000:3000 \
   -e MERCHANT_NSEC=nsec1... \
   -e LIGHTNING_ADDRESS=yourname@getalby.com \
-  -e FALLBACK_RELAYS=wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net \
+  -e MERCHANT_NPUB=npub1... \
+  -v robotechy-backups:/data/backups \
   --name robotechy \
   robotechy:latest
 ----

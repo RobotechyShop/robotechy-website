@@ -1,7 +1,7 @@
-import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/react-query';
+import type { NostrEvent } from '@nostrify/nostrify';
 
-import { MERCHANT_PUBKEY } from '@/hooks/useProducts';
+import { useShopQuery } from '@/hooks/useShopQuery';
+import { MERCHANT_PUBKEY } from '@/lib/merchant';
 import { SHIPPING_OPTION_KIND } from '@/lib/productAdmin';
 
 /**
@@ -13,21 +13,15 @@ import { SHIPPING_OPTION_KIND } from '@/lib/productAdmin';
  *   only needs this as a fallback when the products reference no options).
  */
 export function useMerchantShippingOptions(enabled = true) {
-  const { nostr } = useNostr();
-
-  return useQuery({
+  return useShopQuery({
     enabled,
     queryKey: ['shipping-options', 'merchant', MERCHANT_PUBKEY],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
-      const events = await nostr.query(
-        [{ kinds: [SHIPPING_OPTION_KIND], authors: [MERCHANT_PUBKEY], limit: 100 }],
-        { signal }
-      );
+    filters: [{ kinds: [SHIPPING_OPTION_KIND], authors: [MERCHANT_PUBKEY], limit: 100 }],
+    derive: (events) => {
       // Kind 30406 is addressable: relays may return several versions sharing a
       // `d` tag. Keep only the newest per `d` so the management UI shows one row
       // per shipping option (and edits target the current version).
-      const newestByD = new Map<string, (typeof events)[number]>();
+      const newestByD = new Map<string, NostrEvent>();
       for (const event of events) {
         const d = event.tags.find(([name]) => name === 'd')?.[1];
         if (!d) continue;

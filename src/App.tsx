@@ -16,6 +16,7 @@ import { CartProvider } from '@/contexts/CartContext';
 import { MessagesDrawerProvider } from '@/contexts/MessagesDrawerContext';
 import { DMProvider } from '@/components/DMProvider';
 import { AppConfig } from '@/contexts/AppContext';
+import { shopRelayMetadata } from '@/lib/shopRelays';
 import AppRouter from './AppRouter';
 
 const head = createHead({
@@ -32,17 +33,12 @@ const queryClient = new QueryClient({
   },
 });
 
+// Shop relays (src/lib/shopRelays.ts): family relay first, then Ditto, Primal,
+// Damus and Plebeian Market. nos.lol / relay.nostr.band / relay.nostr.net were
+// removed — dead, or never held the shop's events.
 const defaultConfig: AppConfig = {
   theme: 'light',
-  relayMetadata: {
-    relays: [
-      { url: 'wss://relay.ditto.pub', read: true, write: true },
-      { url: 'wss://relay.damus.io', read: true, write: true },
-      { url: 'wss://relay.primal.net', read: true, write: true },
-      { url: 'wss://nos.lol', read: true, write: true },
-    ],
-    updatedAt: 0,
-  },
+  relayMetadata: shopRelayMetadata(),
 };
 
 export function App() {

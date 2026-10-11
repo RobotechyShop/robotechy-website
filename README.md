@@ -116,7 +116,7 @@ npm start
 ```bash
 MERCHANT_NSEC=nsec1...           # Merchant's secret key
 LIGHTNING_ADDRESS=you@getalby.com # Lightning Address for invoices
-FALLBACK_RELAYS=wss://relay.damus.io,wss://nos.lol
+FALLBACK_RELAYS=wss://relay.weeksfamily.me,wss://relay.ditto.pub,wss://relay.primal.net,wss://relay.damus.io,wss://relay.plebeian.market
 ```
 
 ## Development
@@ -143,7 +143,8 @@ docker run -d \
   -p 3000:3000 \
   -e MERCHANT_NSEC=nsec1... \
   -e LIGHTNING_ADDRESS=yourname@getalby.com \
-  -e FALLBACK_RELAYS=wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net \
+  -e MERCHANT_NPUB=npub1... \
+  -v robotechy-backups:/data/backups \
   --name robotechy \
   robotechy:latest
 
@@ -160,8 +161,132 @@ The frontend is served on port 3000. The order service connects outbound to Nost
 | `MERCHANT_NSEC`     | For orders | Merchant's Nostr secret key (nsec format) |
 | `LIGHTNING_ADDRESS` | For orders | Lightning Address for invoice generation  |
 | `FALLBACK_RELAYS`   | No         | Comma-separated relay URLs (has defaults) |
+| `MERCHANT_NPUB`     | For backups | Shop public key; enables the event archiver (see [Backups & restore](#backups--restore)) |
+
+Mount a volume at `/data/backups` so the archive survives rebuilds.
 
 If `MERCHANT_NSEC` or `LIGHTNING_ADDRESS` are not set, the container runs frontend-only mode.
+
+## Relays
+
+The shop's catalog, profile and story notes live on these relays (`src/lib/shopRelays.ts`, mirrored in `order-service/lib/archiveConfig.js` and the order-service `FALLBACK_RELAYS` default):
+
+| Relay | Notes |
+| --- | --- |
+| `wss://relay.weeksfamily.me` | Family relay (strfry on black-panther). First in the list, but everything tolerates it being unreachable |
+| `wss://relay.ditto.pub` | Long-standing home of the shop's events |
+| `wss://relay.primal.net` | Accepts and serves the shop |
+| `wss://relay.damus.io` | Accepts the shop (rate-limits aggressively) |
+| `wss://relay.plebeian.market` | Marketplace relay; accepts the shop |
+
+`nos.lol`, `relay.nostr.band` and `relay.nostr.net` were removed: they are dead or never held the shop's events.
+
+Shop data is always queried from these relays directly (outbox model), even when a logged-in visitor has their own relay list. A query resolves about 1 s after the **first** relay finishes (NPool `eoseTimeout`), with a hard 3 s ceiling, so dead relays never hold the page.
+
+## Backups & restore
+
+The container keeps an append-only archive of every signed event the shop key publishes. It needs only the shop's **public** key (`MERCHANT_NPUB`); no nsec is ever read for backups.
+
+### What runs
+
+`order-service/archiver.js` starts from `docker-entrypoint.sh` when `MERCHANT_NPUB` is set. If it exits, it is restarted, at most once a minute. It never takes the shop down.
+
+- **Live:** one subscription across the shop relays saves each publish within seconds. It is re-armed every 30 minutes to pick up relays that were down.
+- **On startup, and nightly at 03:00 UTC:** a full sync from each relay (3 REQs per relay), which rewrites `latest.jsonl` and the catalog snapshot.
+- **Nightly only:**
+  - a dated tarball, rotated after 90 days;
+  - an optional copy to `BACKUP_COPY_DIR`;
+  - an optional status POST to `N8N_WEBHOOK_URL`.
+
+Archived kinds: `0` profile, `1` story notes, `3` contacts, `5` deletions (kept as evidence, never re-broadcast), `10002` relay list, `30402` products, `30405` collections and `30406` shipping options.
+
+### Layout (`/data/backups` — mount a volume here)
+
+```
+/data/backups/
+  events/<kind>/<d-tag | pubkey | id>/<created_at>.json   original signed events, one file per version
+  events/latest.jsonl                                     newest version of every event
+  catalog-snapshot.json                                   also published as /catalog-snapshot.json on the site
+  tarballs/events-YYYY-MM-DD.tar.gz                       nightly, 90-day rotation
+  monitor-state.json                                      last night's listing count + seen deletions
+```
+
+Addressable kinds are grouped by d-tag, replaceable kinds (0, 3, 10002) by pubkey, and regular kinds by event id. Files are **never overwritten or deleted**. Only the dated tarballs rotate.
+
+When the shop key publishes a kind-5 deletion, the archiver logs a `WARNING` naming the deleted product, and keeps the archived copy.
+
+### Cached snapshot (the site never renders blank)
+
+The archiver writes `catalog-snapshot.json`: the newest signed version of the profile, the catalog, and the last 100 notes, with deleted events left out. It writes the file to `/data/backups` and to `dist/`, so the site serves it at `/catalog-snapshot.json`.
+
+1. The storefront (`src/hooks/useShopQuery.ts`) loads the snapshot first.
+2. It **verifies every signature in the browser** against the shop pubkey (`src/lib/catalogSnapshot.ts`) and shows the snapshot immediately.
+3. Live relay data is merged in as it arrives: the newest version of each event wins, and the shop's deletions are applied.
+
+If every relay is down, the site still shows the last good catalog. A tampered snapshot can only lose events, never forge them.
+
+### Restore
+
+`restore.js` is a **dry run by default**. Pass `--execute` to act.
+
+```bash
+# What would be restored? (all catalog + profile/relay list/contacts, newest versions)
+docker exec <container> node /app/order-service/restore.js
+
+# One product, by d-tag: dry run, then for real
+docker exec <container> node /app/order-service/restore.js --d <product-d-tag>
+docker exec <container> node /app/order-service/restore.js --d <product-d-tag> --execute
+
+# The version that was live at a given time
+docker exec <container> node /app/order-service/restore.js --d <tag> --at 1767225600
+```
+
+| Mode | When | Key needed |
+| --- | --- | --- |
+| `--mode rebroadcast` (default) | Relays lost the data. Re-sends the **original signed events** | None |
+| `--mode republish` | The product was **deleted** (kind 5), or you want to roll back to an older version. Relays refuse a deleted event, and keep only the newest replaceable one | Owner signs in the browser |
+
+The dry run warns when an event was deleted or superseded, and when rebroadcast therefore won't work.
+
+**Republish (owner signs in the browser).** `--mode republish` prints **unsigned** templates: the original tags and content with a fresh `created_at`. Add `--execute --out /data/backups/restore.json` to write them to a file. The container never holds the key. To publish:
+
+1. Log in to the site as the shop owner (browser extension / NIP-07 signer).
+2. Open the product editor for that product (or "Add product" if it's gone), paste the title, description, price and images from the template, and save. The browser signs a fresh event with your key.
+3. Re-run `restore.js` in dry-run mode, or wait for the archiver, to confirm the new version is archived.
+
+### Monitoring (n8n)
+
+When `N8N_WEBHOOK_URL` is set, the nightly sync POSTs:
+
+```json
+{
+  "shop": "robotechy", "merchantPubkey": "…", "timestamp": "2026-10-12T03:00:04Z",
+  "liveListings": 4, "previousListings": 4, "listingDropPct": 0,
+  "archivedListings": 4, "liveVsArchivedPct": 100,
+  "archivedEvents": 42, "relaysReached": ["wss://relay.ditto.pub", "…"],
+  "newDeletions": [{ "id": "…", "created_at": 0, "targets": ["a:30402:…"], "archivedTargets": [{ "kind": 30402, "title": "…" }] }]
+}
+```
+
+Suggested n8n rule: Webhook → IF → alert (email / Signal / Nostr DM) when **any** of these hold:
+
+- `listingDropPct > 20`: live listings fell more than 20% since last night;
+- `liveVsArchivedPct < 80`: relays are serving less than 80% of what we have archived;
+- `newDeletions.length > 0`: the shop key published a deletion;
+- `relaysReached.length == 0`: no relay answered.
+
+### Environment
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `MERCHANT_NPUB` | (required for backups) | Shop public key, npub or hex. Never an nsec |
+| `BACKUP_DIR` | `/data/backups` | Archive root |
+| `ARCHIVE_RELAYS` | the shop relays | Relays to archive from; `FALLBACK_RELAYS` are merged in |
+| `BACKUP_COPY_DIR` | (unset) | Copy nightly tarballs here, e.g. a mounted Nextcloud folder. Never pruned |
+| `N8N_WEBHOOK_URL` | (unset) | Nightly status POST |
+| `BACKUP_RETENTION_DAYS` | `90` | Tarball retention |
+| `NIGHTLY_SYNC_HOUR_UTC` | `3` | Hour of the nightly sync |
+| `SNAPSHOT_PUBLIC_PATH` | `/app/dist/catalog-snapshot.json` | Where the site serves the snapshot from |
 
 ## Technology Stack
 
@@ -170,4 +295,4 @@ If `MERCHANT_NSEC` or `LIGHTNING_ADDRESS` are not set, the container runs fronte
 - **Orders**: Gamma Markets spec (Kind 16/17), NIP-17 gift-wrapped end-to-end
 - **Payments**: Lightning Network via LNURL-pay
 - **Messaging**: NIP-17 gift wraps (NIP-44 encryption, kind 13 seal, kind 1059 wrap)
-- **Container**: Docker with Node.js 20 Alpine
+- **Container**: Docker with Node.js 22 Alpine

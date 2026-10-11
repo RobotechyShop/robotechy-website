@@ -61,8 +61,13 @@ export const config = {
   // Lightning Address for invoice generation
   lightningAddress: requireEnv('LIGHTNING_ADDRESS'),
 
-  // Fallback relays (comma-separated)
-  fallbackRelays: getEnv('FALLBACK_RELAYS', 'wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net')
+  // Fallback relays (comma-separated). Default matches DEFAULT_SHOP_RELAYS in
+  // ./archiveConfig.js and src/lib/shopRelays.ts — the family relay first (it
+  // may be unreachable; publishing succeeds if ANY relay accepts).
+  fallbackRelays: getEnv(
+    'FALLBACK_RELAYS',
+    'wss://relay.weeksfamily.me,wss://relay.ditto.pub,wss://relay.primal.net,wss://relay.damus.io,wss://relay.plebeian.market'
+  )
     .split(',')
     .map(r => r.trim())
     .filter(Boolean),

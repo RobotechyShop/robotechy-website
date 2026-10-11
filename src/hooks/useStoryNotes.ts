@@ -1,7 +1,5 @@
-import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/react-query';
-import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
-import { MERCHANT_PUBKEY } from '@/hooks/useProducts';
+import { useShopQuery } from '@/hooks/useShopQuery';
+import { MERCHANT_PUBKEY } from '@/lib/merchant';
 import { isReply } from '@/lib/storyNotes';
 
 /**
@@ -11,26 +9,17 @@ import { isReply } from '@/lib/storyNotes';
  * same identity that publishes the product catalog (kind 30402) and that the
  * "Follow Us" button follows. Replies (notes carrying an `e` tag) are dropped so
  * the timeline shows only top-level posts, and the result is sorted newest-first.
- * Mirrors the Nostrify + TanStack Query pattern used by {@link useProducts}.
+ * Uses {@link useShopQuery}, so the catalog snapshot covers it when relays are down.
  */
 export function useStoryNotes(limit = 50) {
-  const { nostr } = useNostr();
-
-  return useQuery<NostrEvent[]>({
+  return useShopQuery({
     queryKey: ['story-notes', MERCHANT_PUBKEY, limit],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
-
-      const filter: NostrFilter = {
-        kinds: [1],
-        authors: [MERCHANT_PUBKEY],
-        limit,
-      };
-
-      const events = await nostr.query([filter], { signal });
-
-      return events.filter((event) => !isReply(event)).sort((a, b) => b.created_at - a.created_at);
-    },
+    filters: [{ kinds: [1], authors: [MERCHANT_PUBKEY], limit }],
+    derive: (events) =>
+      events
+        .filter((event) => !isReply(event))
+        .sort((a, b) => b.created_at - a.created_at)
+        .slice(0, limit),
     enabled: !!MERCHANT_PUBKEY,
   });
 }
