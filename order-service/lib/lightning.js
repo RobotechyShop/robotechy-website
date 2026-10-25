@@ -52,7 +52,8 @@ export async function resolveLightningAddress(address) {
  * @param {number} [commentAllowed=0] - Max comment length the LNURL endpoint
  *   accepts (LUD-12). When 0/absent, no comment is sent — required because some
  *   endpoints reject requests that include a comment they didn't advertise.
- * @returns {Promise<{pr: string, routes: any[]}>} - BOLT11 payment request
+ * @returns {Promise<{pr: string, routes: any[], verify?: string}>} - BOLT11 payment
+ *   request, plus the LUD-21 `verify` URL when the provider offers one
  */
 export async function requestInvoice(callback, amountMsats, comment = '', commentAllowed = 0) {
   const url = new URL(callback);
@@ -81,9 +82,28 @@ export async function requestInvoice(callback, amountMsats, comment = '', commen
     throw new Error('Invalid invoice response: missing payment request');
   }
 
+  // LUD-21: an https URL the service polls to learn whether THIS invoice
+  // settled. A provider that offers one must offer a usable one: a malformed or
+  // non-https value fails the invoice rather than silently skipping the
+  // settlement check.
+  let verify;
+  if (data.verify !== undefined && data.verify !== null) {
+    let url = null;
+    try {
+      url = typeof data.verify === 'string' ? new URL(data.verify) : null;
+    } catch {
+      url = null;
+    }
+    if (url?.protocol !== 'https:') {
+      throw new Error('Invalid invoice response: unusable LUD-21 verify URL');
+    }
+    verify = data.verify;
+  }
+
   return {
     pr: data.pr, // BOLT11 invoice string
     routes: data.routes || [],
+    ...(verify ? { verify } : {}),
   };
 }
 
@@ -92,7 +112,8 @@ export async function requestInvoice(callback, amountMsats, comment = '', commen
  * @param {string} lightningAddress - Lightning Address to receive payment
  * @param {number} amountSats - Amount in satoshis
  * @param {string} orderId - Order ID for comment/reference
- * @returns {Promise<string>} - BOLT11 invoice string
+ * @returns {Promise<{invoice: string, verify?: string}>} - BOLT11 invoice string,
+ *   plus the LUD-21 verify URL when the provider returned one
  */
 export async function generateInvoice(lightningAddress, amountSats, orderId) {
   // Resolve Lightning Address to LNURL endpoint
@@ -110,7 +131,7 @@ export async function generateInvoice(lightningAddress, amountSats, orderId) {
   }
 
   // Request invoice with order ID as comment (only sent if the endpoint allows it)
-  const { pr } = await requestInvoice(
+  const { pr, verify } = await requestInvoice(
     lnurl.callback,
     amountMsats,
     `Order ${orderId.slice(0, 8)}`,
@@ -121,7 +142,7 @@ export async function generateInvoice(lightningAddress, amountSats, orderId) {
     `[Lightning] Generated invoice for ${amountSats} sats (Order ${orderId.slice(0, 8)})`
   );
 
-  return pr;
+  return { invoice: pr, ...(verify ? { verify } : {}) };
 }
 
 /**

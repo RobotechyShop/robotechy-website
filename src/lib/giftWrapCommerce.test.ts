@@ -104,6 +104,21 @@ describe('NIP-17 commerce gift wraps', () => {
     expect(tags).toContainEqual(['shipping', `30406:${'b'.repeat(64)}:uk-standard`]);
   });
 
+  it('adds the ship-to country as an ISO alpha-2 tag for the order service', () => {
+    const shipping = { ...buildShipping(), countryCode: 'gb' } as ShippingInfo;
+    const tags = createOrderTags('order-1', [buildCartItem()], shipping, 'c'.repeat(64), 1000);
+    expect(tags).toContainEqual(['country', 'GB']);
+    // No code chosen (legacy callers): no tag.
+    const legacy = createOrderTags(
+      'order-1',
+      [buildCartItem()],
+      buildShipping(),
+      'c'.repeat(64),
+      1000
+    );
+    expect(legacy.some((t) => t[0] === 'country')).toBe(false);
+  });
+
   it('omits the shipping tag for legacy fallback zones (no real 30406 event)', () => {
     const tags = createOrderTags(
       'order-1',

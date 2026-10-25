@@ -7,6 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  parseOrderEvent,
   parsePaymentReceipt,
   receiptDedupKey,
   PAYMENT_RECEIPT_KIND,
@@ -51,4 +52,13 @@ test('receiptDedupKey differs for distinct receipts (legit receipts not skipped)
 
   const keys = new Set([receiptDedupKey(r1), receiptDedupKey(r2), receiptDedupKey(r3)]);
   assert.equal(keys.size, 3, 'distinct order or preimage must produce distinct keys');
+});
+
+test('malformed (non-array) tags are skipped, never thrown on', () => {
+  const rumor = buildReceiptRumor({ orderId: 'order-1', preimage: 'pre-1' });
+  rumor.tags = [null, 'junk', 7, ...rumor.tags];
+  assert.doesNotThrow(() => parsePaymentReceipt(rumor));
+  assert.equal(parsePaymentReceipt(rumor).orderId, 'order-1');
+  const order = { kind: 16, pubkey: 'b'.repeat(64), content: '', tags: [['type', '1'], null] };
+  assert.doesNotThrow(() => parseOrderEvent(order));
 });

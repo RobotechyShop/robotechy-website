@@ -96,6 +96,21 @@ export function looksLikeEvent(event) {
   );
 }
 
+/**
+ * True when the event is well-formed and its id and Schnorr signature verify;
+ * never throws. Verifies a clean NIP-01 copy (see `canonical`) so a cached
+ * check on a tampered copy can't pass. Shared by the order service for every
+ * relay- or peer-supplied event it trusts (catalog, gift wraps, seals).
+ */
+export function isSignedEvent(event) {
+  if (!looksLikeEvent(event)) return false;
+  try {
+    return verifyEvent(canonical(event));
+  } catch {
+    return false;
+  }
+}
+
 async function exists(path) {
   try {
     await access(path);

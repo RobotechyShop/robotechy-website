@@ -70,6 +70,28 @@ The checkout uses Kind 16 for order processing:
 
 Kind 17 is used for payment receipts with proof (preimage).
 
+==== Order-service trust rules
+
+The buyer's order and receipt are untrusted input, so the order service
+(`order-service/`) never takes their word for price or payment:
+
+* *Server-side pricing* (`lib/pricing.js`, `lib/catalog.js`): the service
+  fetches the merchant's own kind-30402 listings and kind-30406 shipping
+  options, keeps only events authored by the merchant key whose signature
+  verifies, and recomputes the total exactly as the checkout does (price ×
+  quantity plus the chosen shipping option and product extra cost, fiat
+  converted with the same averaged CoinGecko/Kraken/Coinbase rates, no
+  hard-coded fallback rates). Unknown items, other authors' items, bad or
+  excessive quantities (> 999) and amounts that differ from the recomputed
+  total (beyond 5% of the fiat-converted part, for rate drift) are answered
+  with a `cancelled` status update and a readable reason, which the checkout
+  shows. Accepted orders are invoiced for the *server* total.
+* *Verified payment* (`lib/payment.js`): each issued invoice's payment hash,
+  amount and LUD-21 `verify` URL are persisted in the store on the data
+  volume before the invoice is sent. "Paid" is confirmed only when
+  `sha256(preimage)` equals that payment hash and, when a verify URL exists,
+  the provider reports `settled: true`. Anything else gets no confirmation.
+
 ==== Kind 16 Order Tags (Type 1)
 
 [cols="1,2", options="header"]

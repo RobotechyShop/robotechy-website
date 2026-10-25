@@ -54,7 +54,7 @@ sequenceDiagram
     M->>B: Confirmation · gift wrap 1059 ⟶ inner kind 16 type 3<br/>(status: confirmed)
 ```
 
-The **order-service** subscribes to kind 1059 gift wraps addressed to the merchant, unwraps each to its inner rumor (authenticating the sender), dispatches orders (kind 16 type 1) and receipts (kind 17), and replies with gift wraps. It no longer reads plaintext kind 16/17 events or sends NIP-04 DMs.
+The **order-service** subscribes to kind 1059 gift wraps addressed to the merchant, unwraps each to its inner rumor (authenticating the sender), dispatches orders (kind 16 type 1) and receipts (kind 17), and replies with gift wraps. It prices every order itself from the shop's signed catalog (the buyer's `amount` is only compared, never invoiced) and confirms payment only when the receipt's preimage hashes to the invoice it issued — see *Order-service trust rules* in `docs/SOLUTION_DESIGN.adoc`. It no longer reads plaintext kind 16/17 events or sends NIP-04 DMs.
 
 ### One invoice, two surfaces — how clients ignore the duplicate
 
