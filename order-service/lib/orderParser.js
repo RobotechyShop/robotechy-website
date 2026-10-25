@@ -14,10 +14,42 @@ export const ORDER_MESSAGE_TYPE = {
   SHIPPING_UPDATE: '4',
 };
 
+// Sanity cap on an order's sat amount (0.1 BTC — far above anything the shop
+// sells). Orders come from untrusted buyers, so an amount must be a plain, safe,
+// positive integer within this cap before anything is priced or invoiced.
+export const MAX_ORDER_SATS = 10_000_000;
+
+/**
+ * Strictly parse an untrusted sat amount: digits only, safe integer, positive,
+ * within MAX_ORDER_SATS. Returns null for anything else — parseInt would accept
+ * partial junk ("100abc"), negatives and unbounded magnitudes.
+ * @param {unknown} raw
+ * @returns {number | null}
+ */
+export function parseSatAmount(raw) {
+  if (typeof raw !== 'string' || !/^\d+$/.test(raw)) return null;
+  const value = Number(raw);
+  return Number.isSafeInteger(value) && value > 0 && value <= MAX_ORDER_SATS ? value : null;
+}
+
+/**
+ * Strictly parse an untrusted item quantity: digits only, safe positive integer.
+ * Returns null otherwise, so pricing can cancel the order with a reason (the old
+ * `parseInt(...) || 1` silently turned junk into a quantity of one). The
+ * per-line cap is enforced by pricing (lib/pricing.js MAX_QUANTITY).
+ * @param {unknown} raw
+ * @returns {number | null}
+ */
+export function parseQuantity(raw) {
+  if (typeof raw !== 'string' || !/^\d+$/.test(raw)) return null;
+  const value = Number(raw);
+  return Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
 /**
  * Parse a Kind 16 Type 1 order event
  * @param {import('nostr-tools').Event} event
- * @returns {{orderId: string, buyerPubkey: string, amount: number, items: Array<{ref: string, quantity: number}>, address: string, email: string, phone?: string, message?: string} | null}
+ * @returns {{orderId: string, buyerPubkey: string, amount: number, items: Array<{ref: string, quantity: number | null}>, shippingRef?: string, address: string, email: string, phone?: string, message?: string} | null}
  */
 export function parseOrderEvent(event) {
   if (event.kind !== ORDER_PROCESS_KIND) {
@@ -34,24 +66,38 @@ export function parseOrderEvent(event) {
   const addressTag = event.tags.find(t => t[0] === 'address');
   const emailTag = event.tags.find(t => t[0] === 'email');
   const phoneTag = event.tags.find(t => t[0] === 'phone');
+  const shippingTag = event.tags.find(t => t[0] === 'shipping' && typeof t[1] === 'string');
 
-  if (!orderTag || !amountTag) {
+  if (typeof orderTag?.[1] !== 'string' || !orderTag[1] || !amountTag) {
     console.warn('[OrderParser] Missing required order or amount tag');
     return null;
   }
 
-  // Parse item tags: ['item', 'product_ref', 'quantity']
+  // The buyer's amount is untrusted: it is only ever COMPARED with the
+  // server-computed total (lib/pricing.js), never invoiced. Still reject junk
+  // outright so nothing downstream sees NaN, negatives or absurd magnitudes.
+  const amount = parseSatAmount(amountTag[1]);
+  if (amount === null) {
+    console.warn(`[OrderParser] Rejecting order with invalid amount ${JSON.stringify(amountTag[1])}`);
+    return null;
+  }
+
+  // Parse item tags: ['item', 'product_ref', 'quantity']. A null quantity is
+  // kept (not defaulted) so pricing can cancel the order with a reason.
   const itemTags = event.tags.filter(t => t[0] === 'item');
   const items = itemTags.map(t => ({
     ref: t[1],           // e.g., "30402:pubkey:d-tag"
-    quantity: parseInt(t[2], 10) || 1,
+    quantity: parseQuantity(t[2]),
   }));
 
   return {
     orderId: orderTag[1],
     buyerPubkey: event.pubkey,
-    amount: parseInt(amountTag[1], 10),
+    amount,
     items,
+    // Chosen shipping option per the Gamma spec: "30406:<pubkey>:<d-tag>".
+    // Absent when the buyer picked one of the website's legacy fallback zones.
+    shippingRef: shippingTag?.[1] || undefined,
     address: addressTag?.[1] || '',
     email: emailTag?.[1] || '',
     phone: phoneTag?.[1],
@@ -73,7 +119,7 @@ export function parsePaymentReceipt(event) {
   const paymentTag = event.tags.find(t => t[0] === 'payment');
   const amountTag = event.tags.find(t => t[0] === 'amount');
 
-  if (!orderTag || !paymentTag) {
+  if (typeof orderTag?.[1] !== 'string' || !orderTag[1] || !paymentTag) {
     console.warn('[OrderParser] Missing required order or payment tag');
     return null;
   }

@@ -18,7 +18,8 @@
  * invariant in so it cannot silently regress.
  *
  * Hermetic: the Lightning provider (`generateInvoice`) is injected as a spy, the
- * relay/publish layer is a fake `nostrClient`, and the dedup store is an in-memory
+ * relay/publish layer is a fake `nostrClient`, the catalog is a signed fixture
+ * (test/helpers/shop.js) priced at fixed rates, and the dedup store is an in-memory
  * stub — so no network is touched and the on-disk `.processed.json` is never read
  * or written.
  *
@@ -37,6 +38,11 @@ process.env.MERCHANT_NSEC ||= 'nsec-test-placeholder';
 process.env.LIGHTNING_ADDRESS ||= 'robotechy@example.com';
 
 const { handleOrder } = await import('../index.js');
+const { memoryStore, merchantPk, orderRumor, RATES, shopCatalog } =
+  await import('./helpers/shop.js');
+
+// The signed fixture catalog prices one medallion + UK shipping at 81,250 sats.
+const ORDER_SATS = 81_250;
 
 // A recognisable BOLT11 the injected provider returns. The test asserts THIS
 // exact string is the one embedded in the payment-request event (the invoice the
@@ -49,26 +55,12 @@ function randomPubkey() {
 }
 
 /**
- * Build a Kind 16 Type 1 order rumor — the unsigned inner event that
- * `unwrapGiftWrap` hands to `handleOrder`. A fresh `orderId` per call keeps
- * independent orders from colliding in the (injected) dedup store.
+ * Build a Kind 16 Type 1 order rumor against the signed fixture catalog — the
+ * unsigned inner event that `unwrapGiftWrap` hands to `handleOrder`. A fresh
+ * `orderId` per call keeps independent orders from colliding in the store.
  */
-function buildOrderRumor({ buyerPubkey = randomPubkey(), amount = 5000 } = {}) {
-  const orderId = randomBytes(16).toString('hex');
-  return {
-    kind: 16,
-    pubkey: buyerPubkey,
-    content: 'Please send my robot parts',
-    tags: [
-      ['type', '1'], // ORDER_MESSAGE_TYPE.ORDER_CREATION
-      ['order', orderId],
-      ['amount', String(amount)],
-      ['item', '30402:somepubkey:robo-arm', '1'],
-      ['address', '123 Maker St'],
-      ['email', 'buyer@example.com'],
-    ],
-    created_at: Math.floor(Date.now() / 1000),
-  };
+function buildOrderRumor({ buyerPubkey = randomPubkey() } = {}) {
+  return orderRumor({ buyerPubkey, amount: ORDER_SATS });
 }
 
 /**
@@ -80,6 +72,7 @@ function buildFakeNostrClient() {
   const giftWraps = [];
   const dms = [];
   return {
+    pubkey: merchantPk,
     giftWraps,
     dms,
     async sendGiftWrap(recipientPubkey, rumor) {
@@ -96,7 +89,7 @@ function buildGenerateInvoiceSpy(returnValue = FAKE_BOLT11) {
   const calls = [];
   const fn = async (...args) => {
     calls.push(args);
-    return returnValue;
+    return { invoice: returnValue };
   };
   fn.calls = calls;
   return fn;
@@ -118,18 +111,17 @@ function giftWrapsOfKind(client, kind) {
 }
 
 /**
- * In-memory dedup store with the same shape as ProcessedStore (the bits
- * handleOrder uses). Injected so the test never touches the on-disk
- * `.processed.json`, keeping each run fully hermetic and isolated.
+ * handleOrder deps: the spy, an in-memory store (never touches the on-disk
+ * `.processed.json`), the signed fixture catalog, fixed rates, and a decoder
+ * stub (the recognisable fake BOLT11 isn't a real invoice).
  */
-function buildInMemoryStore() {
-  const orders = new Set();
-  const receipts = new Set();
+function deps() {
   return {
-    hasOrder: (id) => orders.has(id),
-    addOrder: (id) => orders.add(id),
-    hasReceipt: (id) => receipts.has(id),
-    addReceipt: (id) => receipts.add(id),
+    generateInvoice: generateInvoiceSpy,
+    store,
+    loadCatalog: async () => shopCatalog(),
+    getRates: async () => RATES,
+    decodeInvoice: () => ({ paymentHash: 'ab'.repeat(32), amountMsat: ORDER_SATS * 1000 }),
   };
 }
 
@@ -140,12 +132,12 @@ let store;
 beforeEach(() => {
   nostrClient = buildFakeNostrClient();
   generateInvoiceSpy = buildGenerateInvoiceSpy();
-  store = buildInMemoryStore();
+  store = memoryStore();
 });
 
 test('generateInvoice is called exactly once for a single order', async () => {
   const order = buildOrderRumor();
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
+  await handleOrder(order, nostrClient, deps());
 
   assert.equal(
     generateInvoiceSpy.calls.length,
@@ -154,13 +146,13 @@ test('generateInvoice is called exactly once for a single order', async () => {
   );
   // ...and it is generated for THIS order's amount and id.
   const [, amountArg, orderIdArg] = generateInvoiceSpy.calls[0];
-  assert.equal(amountArg, 5000, 'invoice generated for the order amount');
+  assert.equal(amountArg, ORDER_SATS, 'invoice generated for the server-priced amount');
   assert.equal(orderIdArg, tagValue(order, 'order'), 'invoice generated for this order id');
 });
 
 test('the kind-16 card and the kind-14 note both carry the IDENTICAL invoice generateInvoice returned', async () => {
   const order = buildOrderRumor();
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
+  await handleOrder(order, nostrClient, deps());
 
   // The kind-16 Type 2 payment-request card.
   const cards = giftWrapsOfKind(nostrClient, 16);
@@ -195,7 +187,7 @@ test('the kind-16 card and the kind-14 note both carry the IDENTICAL invoice gen
 
 test('the kind-14 note carries the SAME ["order", id] tag as the kind-16 card (correlatable/dedupable)', async () => {
   const order = buildOrderRumor();
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
+  await handleOrder(order, nostrClient, deps());
 
   const card = giftWrapsOfKind(nostrClient, 16)[0].rumor;
   const note = giftWrapsOfKind(nostrClient, 14)[0].rumor;
@@ -214,7 +206,7 @@ test('the kind-14 note carries the SAME ["order", id] tag as the kind-16 card (c
 test('exactly two gift wraps (one kind-16, one kind-14) go to the buyer, and NO kind-4 NIP-04 DM is used', async () => {
   const buyerPubkey = randomPubkey();
   const order = buildOrderRumor({ buyerPubkey });
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
+  await handleOrder(order, nostrClient, deps());
 
   assert.equal(
     nostrClient.giftWraps.length,
@@ -233,10 +225,10 @@ test('exactly two gift wraps (one kind-16, one kind-14) go to the buyer, and NO 
 
 test('a duplicate order is skipped — no second invoice and no further gift wraps', async () => {
   const order = buildOrderRumor();
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
+  await handleOrder(order, nostrClient, deps());
   // Replay the exact same order (same order id) — the persistent dedup store
   // must short-circuit it, so no further invoice is generated and nothing resent.
-  await handleOrder(order, nostrClient, { generateInvoice: generateInvoiceSpy, store });
+  await handleOrder(order, nostrClient, deps());
 
   assert.equal(
     generateInvoiceSpy.calls.length,

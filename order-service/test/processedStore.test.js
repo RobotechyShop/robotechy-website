@@ -86,3 +86,78 @@ test('entries older than the lookback window are pruned on load', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+const HASH = 'ab'.repeat(32);
+const record = (overrides = {}) => ({
+  invoice: 'lnbc1test',
+  paymentHash: HASH,
+  amountSats: 81_250,
+  buyerPubkey: 'b'.repeat(64),
+  verifyUrl: 'https://ln.example/verify/1',
+  ...overrides,
+});
+
+test('issued invoices (hash, amount, verify URL) survive a restart; paid flag too', () => {
+  const { path, dir } = tmpFile();
+  try {
+    const store = new ProcessedStore(path, 60);
+    store.addInvoice('order-1', record());
+    store.markPaid('order-1');
+    const reloaded = new ProcessedStore(path, 60);
+    const saved = reloaded.getInvoice('order-1');
+    assert.equal(saved.paymentHash, HASH);
+    assert.equal(saved.amountSats, 81_250);
+    assert.equal(saved.verifyUrl, 'https://ln.example/verify/1');
+    assert.ok(saved.paidAt > 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('malformed persisted invoice records are dropped, not trusted', () => {
+  const { path, dir } = tmpFile();
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    writeFileSync(
+      path,
+      JSON.stringify({
+        invoices: {
+          good: { ...record(), createdAt: now },
+          badHash: { ...record({ paymentHash: 'zz' }), createdAt: now },
+          badAmount: { ...record({ amountSats: '81250' }), createdAt: now },
+          noCreated: record(),
+        },
+      })
+    );
+    const store = new ProcessedStore(path, 60);
+    assert.ok(store.getInvoice('good'));
+    assert.equal(store.invoices.size, 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('addInvoice throws (and keeps nothing) when the record cannot be persisted', () => {
+  const { dir } = tmpFile();
+  try {
+    // The store path is a directory, so the rename fails.
+    const store = new ProcessedStore(dir, 60);
+    assert.throws(() => store.addInvoice('order-1', record()));
+    assert.equal(store.getInvoice('order-1'), undefined);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('invoice records outlive the dedup window but are pruned after their own max age', () => {
+  const { path, dir } = tmpFile();
+  try {
+    const store = new ProcessedStore(path, 60, 3600);
+    store.invoices.set('old', { ...record(), createdAt: Math.floor(Date.now() / 1000) - 7200 });
+    store.addInvoice('new', record());
+    assert.equal(store.getInvoice('old'), undefined);
+    assert.ok(store.getInvoice('new'));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
