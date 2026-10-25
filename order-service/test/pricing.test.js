@@ -9,6 +9,7 @@ import { finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools/pure
 import {
   buildVerifiedCatalog,
   convertToSats,
+  MAX_OVERSTATEMENT,
   MAX_QUANTITY,
   needsExchangeRates,
   priceOrder,
@@ -190,8 +191,23 @@ test("shipping: with no published options the website's legacy zones apply", () 
   );
   assert.equal(europe.ok, true);
   assert.equal(europe.totalSats, 93_750);
-  // Not any legacy zone.
-  assert.equal(price({ amount: 200_000, shipping: null }, catalog).ok, false);
+  // No country: only the unrestricted Worldwide zone (25 GBP) qualifies, and an
+  // overstated amount is invoiced at our total.
+  const world = price({ amount: 200_000, shipping: null }, catalog);
+  assert.equal(world.ok, true);
+  assert.equal(world.totalSats, 75_000 + 31_250);
+});
+
+test('the amount check is one-sided: overstated amounts pass, up to a bound', () => {
+  // The website's offline fallback rate can overstate the sats; we still
+  // invoice our own total.
+  const over = price({ amount: MEDALLION_UK * 1.5 });
+  assert.equal(over.ok, true);
+  assert.equal(over.totalSats, MEDALLION_UK);
+  // Beyond MAX_OVERSTATEMENT the amount is nonsense.
+  assert.equal(price({ amount: MEDALLION_UK * MAX_OVERSTATEMENT + 1 }).ok, false);
+  // Understated beyond the tolerance: our invoice would surprise the buyer.
+  assert.equal(price({ amount: Math.floor(MEDALLION_UK * 0.9) }).ok, false);
 });
 
 test('a mixed-currency cart is priced per currency', () => {

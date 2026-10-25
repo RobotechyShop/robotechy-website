@@ -529,12 +529,21 @@ async function main() {
         return; // Not decryptable / not authenticated / not for us
       }
 
-      const typeTag = rumor.tags?.find((t) => t[0] === 'type');
+      // The rumor is buyer-controlled JSON: drop malformed tags so a bad entry
+      // can't throw, and catch handler failures so one poisoned wrap can't exit
+      // the process (it would be re-fetched on restart and crash-loop).
+      rumor.tags = Array.isArray(rumor.tags) ? rumor.tags.filter(Array.isArray) : [];
+      const typeTag = rumor.tags.find((t) => t[0] === 'type');
+      const logFailure = (err) => console.error('[Nostr] Handler failed for a gift wrap:', err);
 
       if (rumor.kind === ORDER_PROCESS_KIND && typeTag?.[1] === ORDER_MESSAGE_TYPE.ORDER_CREATION) {
-        handleOrder(rumor, nostrClient);
+        Promise.resolve()
+          .then(() => handleOrder(rumor, nostrClient))
+          .catch(logFailure);
       } else if (rumor.kind === PAYMENT_RECEIPT_KIND) {
-        handlePaymentReceipt(rumor, nostrClient);
+        Promise.resolve()
+          .then(() => handlePaymentReceipt(rumor, nostrClient))
+          .catch(logFailure);
       } else {
         console.log(
           `[Nostr] Ignoring gift wrap with inner kind ${rumor.kind}${typeTag ? ` type ${typeTag[1]}` : ''}`

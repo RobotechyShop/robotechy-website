@@ -46,5 +46,10 @@ export async function loadCatalog(pool, relays, order, merchantPubkey) {
   if (events.length === 0) {
     throw new Error('Catalog unavailable: no relay returned any listings or shipping options');
   }
+  // Shipping options arrived but none of the ordered listings did: treat it as a
+  // relay failure (retried) rather than "not in the catalogue" (cancelled).
+  if (listings.length === 0) {
+    throw new Error('Catalog unavailable: no relay returned the ordered listings');
+  }
   return buildVerifiedCatalog(events, merchantPubkey);
 }

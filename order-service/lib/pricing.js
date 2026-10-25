@@ -45,10 +45,15 @@ export const MAX_ORDER_LINES = 100;
  * of the total that was converted from fiat. The buyer's browser and this
  * service average BTC prices from the same three exchanges, but at different
  * moments (the checkout caches its rates from page load), so they never agree
- * to the sat. Sat/BTC-priced parts must match exactly. Whatever the buyer
- * stated, the invoice is always for OUR total.
+ * to the sat. The check is one-sided: our total may exceed the buyer's amount
+ * by at most this share of the fiat part (sat/BTC-priced parts get no slack),
+ * while a higher buyer amount is accepted up to MAX_OVERSTATEMENT. Whatever the
+ * buyer stated, the invoice is always for OUR total.
  */
 export const FIAT_RATE_TOLERANCE = 0.05;
+
+/** A buyer amount above this multiple of our total is refused as nonsense. */
+export const MAX_OVERSTATEMENT = 2;
 
 /**
  * The website's legacy shipping zones (src/components/checkout/ShippingForm.tsx
@@ -403,8 +408,12 @@ export function priceOrder(order, catalog, { merchantPubkey, merchantName = 'Rob
     return reject('the order total is outside the range we can invoice');
   }
 
+  // We always invoice our own total, so the buyer's amount only guards against
+  // a surprise: refuse when our invoice would be well above what they saw.
+  // A higher stated amount (e.g. the website's offline fallback rate) is fine,
+  // up to a sanity bound.
   const tolerance = Math.ceil((itemsFiatSats + best.fiatSats) * FIAT_RATE_TOLERANCE);
-  if (best.diff > tolerance) {
+  if (totalSats - order.amount > tolerance || order.amount > totalSats * MAX_OVERSTATEMENT) {
     return reject(
       `the order amount (${order.amount.toLocaleString('en-GB')} sats) does not match the current price (${totalSats.toLocaleString('en-GB')} sats)`
     );

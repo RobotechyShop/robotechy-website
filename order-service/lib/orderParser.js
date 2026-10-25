@@ -19,6 +19,11 @@ export const ORDER_MESSAGE_TYPE = {
 // positive integer within this cap before anything is priced or invoiced.
 export const MAX_ORDER_SATS = 10_000_000;
 
+/** The event's tags, minus any malformed (non-array) entries from untrusted input. */
+function tagList(event) {
+  return Array.isArray(event.tags) ? event.tags.filter(Array.isArray) : [];
+}
+
 /**
  * Strictly parse an untrusted sat amount: digits only, safe integer, positive,
  * within MAX_ORDER_SATS. Returns null for anything else — parseInt would accept
@@ -56,18 +61,18 @@ export function parseOrderEvent(event) {
     return null;
   }
 
-  const typeTag = event.tags.find(t => t[0] === 'type');
+  const typeTag = tagList(event).find(t => t[0] === 'type');
   if (typeTag?.[1] !== ORDER_MESSAGE_TYPE.ORDER_CREATION) {
     return null;
   }
 
-  const orderTag = event.tags.find(t => t[0] === 'order');
-  const amountTag = event.tags.find(t => t[0] === 'amount');
-  const addressTag = event.tags.find(t => t[0] === 'address');
-  const emailTag = event.tags.find(t => t[0] === 'email');
-  const phoneTag = event.tags.find(t => t[0] === 'phone');
-  const shippingTag = event.tags.find(t => t[0] === 'shipping' && typeof t[1] === 'string');
-  const countryTag = event.tags.find(t => t[0] === 'country' && typeof t[1] === 'string');
+  const orderTag = tagList(event).find(t => t[0] === 'order');
+  const amountTag = tagList(event).find(t => t[0] === 'amount');
+  const addressTag = tagList(event).find(t => t[0] === 'address');
+  const emailTag = tagList(event).find(t => t[0] === 'email');
+  const phoneTag = tagList(event).find(t => t[0] === 'phone');
+  const shippingTag = tagList(event).find(t => t[0] === 'shipping' && typeof t[1] === 'string');
+  const countryTag = tagList(event).find(t => t[0] === 'country' && typeof t[1] === 'string');
 
   if (typeof orderTag?.[1] !== 'string' || !orderTag[1] || !amountTag) {
     console.warn('[OrderParser] Missing required order or amount tag');
@@ -118,9 +123,9 @@ export function parsePaymentReceipt(event) {
     return null;
   }
 
-  const orderTag = event.tags.find(t => t[0] === 'order');
-  const paymentTag = event.tags.find(t => t[0] === 'payment');
-  const amountTag = event.tags.find(t => t[0] === 'amount');
+  const orderTag = tagList(event).find(t => t[0] === 'order');
+  const paymentTag = tagList(event).find(t => t[0] === 'payment');
+  const amountTag = tagList(event).find(t => t[0] === 'amount');
 
   if (typeof orderTag?.[1] !== 'string' || !orderTag[1] || !paymentTag) {
     console.warn('[OrderParser] Missing required order or payment tag');
