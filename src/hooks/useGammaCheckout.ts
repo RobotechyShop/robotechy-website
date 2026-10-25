@@ -8,7 +8,9 @@ import {
   createOrderEventTemplate,
   createPaymentReceiptTemplate,
   parsePaymentRequest,
+  parseOrderStatus,
   toGammaPaymentOptions,
+  ORDER_STATUS,
   ORDER_PROCESS_KIND,
   ORDER_MESSAGE_TYPE,
 } from '@/lib/gammaOrderUtils';
@@ -125,13 +127,28 @@ export function useGammaCheckout() {
         continue;
       }
 
-      const typeTag = inner.tags.find((t) => t[0] === 'type');
-      if (typeTag?.[1] !== ORDER_MESSAGE_TYPE.PAYMENT_REQUEST) {
+      const orderTag = inner.tags.find((t) => t[0] === 'order');
+      if (orderTag?.[1] !== checkoutState.orderId) {
         continue;
       }
 
-      const orderTag = inner.tags.find((t) => t[0] === 'order');
-      if (orderTag?.[1] !== checkoutState.orderId) {
+      // The order service prices every order itself and refuses (rather than
+      // invoices) one whose amount doesn't match the catalogue — e.g. a price
+      // changed since the page loaded. Surface its reason instead of waiting
+      // forever for a payment request that will never come.
+      const status = parseOrderStatus(inner);
+      if (status?.status === ORDER_STATUS.CANCELLED) {
+        setCheckoutState((prev) => ({
+          ...prev,
+          status: 'error',
+          error:
+            status.message || 'The shop could not accept this order. You have not been charged.',
+        }));
+        break;
+      }
+
+      const typeTag = inner.tags.find((t) => t[0] === 'type');
+      if (typeTag?.[1] !== ORDER_MESSAGE_TYPE.PAYMENT_REQUEST) {
         continue;
       }
 
