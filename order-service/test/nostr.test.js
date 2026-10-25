@@ -27,7 +27,14 @@ function encryptTo(senderSk, recipientPk, plaintext) {
  *   decrypt — the conversation key derived from the forged pubkey doesn't match,
  *   so nip44 decrypt throws — rather than via seal-signature verification.
  */
-function buildGiftWrap({ senderSk, merchantPk, rumorPubkey, tamperSealPubkey = false }) {
+function buildGiftWrap({
+  senderSk,
+  merchantPk,
+  rumorPubkey,
+  tamperSealPubkey = false,
+  unsignedSeal = false,
+  tamperSealContent = false,
+}) {
   const senderPk = getPublicKey(senderSk);
   const rumor = {
     kind: 16,
@@ -45,10 +52,20 @@ function buildGiftWrap({ senderSk, merchantPk, rumorPubkey, tamperSealPubkey = f
   };
   let seal = finalizeEvent(sealTemplate, senderSk);
 
+  if (unsignedSeal) {
+    // How this shop's website builds seals (DMProvider.tsx): no id/sig.
+    seal = { ...sealTemplate, pubkey: senderPk };
+  }
+
+  if (tamperSealContent) {
+    // Swap in different (validly encrypted) content after signing.
+    const forgedRumor = { ...rumor, content: 'forged' };
+    seal = { ...seal, content: encryptTo(senderSk, merchantPk, JSON.stringify(forgedRumor)) };
+  }
+
   if (tamperSealPubkey) {
-    // Reassign the seal's pubkey to a forged key. The seal is no longer
-    // signature-verified, so this is caught at step-2 decrypt: the conversation
-    // key derived from the forged pubkey doesn't match, so nip44 decrypt fails.
+    // Reassign the seal's pubkey to a forged key. Caught by the seal signature
+    // check (and, for unsigned seals, by the step-2 decrypt).
     const victimPk = getPublicKey(generateSecretKey());
     seal = { ...seal, pubkey: victimPk };
   }
@@ -94,7 +111,7 @@ test('unwrapGiftWrap rejects a rumor whose pubkey != seal pubkey (spoofing)', ()
   client.pool.close([]);
 });
 
-test('unwrapGiftWrap rejects a seal whose pubkey was reassigned (step-2 decrypt fails)', () => {
+test('unwrapGiftWrap rejects a seal whose pubkey was reassigned', () => {
   const merchantSk = generateSecretKey();
   const merchantPk = getPublicKey(merchantSk);
   const senderSk = generateSecretKey();
@@ -104,6 +121,47 @@ test('unwrapGiftWrap rejects a seal whose pubkey was reassigned (step-2 decrypt 
 
   const rumor = client.unwrapGiftWrap(wrap);
   assert.equal(rumor, null, 'seal with a reassigned (forged) pubkey must be rejected');
+  client.pool.close([]);
+});
+
+test("unwrapGiftWrap accepts an UNSIGNED seal (the shop website's format), authenticated by decrypt", () => {
+  const merchantSk = generateSecretKey();
+  const merchantPk = getPublicKey(merchantSk);
+  const senderSk = generateSecretKey();
+
+  const client = new NostrClient(merchantSk, []);
+  const rumor = client.unwrapGiftWrap(buildGiftWrap({ senderSk, merchantPk, unsignedSeal: true }));
+  assert.ok(rumor);
+  assert.equal(rumor.pubkey, getPublicKey(senderSk));
+
+  // ...but an unsigned seal with a forged pubkey still fails the decrypt.
+  const forged = client.unwrapGiftWrap(
+    buildGiftWrap({ senderSk, merchantPk, unsignedSeal: true, tamperSealPubkey: true })
+  );
+  assert.equal(forged, null);
+  client.pool.close([]);
+});
+
+test('unwrapGiftWrap rejects a SIGNED seal whose signature does not verify', () => {
+  const merchantSk = generateSecretKey();
+  const merchantPk = getPublicKey(merchantSk);
+  const senderSk = generateSecretKey();
+
+  const client = new NostrClient(merchantSk, []);
+  const wrap = buildGiftWrap({ senderSk, merchantPk, tamperSealContent: true });
+  assert.equal(client.unwrapGiftWrap(wrap), null);
+  client.pool.close([]);
+});
+
+test('unwrapGiftWrap rejects a gift wrap whose own signature does not verify', () => {
+  const merchantSk = generateSecretKey();
+  const merchantPk = getPublicKey(merchantSk);
+  const senderSk = generateSecretKey();
+
+  const client = new NostrClient(merchantSk, []);
+  const wrap = buildGiftWrap({ senderSk, merchantPk });
+  assert.equal(client.unwrapGiftWrap({ ...wrap, created_at: wrap.created_at + 1 }), null);
+  assert.equal(client.unwrapGiftWrap({ ...wrap, sig: undefined }), null);
   client.pool.close([]);
 });
 

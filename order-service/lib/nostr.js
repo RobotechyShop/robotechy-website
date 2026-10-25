@@ -4,6 +4,7 @@
 
 import { SimplePool, finalizeEvent, nip04, nip19, nip44, nip59 } from 'nostr-tools';
 import WebSocket from 'ws';
+import { isSignedEvent } from './eventArchive.js';
 
 // Set WebSocket for nostr-tools in Node.js environment
 globalThis.WebSocket = WebSocket;
@@ -203,10 +204,15 @@ export class NostrClient {
    *   2. nip44-decrypt the seal content (encrypted to the merchant by the real
    *      sender) -> inner rumor (kind 14/16/17).
    *
-   * Authenticates the sender via the step-2 decrypt (which only succeeds when
-   * keyed to the real sender's `seal.pubkey`) plus a `seal.pubkey === rumor.pubkey`
-   * binding — NOT by verifying a seal signature (the seal is unsigned). The
-   * returned rumor is therefore an UNSIGNED inner event with no `id`/`sig`.
+   * Signatures: the gift wrap's (ephemeral-key) signature must verify. A seal
+   * that carries a signature must verify too (NIP-59 seals from standard
+   * clients, and this service's own, are signed). An UNSIGNED seal is still
+   * accepted, because this shop's website deliberately sends unsigned seals
+   * (src/components/DMProvider.tsx), so requiring one would reject every order.
+   * For those, the sender is authenticated by the step-2 decrypt (NIP-44 is
+   * keyed to ECDH(merchant, seal.pubkey) and MAC'd, so only the real sender —
+   * or the merchant — can produce it) plus a `seal.pubkey === rumor.pubkey`
+   * binding. The returned rumor is an UNSIGNED inner event with no `id`/`sig`.
    *
    * @param {import('nostr-tools').Event} giftWrapEvent - kind 1059 event
    * @returns {Omit<import('nostr-tools').Event, 'id'|'sig'> | null} the unsigned
@@ -215,6 +221,15 @@ export class NostrClient {
   unwrapGiftWrap(giftWrapEvent) {
     try {
       if (giftWrapEvent.kind !== 1059) {
+        return null;
+      }
+
+      // The relay pool verifies signatures on receipt; re-check here so this
+      // method is safe for any caller (and a tampered copy can't slip through).
+      if (!isSignedEvent(giftWrapEvent)) {
+        console.warn(
+          `[Nostr] Gift wrap ${giftWrapEvent.id?.slice(0, 8)}: invalid gift wrap signature`
+        );
         return null;
       }
 
@@ -232,13 +247,20 @@ export class NostrClient {
         return null;
       }
 
-      // Sender authentication: NIP-17 seals from our clients are intentionally
-      // unsigned (no id/sig) — only the gift wrap is signed, with an ephemeral key
-      // per NIP-59 — so we do NOT signature-verify the seal (that rejected every
-      // legitimate order). Authentication comes from step 2: the seal content is
-      // NIP-44 encrypted with the real sender's key, so it only decrypts when
-      // keyed to the genuine sender's `seal.pubkey` (a forged pubkey fails to
-      // decrypt), and the seal/rumor pubkey match below rejects any spoof.
+      if (typeof seal.pubkey !== 'string' || !/^[0-9a-f]{64}$/.test(seal.pubkey)) {
+        console.warn(`[Nostr] Gift wrap ${giftWrapEvent.id?.slice(0, 8)}: invalid seal pubkey`);
+        return null;
+      }
+
+      // A SIGNED seal must verify. Unsigned seals are tolerated only because
+      // this shop's website sends them (see the method comment): for those,
+      // authentication comes from the step-2 decrypt plus the pubkey binding.
+      if (seal.sig !== undefined && !isSignedEvent(seal)) {
+        console.warn(
+          `[Nostr] Gift wrap ${giftWrapEvent.id?.slice(0, 8)}: seal signature does not verify`
+        );
+        return null;
+      }
 
       // Step 2: decrypt the seal with the real sender's pubkey -> inner rumor
       const rumorJson = nip44.decrypt(
@@ -247,9 +269,8 @@ export class NostrClient {
       );
       const rumor = JSON.parse(rumorJson);
 
-      // Bind the rumor to the seal. There is NO seal signature to verify (our
-      // seals are unsigned — see above); authentication comes from the step-2
-      // decrypt succeeding under `seal.pubkey` plus this pubkey match.
+      // Bind the rumor to the seal: the rumor's claimed author must be the seal's
+      // (authenticated) sender, or the sender was forged.
       if (seal.pubkey !== rumor.pubkey) {
         console.warn(
           `[Nostr] Gift wrap ${giftWrapEvent.id?.slice(0, 8)}: sender not authenticated (seal/rumor pubkey mismatch)`
