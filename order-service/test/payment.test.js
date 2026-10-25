@@ -360,3 +360,39 @@ test('handleOrder sends no invoice when the record cannot be persisted', async (
   await handleOrder(orderRumor({ amount: 81_250 }), client, deps);
   assert.equal(client.giftWraps.filter((g) => tagValue(g.rumor, 'type') === '2').length, 0);
 });
+
+test('handleOrder never re-invoices an order id that already has an invoice record', async () => {
+  const client = fakeNostrClient();
+  const { deps, calls } = orderDeps();
+  const rumor = orderRumor({ amount: 81_250 });
+  await handleOrder(rumor, client, deps);
+  const original = deps.store.getInvoice(tagValue(rumor, 'order'));
+  // The dedup entry expired (2-day window) but the invoice record remains.
+  deps.store.hasOrder = () => false;
+  await handleOrder(rumor, client, deps);
+  assert.equal(calls.length, 1, 'no second invoice');
+  assert.equal(deps.store.getInvoice(tagValue(rumor, 'order')), original);
+});
+
+test('requestInvoice keeps an https LUD-21 verify URL and fails on an unusable one', async () => {
+  const { requestInvoice } = await import('../lib/lightning.js');
+  const realFetch = globalThis.fetch;
+  const respond = (body) => {
+    globalThis.fetch = async () => ({ ok: true, json: async () => body });
+  };
+  try {
+    respond({ pr: 'lnbc1x', verify: 'https://ln.example/verify/1' });
+    assert.equal(
+      (await requestInvoice('https://ln.example/cb', 1000)).verify,
+      'https://ln.example/verify/1'
+    );
+    respond({ pr: 'lnbc1x' });
+    assert.equal((await requestInvoice('https://ln.example/cb', 1000)).verify, undefined);
+    for (const verify of ['http://ln.example/verify/1', 'not a url', 42]) {
+      respond({ pr: 'lnbc1x', verify });
+      await assert.rejects(requestInvoice('https://ln.example/cb', 1000), /verify URL/);
+    }
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

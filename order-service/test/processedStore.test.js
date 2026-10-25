@@ -161,3 +161,17 @@ test('invoice records outlive the dedup window but are pruned after their own ma
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('addInvoice refuses to overwrite an existing invoice record', () => {
+  const { path, dir } = tmpFile();
+  try {
+    const store = new ProcessedStore(path, 60);
+    store.addInvoice('order-1', record());
+    store.markPaid('order-1');
+    assert.throws(() => store.addInvoice('order-1', record({ paymentHash: 'cd'.repeat(32) })));
+    assert.equal(store.getInvoice('order-1').paymentHash, HASH);
+    assert.ok(store.getInvoice('order-1').paidAt);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

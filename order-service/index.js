@@ -247,8 +247,10 @@ export async function handleOrder(
     return;
   }
 
-  // Skip if already processed (persisted across restarts to avoid re-invoicing)
-  if (store.hasOrder(order.orderId)) {
+  // Skip if already processed (persisted across restarts to avoid re-invoicing).
+  // An issued-invoice record outlives the 2-day dedup entry, so a replayed
+  // order id is still recognised and never overwrites the original invoice.
+  if (store.hasOrder(order.orderId) || store.getInvoice?.(order.orderId)) {
     console.log(`[Order] Skipping duplicate order ${order.orderId.slice(0, 8)}`);
     return;
   }

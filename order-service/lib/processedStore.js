@@ -200,9 +200,14 @@ export class ProcessedStore {
   /**
    * Record the invoice issued for an order. Called BEFORE the invoice is sent
    * to the buyer, so a receipt can always be checked against it.
-   * @throws when the record can't be persisted (the caller must not send the invoice)
+   * @throws when the order already has an invoice record (an order id is never
+   *   re-invoiced, even after its dedup entry expires) or the record can't be
+   *   persisted; either way the caller must not send the invoice
    */
   addInvoice(orderId, { invoice, paymentHash, amountSats, buyerPubkey, verifyUrl }) {
+    if (this.invoices.has(orderId)) {
+      throw new Error(`Order ${orderId.slice(0, 8)} already has an invoice`);
+    }
     this.invoices.set(orderId, {
       invoice,
       paymentHash,

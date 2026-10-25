@@ -82,15 +82,22 @@ export async function requestInvoice(callback, amountMsats, comment = '', commen
     throw new Error('Invalid invoice response: missing payment request');
   }
 
-  // LUD-21: an https URL the service can poll to learn whether THIS invoice
-  // settled. Anything else is ignored (the preimage check still applies).
+  // LUD-21: an https URL the service polls to learn whether THIS invoice
+  // settled. A provider that offers one must offer a usable one: a malformed or
+  // non-https value fails the invoice rather than silently skipping the
+  // settlement check.
   let verify;
-  if (typeof data.verify === 'string') {
+  if (data.verify !== undefined && data.verify !== null) {
+    let url = null;
     try {
-      if (new URL(data.verify).protocol === 'https:') verify = data.verify;
+      url = typeof data.verify === 'string' ? new URL(data.verify) : null;
     } catch {
-      // Malformed verify URL: ignore it.
+      url = null;
     }
+    if (url?.protocol !== 'https:') {
+      throw new Error('Invalid invoice response: unusable LUD-21 verify URL');
+    }
+    verify = data.verify;
   }
 
   return {
