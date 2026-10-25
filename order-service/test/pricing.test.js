@@ -151,13 +151,25 @@ test('excessive, zero and malformed quantities are rejected', () => {
 
 test('shipping: the product extra cost is added to the option base price', () => {
   // 4.50 GBP badge + worldwide 15.00 + 2.00 extra = 21.50 GBP.
-  const result = price({ amount: 5_625 + 21_250, items: [[ref('badge'), '1']], shipping: WORLD });
+  const result = price({
+    amount: 5_625 + 21_250,
+    items: [[ref('badge'), '1']],
+    shipping: WORLD,
+    country: 'FR',
+    address: '1 Rue X, Paris, France',
+  });
   assert.equal(result.ok, true);
   assert.equal(result.shippingSats, 21_250);
 });
 
 test('shipping: an option the ordered products do not offer is rejected', () => {
-  const result = price({ amount: 8_350, items: [[ref('sats-sticker'), '1']], shipping: WORLD });
+  const result = price({
+    amount: 8_350,
+    items: [[ref('sats-sticker'), '1']],
+    shipping: WORLD,
+    country: 'FR',
+    address: '1 Rue X, Paris, France',
+  });
   assert.equal(result.ok, false);
   assert.match(result.reason, /shipping method is not available/);
 });
@@ -172,7 +184,10 @@ test("shipping: with no published options the website's legacy zones apply", () 
   const events = [listing('medallion', ['60.00', 'GBP'])];
   const catalog = shopCatalog(events);
   // Europe zone, 15 GBP.
-  const europe = price({ amount: 75_000 + 18_750, shipping: null }, catalog);
+  const europe = price(
+    { amount: 75_000 + 18_750, shipping: null, country: 'FR', address: 'x, France' },
+    catalog
+  );
   assert.equal(europe.ok, true);
   assert.equal(europe.totalSats, 93_750);
   // Not any legacy zone.
@@ -219,4 +234,51 @@ test('strict amount parsing: digits only, safe, positive, capped', () => {
   }
   assert.equal(parseOrderEvent(orderRumor({ amount: '100abc' })), null);
   assert.equal(parseOrderEvent(orderRumor({ amount: '-1' })), null);
+});
+
+test('shipping must cover the ship-to country (country tag)', () => {
+  // UK-only option for a US buyer: refused, even though it is cheaper.
+  const result = price({ amount: MEDALLION_UK, country: 'US', address: 'x, United States' });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /does not deliver to the ship-to country/);
+  // The worldwide option for the same buyer is fine.
+  const world = price({
+    amount: 75_000 + 18_750,
+    shipping: WORLD,
+    country: 'US',
+    address: 'x, United States',
+  });
+  assert.equal(world.ok, true);
+});
+
+test('a country tag contradicting the address country is refused', () => {
+  const result = price({
+    amount: MEDALLION_UK,
+    country: 'GB',
+    address: '1 Main St, Boston, United States',
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /couldn't tell which country/);
+});
+
+test('without a country tag, an English address country is used; otherwise only unrestricted options pass', () => {
+  assert.equal(
+    price({ amount: MEDALLION_UK, country: null }).ok,
+    true,
+    'address ends "United Kingdom"'
+  );
+  const unknown = price({ amount: MEDALLION_UK, country: null, address: 'x, Royaume-Uni' });
+  assert.equal(unknown.ok, false);
+  assert.match(unknown.reason, /couldn't tell which country/);
+  // A localised name is fine when the tag is present.
+  assert.equal(price({ amount: MEDALLION_UK, country: 'GB', address: 'x, Royaume-Uni' }).ok, true);
+});
+
+test('legacy zones are filtered by country too (no free UK zone for a US buyer)', () => {
+  const catalog = shopCatalog([listing('medallion', ['60.00', 'GBP'])]);
+  const us = { shipping: null, country: 'US', address: 'x, United States' };
+  assert.equal(price({ ...us, amount: 75_000 }, catalog).ok, false, 'UK zone (0 GBP) not allowed');
+  const worldwide = price({ ...us, amount: 75_000 + 31_250 }, catalog);
+  assert.equal(worldwide.ok, true);
+  assert.equal(worldwide.totalSats, 106_250);
 });

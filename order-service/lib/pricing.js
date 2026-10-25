@@ -18,7 +18,10 @@
  * Deliberate differences, all fail-closed: listings and shipping options must
  * be authored by the merchant and carry a valid signature; a mixed-currency
  * cart is priced per currency (the website adds raw amounts as if they shared
- * the first item's currency); negative prices are refused.
+ * the first item's currency); negative prices are refused; the chosen shipping
+ * option must cover the ship-to country (src/lib/shippingSelection.ts
+ * shipsToCountry), and when that country can't be determined only
+ * unrestricted options are accepted.
  *
  * Everything here is pure (no network, no clock): the catalog and the exchange
  * rates are passed in, so every branch is unit-testable.
@@ -54,11 +57,102 @@ export const FIAT_RATE_TOLERANCE = 0.05;
  * `shipping` tag and we can't tell which one was picked: an order is accepted
  * when its amount matches one of them.
  */
-export const LEGACY_SHIPPING_ZONES = [
-  { title: 'UK', amount: 0, currency: 'GBP' },
-  { title: 'Europe', amount: 15, currency: 'GBP' },
-  { title: 'Worldwide', amount: 25, currency: 'GBP' },
+const LEGACY_EU_COUNTRIES = [
+  'AT',
+  'BE',
+  'BG',
+  'HR',
+  'CY',
+  'CZ',
+  'DK',
+  'EE',
+  'FI',
+  'FR',
+  'DE',
+  'GR',
+  'HU',
+  'IE',
+  'IS',
+  'IT',
+  'LI',
+  'LT',
+  'LU',
+  'LV',
+  'MT',
+  'NL',
+  'NO',
+  'PL',
+  'PT',
+  'RO',
+  'SE',
+  'SI',
+  'SK',
+  'ES',
+  'CH',
 ];
+
+export const LEGACY_SHIPPING_ZONES = [
+  { title: 'UK', amount: 0, currency: 'GBP', countries: ['GB'] },
+  { title: 'Europe', amount: 15, currency: 'GBP', countries: LEGACY_EU_COUNTRIES },
+  { title: 'Worldwide', amount: 25, currency: 'GBP', countries: [] },
+];
+
+let englishCountryNames = null;
+
+/** English region name -> alpha-2 code, built once from ICU (as Intl.DisplayNames in the browser). */
+function countryCodeForName(name) {
+  if (!englishCountryNames) {
+    englishCountryNames = new Map();
+    const names = new Intl.DisplayNames(['en'], { type: 'region', fallback: 'none' });
+    for (let a = 65; a <= 90; a += 1) {
+      for (let b = 65; b <= 90; b += 1) {
+        const code = String.fromCharCode(a, b);
+        // Skip deprecated aliases (UK -> GB, BU -> MM, ...) that share a name.
+        if (Intl.getCanonicalLocales(`und-${code}`)[0] !== `und-${code}`) continue;
+        const label = names.of(code);
+        if (label) englishCountryNames.set(label.toLowerCase(), code);
+      }
+    }
+  }
+  return englishCountryNames.get(name.trim().toLowerCase());
+}
+
+/**
+ * The order's ship-to country (alpha-2), or null when it can't be determined.
+ *
+ * The checkout sends it as a `country` tag; the `address` tag also ends with
+ * the country's display name (gammaOrderUtils.ts formatAddress), localised to
+ * the buyer's browser. When that name is recognisably ANOTHER country than the
+ * tag, the order is inconsistent and gets null. Without a tag (older clients)
+ * an English country name in the address is used.
+ */
+export function destinationCountry(order) {
+  const lastSegment = (order.address ?? '').split(',').at(-1) ?? '';
+  const fromAddress = lastSegment ? countryCodeForName(lastSegment) : undefined;
+  if (order.countryCode) {
+    return fromAddress && fromAddress !== order.countryCode ? null : order.countryCode;
+  }
+  return fromAddress ?? null;
+}
+
+/**
+ * shippingSelection.ts shipsToCountry: no `country` tag means worldwide.
+ * Codes are compared as alpha-2; anything else never matches (fail closed).
+ * An unknown destination only matches unrestricted options.
+ */
+export function shipsToCountry(countries, countryCode) {
+  if (countries.length === 0) return true;
+  if (!countryCode) return false;
+  return countries.some((c) => typeof c === 'string' && c.trim().toUpperCase() === countryCode);
+}
+
+/** All values of an option event's `country` tags (one multi-value tag or several). */
+function optionCountries(event) {
+  return event.tags
+    .filter((t) => t[0] === 'country')
+    .flatMap(([, ...codes]) => codes)
+    .filter(Boolean);
+}
 
 function firstTagValue(event, name) {
   const tag = event.tags.find((t) => t[0] === name);
@@ -265,9 +359,17 @@ export function priceOrder(order, catalog, { merchantPubkey, merchantName = 'Rob
 
   /** @type {Array<{ sats: number, fiatSats: number }>} */
   let shippingCandidates;
+  const country = destinationCountry(order);
   if (order.shippingRef) {
     if (!allowed.includes(order.shippingRef)) {
       return reject('the chosen shipping method is not available for these items');
+    }
+    if (!shipsToCountry(optionCountries(catalog.shippingOptions.get(order.shippingRef)), country)) {
+      return reject(
+        country
+          ? 'the chosen shipping method does not deliver to the ship-to country'
+          : "we couldn't tell which country the order ships to"
+      );
     }
     const price = parseShippingOptionPrice(catalog.shippingOptions.get(order.shippingRef));
     // shippingSelection.ts shippingCostFor: base + the product's extra cost.
@@ -279,7 +381,9 @@ export function priceOrder(order, catalog, { merchantPubkey, merchantName = 'Rob
   } else if (allowed.length > 0) {
     return reject('no shipping method was chosen');
   } else {
-    shippingCandidates = LEGACY_SHIPPING_ZONES.map((zone) => {
+    shippingCandidates = LEGACY_SHIPPING_ZONES.filter((zone) =>
+      shipsToCountry(zone.countries, country)
+    ).map((zone) => {
       const sats = zone.amount ? convertToSats(zone.amount, zone.currency, rates) : 0;
       return { sats, fiatSats: isBitcoinCurrency(zone.currency) ? 0 : sats };
     });

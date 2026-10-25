@@ -35,7 +35,7 @@ export function listing(d, price, { sk = merchantSk, shipping = [], createdAt } 
 }
 
 /** A signed kind-30406 shipping option. */
-export function shippingOption(d, price, { sk = merchantSk } = {}) {
+export function shippingOption(d, price, { sk = merchantSk, countries = [] } = {}) {
   return finalizeEvent(
     {
       kind: 30406,
@@ -45,6 +45,7 @@ export function shippingOption(d, price, { sk = merchantSk } = {}) {
         ['d', d],
         ['title', `Ship ${d}`],
         ['price', ...price],
+        ...(countries.length ? [['country', ...countries]] : []),
       ],
     },
     sk
@@ -60,8 +61,8 @@ export function shopEvents() {
     listing('medallion', ['60.00', 'GBP'], { shipping: [[UK], [WORLD]] }),
     listing('badge', ['4.50', 'GBP'], { shipping: [[UK], [WORLD, '2.00']] }),
     listing('sats-sticker', ['2100', 'SATS'], { shipping: [[UK]] }),
-    shippingOption('ship-uk', ['5.00', 'GBP']),
-    shippingOption('ship-world', ['15.00', 'GBP']),
+    shippingOption('ship-uk', ['5.00', 'GBP'], { countries: ['GB'] }),
+    shippingOption('ship-world', ['15.00', 'GBP'], { countries: ['US', 'FR', 'DE'] }),
   ];
 }
 
@@ -77,6 +78,8 @@ export function orderRumor({
   amount,
   items = [[ref('medallion'), '1']],
   shipping = UK,
+  country = 'GB',
+  address = '123 Maker St, London, SW1A 1AA, United Kingdom',
   orderId = randomBytes(16).toString('hex'),
 } = {}) {
   return {
@@ -89,7 +92,8 @@ export function orderRumor({
       ['amount', String(amount)],
       ...items.map(([r, q]) => ['item', r, q]),
       ...(shipping ? [['shipping', shipping]] : []),
-      ['address', '123 Maker St'],
+      ...(country ? [['country', country]] : []),
+      ['address', address],
       ['email', 'buyer@example.com'],
     ],
     created_at: Math.floor(Date.now() / 1000),
@@ -115,7 +119,10 @@ export function memoryStore() {
     hasReceipt: (id) => receipts.has(id),
     addReceipt: (id) => receipts.add(id),
     getInvoice: (id) => invoices.get(id),
-    addInvoice: (id, record) => invoices.set(id, { ...record, createdAt: 1 }),
+    addInvoice: (id, record) => {
+      if (invoices.has(id)) throw new Error('already invoiced');
+      invoices.set(id, { ...record, createdAt: 1 });
+    },
     markPaid: (id) => invoices.set(id, { ...invoices.get(id), paidAt: 2 }),
   };
 }

@@ -109,6 +109,13 @@ export function createOrderTags(
     tags.push(['shipping', shipping.shippingRef]);
   }
 
+  // The ship-to country as an ISO 3166-1 alpha-2 code. The address tag ends
+  // with a browser-localised country NAME, which the order service can't read
+  // back reliably; it checks the chosen shipping option covers this code.
+  if (shipping.countryCode) {
+    tags.push(['country', shipping.countryCode.toUpperCase()]);
+  }
+
   // Add shipping/contact info
   tags.push(['address', formatAddress(shipping)]);
   tags.push(['email', shipping.email]);

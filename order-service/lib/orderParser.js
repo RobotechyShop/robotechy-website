@@ -49,7 +49,7 @@ export function parseQuantity(raw) {
 /**
  * Parse a Kind 16 Type 1 order event
  * @param {import('nostr-tools').Event} event
- * @returns {{orderId: string, buyerPubkey: string, amount: number, items: Array<{ref: string, quantity: number | null}>, shippingRef?: string, address: string, email: string, phone?: string, message?: string} | null}
+ * @returns {{orderId: string, buyerPubkey: string, amount: number, items: Array<{ref: string, quantity: number | null}>, shippingRef?: string, countryCode?: string, address: string, email: string, phone?: string, message?: string} | null}
  */
 export function parseOrderEvent(event) {
   if (event.kind !== ORDER_PROCESS_KIND) {
@@ -67,6 +67,7 @@ export function parseOrderEvent(event) {
   const emailTag = event.tags.find(t => t[0] === 'email');
   const phoneTag = event.tags.find(t => t[0] === 'phone');
   const shippingTag = event.tags.find(t => t[0] === 'shipping' && typeof t[1] === 'string');
+  const countryTag = event.tags.find(t => t[0] === 'country' && typeof t[1] === 'string');
 
   if (typeof orderTag?.[1] !== 'string' || !orderTag[1] || !amountTag) {
     console.warn('[OrderParser] Missing required order or amount tag');
@@ -98,6 +99,8 @@ export function parseOrderEvent(event) {
     // Chosen shipping option per the Gamma spec: "30406:<pubkey>:<d-tag>".
     // Absent when the buyer picked one of the website's legacy fallback zones.
     shippingRef: shippingTag?.[1] || undefined,
+    // Ship-to country (ISO 3166-1 alpha-2) the checkout filtered shipping by.
+    countryCode: /^[A-Za-z]{2}$/.test(countryTag?.[1] ?? '') ? countryTag[1].toUpperCase() : undefined,
     address: addressTag?.[1] || '',
     email: emailTag?.[1] || '',
     phone: phoneTag?.[1],
