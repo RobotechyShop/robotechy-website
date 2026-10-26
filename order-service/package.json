@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "light-bolt11-decoder": "^3.2.0",
-    "nostr-tools": "^2.23.9",
-    "ws": "^8.18.3"
+    "nostr-tools": "^2.25.2",
+    "ws": "^8.22.0"
   },
   "engines": {
     "node": ">=22"
