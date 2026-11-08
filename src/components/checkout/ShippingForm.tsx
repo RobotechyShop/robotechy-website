@@ -104,6 +104,8 @@ type ShippingFormData = z.infer<typeof shippingSchema>;
 interface ShippingFormProps {
   onSubmit: (data: ShippingInfo) => void;
   isSubmitting: boolean;
+  /** Lightning payments are down: keep the form usable but block ordering. */
+  paymentsUnavailable?: boolean;
   currency?: string;
   /** Real kind-30406 options for this cart (falls back to legacy zones). */
   shippingOptions?: ShippingOptionData[];
@@ -116,6 +118,7 @@ interface ShippingFormProps {
 export function ShippingForm({
   onSubmit,
   isSubmitting,
+  paymentsUnavailable = false,
   currency = 'GBP',
   shippingOptions,
   optionsLoading = false,
@@ -168,7 +171,7 @@ export function ShippingForm({
     !!shippingCost && shippingCost.currency.toUpperCase() === currency.toUpperCase();
 
   const handleFormSubmit = (data: ShippingFormData) => {
-    if (!selectedOption) return; // guarded by disabled submit; belt and braces
+    if (!selectedOption || paymentsUnavailable) return; // guarded by disabled submit; belt and braces
     const cost = shippingCostFor(selectedOption);
     const address = data.address || '';
     const shippingInfo: ShippingInfo = {
@@ -390,7 +393,9 @@ export function ShippingForm({
         type="submit"
         tabIndex={11}
         className="w-full bg-robotechy-green hover:brightness-110 text-black font-semibold"
-        disabled={!isValid || !selectedOption || isSubmitting || optionsLoading}
+        disabled={
+          !isValid || !selectedOption || isSubmitting || optionsLoading || paymentsUnavailable
+        }
       >
         {isSubmitting ? 'Processing...' : 'Place Order'}
       </Button>

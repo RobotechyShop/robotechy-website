@@ -3,9 +3,15 @@ set -e
 
 echo "Starting Robotechy services..."
 
-# Start order service in background (if env vars are set)
+# Start order service in background (needs MERCHANT_NSEC). LIGHTNING_ADDRESS
+# may be empty or its backend down: the service then stays up, holds orders and
+# writes dist/payments-status.json = unavailable until Lightning recovers, so an
+# LNbits outage no longer restart-loops the whole site.
 ORDER_PID=""
-if [ -n "$MERCHANT_NSEC" ] && [ -n "$LIGHTNING_ADDRESS" ]; then
+if [ -n "$MERCHANT_NSEC" ]; then
+  if [ -z "$LIGHTNING_ADDRESS" ]; then
+    echo "Warning: LIGHTNING_ADDRESS not set - orders will be held and payments shown as unavailable"
+  fi
   echo "Starting order processing service..."
   cd /app/order-service
   node index.js &
@@ -13,7 +19,10 @@ if [ -n "$MERCHANT_NSEC" ] && [ -n "$LIGHTNING_ADDRESS" ]; then
   echo "Order service started (PID: $ORDER_PID)"
   cd /app
 else
-  echo "Warning: MERCHANT_NSEC or LIGHTNING_ADDRESS not set - order service disabled"
+  echo "Warning: MERCHANT_NSEC not set - order service disabled"
+  # Nothing can invoice, so tell the storefront checkout up front.
+  printf '{"lightning":"unavailable","checkedAt":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    > /app/dist/payments-status.json || true
 fi
 
 # Start the event archiver (public key only — never needs MERCHANT_NSEC). It

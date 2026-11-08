@@ -33,7 +33,9 @@ import { config } from './lib/config.js';
 import { isIgnorableRelayError } from './lib/relayErrors.js';
 import { NostrClient, decodeNsec } from './lib/nostr.js';
 import { ProcessedStore } from './lib/processedStore.js';
-import { generateInvoice, validateLightningAddress } from './lib/lightning.js';
+import { generateInvoice } from './lib/lightning.js';
+import { startHealthMonitor } from './lib/lightningHealth.js';
+import { writePaymentsStatus } from './lib/paymentsStatus.js';
 import { loadCatalog } from './lib/catalog.js';
 import { getSatsRates } from './lib/exchangeRate.js';
 import { needsExchangeRates, priceOrder } from './lib/pricing.js';
@@ -72,6 +74,55 @@ const PRICING_ATTEMPTS = 3;
 const PRICING_RETRY_MS = 5000;
 
 const defaultSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Lightning backend health (lib/lightningHealth.js), started by main(). Null
+// when handleOrder is imported by tests, which then treat Lightning as healthy.
+let lightningMonitor = null;
+
+// Orders held while Lightning is unavailable: orderId -> order rumor. They are
+// NOT in the dedup store, so they are invoiced once Lightning recovers
+// (retryPendingOrders) — or, after a restart, when the 2-day gift-wrap
+// lookback delivers them again. Capped so an outage can't grow it unbounded.
+const pendingOrders = new Map();
+const MAX_PENDING_ORDERS = 500;
+
+/**
+ * Hold an order until Lightning recovers. Its dedup entry is NOT kept, so it
+ * will be processed (exactly once) later.
+ */
+function deferOrder(order, event, pending) {
+  if (!pending.has(order.orderId) && pending.size >= MAX_PENDING_ORDERS) {
+    console.warn(
+      `[Order] Lightning unavailable and ${MAX_PENDING_ORDERS} orders already held - not holding ${order.orderId.slice(0, 8)} (it will be picked up after a restart)`
+    );
+    return;
+  }
+  pending.set(order.orderId, event);
+  console.warn(
+    `[Order] Lightning payments unavailable - holding order ${order.orderId.slice(0, 8)} until they recover (${pending.size} held)`
+  );
+}
+
+/**
+ * Re-run every held order once Lightning is healthy again. handleOrder's dedup
+ * check (and the synchronous addOrder that follows it) guarantees each order is
+ * invoiced at most once, even if the same order also arrives again meanwhile.
+ */
+export function retryPendingOrders(
+  nostrClient,
+  { pending = pendingOrders, handle = handleOrder } = {}
+) {
+  if (pending.size === 0) return;
+  console.log(`[Order] Lightning payments recovered - retrying ${pending.size} held order(s)`);
+  for (const [orderId, event] of [...pending]) {
+    pending.delete(orderId);
+    Promise.resolve()
+      .then(() => handle(event, nostrClient))
+      .catch((error) =>
+        console.error(`[Order] Retry of held order ${orderId.slice(0, 8)} failed:`, error)
+      );
+  }
+}
 
 /**
  * Format a human-readable note to ride inside the gift-wrapped payment request
@@ -226,6 +277,9 @@ async function priceWithRetry(
  *   merchantPubkey?: string,
  *   sleep?: (ms: number) => Promise<void>,
  *   pricingAttempts?: number,
+ *   isLightningHealthy?: () => boolean,
+ *   recheckLightning?: () => Promise<boolean>,
+ *   pending?: Map<string, object>,
  * }} [deps]
  */
 export async function handleOrder(
@@ -240,6 +294,9 @@ export async function handleOrder(
     merchantPubkey = nostrClient.pubkey,
     sleep = defaultSleep,
     pricingAttempts = PRICING_ATTEMPTS,
+    isLightningHealthy = () => lightningMonitor?.isHealthy() ?? true,
+    recheckLightning = () => lightningMonitor?.checkNow() ?? Promise.resolve(true),
+    pending = pendingOrders,
   } = {}
 ) {
   const order = parseOrderEvent(event);
@@ -254,6 +311,16 @@ export async function handleOrder(
     console.log(`[Order] Skipping duplicate order ${order.orderId.slice(0, 8)}`);
     return;
   }
+
+  // Lightning down: don't invoice, and don't mark the order processed, so it is
+  // retried when Lightning recovers instead of being cancelled or lost.
+  if (!isLightningHealthy()) {
+    deferOrder(order, event, pending);
+    return;
+  }
+  pending.delete(order.orderId);
+  // Synchronous with the dedup check above (no await in between), so a
+  // concurrent copy of this order can't also get past it.
   store.addOrder(order.orderId);
 
   console.log(`[Order] New order received!`);
@@ -313,6 +380,15 @@ export async function handleOrder(
     });
   } catch (error) {
     console.error(`[Order] ✗ Could not invoice order ${order.orderId.slice(0, 8)}:`, error.message);
+    // Lightning may have gone down since the last health probe. If a fresh
+    // probe agrees, hold the order for retry instead of cancelling it. No
+    // invoice record was stored (addInvoice is the last step above), so the
+    // retry can't double-invoice.
+    if (!store.getInvoice?.(order.orderId) && !(await recheckLightning())) {
+      store.removeOrder(order.orderId);
+      deferOrder(order, event, pending);
+      return;
+    }
     await cancelOrder(order, "we couldn't create a Lightning invoice just now", nostrClient);
     return;
   }
@@ -489,14 +565,29 @@ async function main() {
   console.log('Robotechy Order Processing Service');
   console.log('='.repeat(50));
 
-  // Validate Lightning Address
-  console.log(`\n[Startup] Validating Lightning Address: ${config.lightningAddress}`);
-  const isValid = await validateLightningAddress(config.lightningAddress);
-  if (!isValid) {
-    console.error('[Startup] ✗ Invalid Lightning Address - check your configuration');
-    process.exit(1);
+  // Check the Lightning Address, but never exit over it: a Lightning backend
+  // outage (or a missing address) must not take the order service — and with
+  // it the whole website container — down. Instead keep probing, publish
+  // payments-status.json for the storefront, hold orders while unavailable and
+  // retry them on recovery.
+  let nostrClient = null;
+  console.log(
+    `\n[Startup] Checking Lightning Address: ${config.lightningAddress || '(not configured)'}`
+  );
+  lightningMonitor = startHealthMonitor(config.lightningAddress, {
+    onChange: (status) => {
+      writePaymentsStatus(status);
+      if (status.healthy && nostrClient) retryPendingOrders(nostrClient);
+    },
+  });
+  await lightningMonitor.ready;
+  if (lightningMonitor.isHealthy()) {
+    console.log('[Startup] ✓ Lightning Address is reachable');
+  } else {
+    console.warn(
+      '[Startup] ⚠ Lightning Address is not reachable - starting anyway; orders will be held and payments shown as unavailable until it recovers'
+    );
   }
-  console.log('[Startup] ✓ Lightning Address is valid');
 
   // Decode merchant nsec
   console.log('\n[Startup] Decoding merchant credentials...');
@@ -504,8 +595,9 @@ async function main() {
 
   // Initialize Nostr client
   console.log('[Startup] Connecting to Nostr relays...');
-  const nostrClient = new NostrClient(secretKey, config.fallbackRelays);
-  await nostrClient.init();
+  const client = new NostrClient(secretKey, config.fallbackRelays);
+  await client.init();
+  nostrClient = client;
 
   console.log('\n[Startup] ✓ Service ready - listening for orders\n');
   console.log('-'.repeat(50));
@@ -558,6 +650,7 @@ async function main() {
   process.on('SIGINT', () => {
     console.log('\n\n[Shutdown] Received SIGINT, closing connections...');
     unsubGiftWraps();
+    lightningMonitor?.stop();
     nostrClient.close();
     console.log('[Shutdown] Goodbye!');
     process.exit(0);
@@ -566,6 +659,7 @@ async function main() {
   process.on('SIGTERM', () => {
     console.log('\n\n[Shutdown] Received SIGTERM, closing connections...');
     unsubGiftWraps();
+    lightningMonitor?.stop();
     nostrClient.close();
     process.exit(0);
   });

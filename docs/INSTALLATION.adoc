@@ -156,7 +156,7 @@ docker run -d \
 docker run -d -p 3000:3000 --name robotechy robotechy:latest
 ----
 
-Without `MERCHANT_NSEC` and `LIGHTNING_ADDRESS`, the order service is disabled.
+Without `MERCHANT_NSEC`, the order service is disabled. Without a (reachable) `LIGHTNING_ADDRESS` it still runs, but holds orders and reports payments as unavailable to checkout until the address works.
 
 === Environment Variables
 
@@ -169,8 +169,12 @@ Without `MERCHANT_NSEC` and `LIGHTNING_ADDRESS`, the order service is disabled.
 |Merchant's Nostr secret key in nsec format
 
 |`LIGHTNING_ADDRESS`
-|For orders
+|For payments
 |Lightning Address for invoice generation (e.g., `yourname@getalby.com`)
+
+|`PAYMENTS_STATUS_PATH`
+|No
+|Where the order service writes `payments-status.json` (default `/app/dist/payments-status.json`)
 
 |`FALLBACK_RELAYS`
 |No

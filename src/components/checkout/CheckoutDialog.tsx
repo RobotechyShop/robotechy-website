@@ -13,10 +13,11 @@ import { useCart } from '@/hooks/useCart';
 import { useCheckoutShippingOptions } from '@/hooks/useCheckoutShippingOptions';
 import { useGammaCheckout } from '@/hooks/useGammaCheckout';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { usePaymentsStatus } from '@/hooks/usePaymentsStatus';
 import LoginDialog from '@/components/auth/LoginDialog';
 import type { ShippingInfo } from '@/lib/cartTypes';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { formatPrice } from '@/lib/productUtils';
 
@@ -44,6 +45,8 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
   } = useGammaCheckout();
 
   const [step, setStep] = useState<CheckoutStep>('shipping');
+  // Only an explicit "unavailable" blocks ordering; "unknown" never does.
+  const paymentsUnavailable = usePaymentsStatus(open && step === 'shipping') === 'unavailable';
   const [loginOpen, setLoginOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -137,6 +140,15 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
 
           {step === 'shipping' && (
             <div className="space-y-4">
+              {paymentsUnavailable && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    Lightning payments are temporarily unavailable. Please try again a little later.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="bg-muted rounded-lg p-3">
                 <p className="text-sm">
                   <span className="font-medium">{totalItems} item(s)</span>
@@ -148,6 +160,7 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
               <ShippingForm
                 onSubmit={handleShippingSubmit}
                 isSubmitting={isSubmitting}
+                paymentsUnavailable={paymentsUnavailable}
                 currency={currency}
                 shippingOptions={shippingOptions}
                 optionsLoading={shippingOptionsLoading}

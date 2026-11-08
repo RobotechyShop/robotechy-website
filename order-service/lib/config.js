@@ -58,8 +58,10 @@ export const config = {
   // Merchant's nsec (secret key)
   merchantNsec: requireEnv('MERCHANT_NSEC'),
 
-  // Lightning Address for invoice generation
-  lightningAddress: requireEnv('LIGHTNING_ADDRESS'),
+  // Lightning Address for invoice generation. Optional: when unset or
+  // unreachable the service still runs, holds incoming orders and reports
+  // payments as unavailable (lib/lightningHealth.js) until it recovers.
+  lightningAddress: getEnv('LIGHTNING_ADDRESS').trim(),
 
   // Fallback relays (comma-separated). Default matches DEFAULT_SHOP_RELAYS in
   // ./archiveConfig.js and src/lib/shopRelays.ts — the family relay first (it
