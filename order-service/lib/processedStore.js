@@ -182,6 +182,14 @@ export class ProcessedStore {
     this.save();
   }
 
+  /**
+   * Forget an order so it can be processed again. Only for an order that was
+   * never invoiced (e.g. deferred because Lightning went down mid-order).
+   */
+  removeOrder(orderId) {
+    if (this.orders.delete(orderId)) this.save();
+  }
+
   hasReceipt(receiptId) {
     return this.receipts.has(receiptId);
   }

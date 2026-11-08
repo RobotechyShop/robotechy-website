@@ -165,7 +165,14 @@ The frontend is served on port 3000. The order service connects outbound to Nost
 
 Mount a volume at `/data/backups` so the archive survives rebuilds.
 
-If `MERCHANT_NSEC` or `LIGHTNING_ADDRESS` are not set, the container runs frontend-only mode.
+If `MERCHANT_NSEC` is not set, the container runs frontend-only mode.
+
+### When Lightning is down
+
+The order service never exits because the Lightning Address is unset or its backend (e.g. LNbits) is unreachable. It probes `https://<domain>/.well-known/lnurlp/<name>` every minute (`order-service/lib/lightningHealth.js`) and, while that fails:
+
+- holds new orders instead of invoicing them (they are not marked processed, so they are invoiced once Lightning recovers, or after a restart via the 2-day lookback);
+- writes `dist/payments-status.json` (`{"lightning":"ok"|"unavailable","checkedAt":"..."}`, override with `PAYMENTS_STATUS_PATH`), which checkout reads to show "Lightning payments are temporarily unavailable" and disable Place Order. A missing status file never blocks buying.
 
 ## Relays
 

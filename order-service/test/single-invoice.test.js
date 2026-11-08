@@ -37,7 +37,7 @@ import { randomBytes } from 'node:crypto';
 process.env.MERCHANT_NSEC ||= 'nsec-test-placeholder';
 process.env.LIGHTNING_ADDRESS ||= 'robotechy@example.com';
 
-const { handleOrder } = await import('../index.js');
+const { handleOrder, retryPendingOrders } = await import('../index.js');
 const { memoryStore, merchantPk, orderRumor, RATES, shopCatalog } =
   await import('./helpers/shop.js');
 
@@ -240,4 +240,71 @@ test('a duplicate order is skipped — no second invoice and no further gift wra
     2,
     'a replayed order must not send any further gift wraps (still just the original card + note)'
   );
+});
+
+test('Lightning down: the order is held, not invoiced and not marked processed', async () => {
+  const order = buildOrderRumor();
+  const pending = new Map();
+  await handleOrder(order, nostrClient, { ...deps(), isLightningHealthy: () => false, pending });
+
+  assert.equal(generateInvoiceSpy.calls.length, 0, 'no invoice while Lightning is down');
+  assert.equal(nostrClient.giftWraps.length, 0, 'nothing sent (no cancellation either)');
+  const orderId = tagValue(order, 'order');
+  assert.equal(store.hasOrder(orderId), false, 'not in the dedup store, so it is retried');
+  assert.equal(pending.size, 1, 'held for retry');
+
+  // Recovery: retrying the held order invoices it exactly once, even if the same
+  // order also arrives again at the same moment.
+  const healthy = { ...deps(), isLightningHealthy: () => true, pending };
+  const handled = [];
+  retryPendingOrders(nostrClient, {
+    pending,
+    handle: (event, client) => {
+      const p = handleOrder(event, client, healthy);
+      handled.push(p);
+      return p;
+    },
+  });
+  handled.push(handleOrder(order, nostrClient, healthy));
+  await new Promise((r) => setImmediate(r));
+  await Promise.all(handled);
+
+  assert.equal(pending.size, 0);
+  assert.equal(generateInvoiceSpy.calls.length, 1, 'invoiced exactly once on recovery');
+  assert.equal(giftWrapsOfKind(nostrClient, 16).length, 1);
+  assert.equal(store.hasOrder(orderId), true);
+});
+
+test('Lightning fails mid-order: a failed probe holds the order instead of cancelling it', async () => {
+  const order = buildOrderRumor();
+  const pending = new Map();
+  const failing = async () => {
+    throw new Error('fetch failed');
+  };
+  await handleOrder(order, nostrClient, {
+    ...deps(),
+    generateInvoice: failing,
+    recheckLightning: async () => false,
+    pending,
+  });
+  assert.equal(nostrClient.giftWraps.length, 0, 'no cancellation sent');
+  assert.equal(store.hasOrder(tagValue(order, 'order')), false);
+  assert.equal(pending.size, 1);
+});
+
+test('invoice failure while Lightning is healthy still cancels the order', async () => {
+  const order = buildOrderRumor();
+  const pending = new Map();
+  await handleOrder(order, nostrClient, {
+    ...deps(),
+    generateInvoice: async () => {
+      throw new Error('amount below minimum');
+    },
+    recheckLightning: async () => true,
+    pending,
+  });
+  assert.equal(pending.size, 0);
+  const statuses = giftWrapsOfKind(nostrClient, 16);
+  assert.equal(statuses.length, 1);
+  assert.equal(tagValue(statuses[0].rumor, 'status'), 'cancelled');
 });

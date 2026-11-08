@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Copy, Check, ExternalLink, Loader2, Zap } from 'lucide-react';
+import { Copy, Check, Clock, ExternalLink, Loader2, RefreshCw, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,12 @@ import { useToast } from '@/hooks/useToast';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import type { GammaPaymentRequest } from '@/lib/cartTypes';
 import QRCode from 'qrcode';
+
+/**
+ * How long "Waiting for invoice..." spins before we say it's taking longer than
+ * usual (e.g. the shop's Lightning backend is down and the order is being held).
+ */
+export const INVOICE_WAIT_TIMEOUT_MS = 75_000;
 
 interface PaymentDisplayProps {
   orderId: string;
@@ -40,6 +46,8 @@ export function PaymentDisplay({
   const [copied, setCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [isPaying, setIsPaying] = useState(false);
+  const [waitTimedOut, setWaitTimedOut] = useState(false);
+  const [waitAttempt, setWaitAttempt] = useState(0);
 
   // Use totalSats directly if currency is SAT, otherwise convert
   const satsAmount =
@@ -51,6 +59,15 @@ export function PaymentDisplay({
   const invoice = paymentRequest?.payment_options?.find(
     (o) => o.type === 'ln' || o.type === 'lnurl'
   )?.link;
+
+  // Stop spinning forever if the invoice doesn't arrive. A late invoice still
+  // replaces this message: the view switches as soon as it is received.
+  useEffect(() => {
+    if (invoice) return;
+    setWaitTimedOut(false);
+    const timer = setTimeout(() => setWaitTimedOut(true), INVOICE_WAIT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [invoice, waitAttempt]);
 
   // Generate QR code when invoice is available
   useEffect(() => {
@@ -155,6 +172,30 @@ export function PaymentDisplay({
       setIsPaying(false);
     }
   };
+
+  // Waited too long: replace the spinner with a friendly message + retry.
+  if ((!paymentRequest || !invoice) && waitTimedOut) {
+    return (
+      <div className="flex flex-col items-center py-12 space-y-4">
+        <Clock className="h-8 w-8 text-muted-foreground" />
+        <div className="text-center space-y-2">
+          <p className="font-medium">The invoice is taking longer than usual</p>
+          <p className="text-sm text-muted-foreground">
+            Lightning payments may be temporarily unavailable. Your order has been sent to the shop,
+            and its invoice will appear here and in your Nostr messages once payments are back.
+            Please try again a little later.
+          </p>
+          <p className="text-xs text-muted-foreground mt-4">
+            Order ID: {orderId.slice(0, 8)}...{orderId.slice(-8)}
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => setWaitAttempt((n) => n + 1)}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Keep waiting
+        </Button>
+      </div>
+    );
+  }
 
   // Show waiting state while subscription looks for payment request
   if (!paymentRequest || !invoice) {

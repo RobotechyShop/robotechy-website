@@ -170,8 +170,8 @@ if (msg.includes('restricted') ||
 |===
 |Problem |Solution
 
-|Service won't start - "Invalid Lightning Address"
-|Verify the address in `.env` resolves. Test: `curl https://domain/.well-known/lnurlp/username`
+|Checkout says "Lightning payments are temporarily unavailable" / logs show "Lightning payments unavailable"
+|The Lightning Address is unset or its backend is down; orders are held until it recovers. Verify the address resolves: `curl https://domain/.well-known/lnurlp/username`
 
 |Orders not being received
 |Check relay connectivity. Verify merchant pubkey matches. Check `since` filter isn't excluding old events

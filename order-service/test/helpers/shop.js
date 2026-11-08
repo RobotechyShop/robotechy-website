@@ -116,6 +116,7 @@ export function memoryStore() {
     invoices,
     hasOrder: (id) => orders.has(id),
     addOrder: (id) => orders.add(id),
+    removeOrder: (id) => orders.delete(id),
     hasReceipt: (id) => receipts.has(id),
     addReceipt: (id) => receipts.add(id),
     getInvoice: (id) => invoices.get(id),
